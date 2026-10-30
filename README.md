@@ -17,6 +17,9 @@ Encryption: AES-256-GCM, key from the passphrase via PBKDF2-SHA256 (600k rounds)
 ## Files and documents
 Choose **File or document** on the Hide tab to hide a PDF, spreadsheet, key file, zip or anything else instead of text. The file name and contents are both encrypted, and the recipient gets a **Save file** button (files are never opened automatically; executable-type files get an extra warning). Rough size limits per style: lossless photo ~400 KB, code art ~58 KB (images get big above 8 KB), JPEG-safe photo ~3 KB, QR ~1.6 KB, fake QR ~350 bytes. The app shows the limit for the chosen style and refuses oversize files.
 
+## Hiding a picture itself
+In **File or document** mode you can paste an image from the clipboard (Ctrl/Cmd+V, or **Paste an image from the clipboard**) and the picture itself is encrypted and hidden, byte for byte, instead of its text being read. The recipient sees a preview of the revealed picture, with **Save file** and **Copy image** buttons. Pictures are usually large, so the lossless photo style (or splitting across several images) is the practical way to carry them.
+
 ## Reading the secret from a picture of text
 On the Hide tab (text mode), **Use camera**, **Choose image** or **Paste image** reads the text out of a picture (a note, a printed password, a page) and puts it in the secret box for you to check and edit before hiding. It runs entirely in the browser with [Tesseract.js](https://github.com/naptha/tesseract.js) (Apache-2.0, English). The reader (about 7 MB) is served from this site's own files and downloaded only the first time you use it. Printed text works best; handwriting does not.
 

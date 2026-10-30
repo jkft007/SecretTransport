@@ -125,15 +125,49 @@ function syncKindUi() {
   }
 }
 
+// An image pasted from the clipboard can be the secret itself (its bytes are encrypted as-is).
+let pastedSecret: { name: string; data: Uint8Array } | null = null;
+const IMAGE_EXT: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp' };
+const extForType = (t: string) => ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'image/bmp': 'bmp', 'image/avif': 'avif', 'image/heic': 'heic' } as Record<string, string>)[t] ?? 'img';
+
 function syncFileInfo() {
   const f = $<HTMLInputElement>('secret-file').files?.[0];
-  $('file-info').textContent = f ? `${f.name} · ${fmt(f.size)}` : '';
+  const name = pastedSecret?.name ?? f?.name;
+  const size = pastedSecret?.data.length ?? f?.size;
+  $('file-info').textContent = name ? `${name} · ${fmt(size!)}${pastedSecret ? ' (pasted image)' : ''}` : '';
   const w = $('file-warn');
-  w.hidden = !(f && RISKY_EXT.test(f.name));
+  w.hidden = !(name && RISKY_EXT.test(name));
   w.textContent = 'This is an executable-type file. Your recipient should only open it if they trust you.';
 }
+
+async function setSecretImage(blob: Blob) {
+  if (!blob.type.startsWith('image/')) return setStatus($('hide-status'), 'That is not an image.', true);
+  pastedSecret = { name: `pasted-image.${extForType(blob.type)}`, data: new Uint8Array(await blob.arrayBuffer()) };
+  $<HTMLInputElement>('secret-file').value = '';
+  syncFileInfo();
+  setStatus($('hide-status'), 'Image pasted. It will be hidden exactly as it is.');
+}
+
+$('btn-paste-secret').onclick = async () => {
+  const status = $('hide-status');
+  try {
+    if (!navigator.clipboard?.read) throw new Error('unsupported');
+    for (const item of await navigator.clipboard.read()) {
+      const type = item.types.find((t) => t.startsWith('image/'));
+      if (type) return void (await setSecretImage(await item.getType(type)));
+    }
+    setStatus(status, 'No image found on the clipboard. Copy a picture first, then try again.', true);
+  } catch (e) {
+    const denied = (e as Error).name === 'NotAllowedError';
+    setStatus(status, denied ? 'Clipboard access was blocked. Allow it in the browser, or press Ctrl/Cmd+V instead.' : 'This browser cannot read the clipboard here (needs https or localhost). Press Ctrl/Cmd+V instead.', true);
+  }
+};
+
 kindRadios().forEach((r) => r.addEventListener('change', syncKindUi));
-$('secret-file').addEventListener('change', syncFileInfo);
+$('secret-file').addEventListener('change', () => {
+  pastedSecret = null; // choosing a file replaces a pasted image
+  syncFileInfo();
+});
 $('photo-kind').addEventListener('change', syncKindUi);
 
 function syncModeUi() {
@@ -254,9 +288,10 @@ $('btn-create').onclick = async () => {
   let payload: Payload;
   if (currentKind() === 'file') {
     const f = $<HTMLInputElement>('secret-file').files?.[0];
-    if (!f) return setStatus(status, 'Choose the file to hide.', true);
-    if (f.size > MAX_FILE_BYTES) return setStatus(status, `That file is too large (${fmt(f.size)}). The limit is ${fmt(MAX_FILE_BYTES)}.`, true);
-    payload = { kind: 'file', name: f.name, data: new Uint8Array(await f.arrayBuffer()) };
+    if (!pastedSecret && !f) return setStatus(status, 'Choose the file to hide, or paste an image.', true);
+    const size = pastedSecret?.data.length ?? f!.size;
+    if (size > MAX_FILE_BYTES) return setStatus(status, `That file is too large (${fmt(size)}). The limit is ${fmt(MAX_FILE_BYTES)}.`, true);
+    payload = pastedSecret ? { kind: 'file', name: pastedSecret.name, data: pastedSecret.data } : { kind: 'file', name: f!.name, data: new Uint8Array(await f!.arrayBuffer()) };
   } else {
     const text = $<HTMLTextAreaElement>('secret').value;
     if (!text) return setStatus(status, 'Enter some text to hide.', true);
@@ -439,10 +474,17 @@ document.addEventListener('paste', (e) => {
   const files = [...(e.clipboardData?.items ?? [])].filter((i) => i.kind === 'file' && i.type.startsWith('image/')).map((i) => i.getAsFile()).filter((f): f is File => !!f);
   if (files.length) {
     e.preventDefault();
-    // On the Hide tab with the photo style chosen, a pasted image is the cover photo.
-    if (!$('panel-hide').hidden && currentMode() === 'photo') {
-      setCover(files[0]);
-      return;
+    if (!$('panel-hide').hidden) {
+      // Hiding a file: the pasted picture is the secret itself.
+      if (currentKind() === 'file') {
+        setSecretImage(files[0]);
+        return;
+      }
+      // Otherwise, with the photo style chosen, it is the cover photo.
+      if (currentMode() === 'photo') {
+        setCover(files[0]);
+        return;
+      }
     }
     loadBlobs(files);
   }
@@ -474,8 +516,17 @@ function showResult(p: Payload) {
   $('file-result').hidden = !isFile;
   $('btn-copy-plain').hidden = isFile;
   $('btn-save-file').hidden = !isFile;
+  clearPreview();
   if (p.kind === 'file') {
     pendingFile = { name: p.name, data: p.data };
+    const mime = IMAGE_EXT[(p.name.split('.').pop() ?? '').toLowerCase()];
+    if (mime) {
+      // a decrypted picture: show it (only raster formats; the browser never runs anything from these)
+      const img = $<HTMLImageElement>('file-preview');
+      img.src = URL.createObjectURL(new Blob([p.data as unknown as BlobPart], { type: mime }));
+      img.hidden = false;
+      $('btn-copy-img').hidden = false;
+    }
     $('file-meta').textContent = `${p.name}  (${fmt(p.data.length)})`;
     const w = $('file-warn2');
     w.hidden = false;
@@ -497,7 +548,30 @@ $('btn-save-file').onclick = () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 
+function clearPreview() {
+  const img = $<HTMLImageElement>('file-preview');
+  if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+  img.removeAttribute('src');
+  img.hidden = true;
+  $('btn-copy-img').hidden = true;
+}
+
+$('btn-copy-img').onclick = async () => {
+  const img = $<HTMLImageElement>('file-preview');
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  c.getContext('2d')!.drawImage(img, 0, 0);
+  try {
+    await copyImage(c);
+    setStatus($('reveal-status'), 'Image copied.');
+  } catch (e) {
+    setStatus($('reveal-status'), (e as Error).message, true);
+  }
+};
+
 function clearResult() {
+  clearPreview();
   pendingFile = null;
   $('file-meta').textContent = '';
   clearTimeout(clearTimer);

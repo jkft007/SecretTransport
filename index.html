@@ -48,8 +48,12 @@
         </div>
 
         <div id="file-row" hidden>
-          <label for="secret-file">File to hide <span class="hint">(PDF, Word, a key file, a zip, anything)</span></label>
+          <label for="secret-file">File to hide <span class="hint">(PDF, Word, a key file, a zip, a picture, anything)</span></label>
           <input id="secret-file" type="file" />
+          <div class="row">
+            <button id="btn-paste-secret" class="ghost small" type="button">Paste an image from the clipboard</button>
+            <span class="hint">The picture itself is encrypted, not its text.</span>
+          </div>
           <div id="file-info" class="hint"></div>
           <div id="file-warn" class="warn" hidden></div>
         </div>
@@ -147,6 +151,7 @@
           <div id="file-result" hidden>
             <label>Hidden file</label>
             <div id="file-meta" class="filebox"></div>
+            <img id="file-preview" alt="Preview of the revealed picture" hidden />
             <div id="file-warn2" class="warn" hidden></div>
           </div>
           <div id="text-result">
@@ -156,6 +161,7 @@
           <div class="row">
             <button id="btn-copy-plain" class="primary">Copy text</button>
             <button id="btn-save-file" class="primary" hidden>Save file</button>
+            <button id="btn-copy-img" class="ghost" hidden>Copy image</button>
             <button id="btn-clear" class="ghost">Clear now</button>
             <span id="timer" class="hint"></span>
           </div>
