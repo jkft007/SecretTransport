@@ -95,7 +95,7 @@ function isInk(d: Uint8ClampedArray, o: number): boolean {
   return 255 - (min * a + 255 * (1 - a)) > 40;
 }
 
-function findBounds(img: Rgba) {
+export function findBounds(img: Rgba) {
   const { width, height, data } = img;
   let top = -1, bottom = -1, left = width, right = -1;
   for (let y = 0; y < height; y++) {

@@ -41,6 +41,31 @@ export async function copyImage(canvas: HTMLCanvasElement): Promise<void> {
   await navigator.clipboard.write([new ClipboardItem({ 'image/png': canvasToBlob(canvas) })]);
 }
 
+/** Puts the image, a rich-text version (image + link) and plain text with the link on the clipboard. */
+export async function copyMessage(canvas: HTMLCanvasElement, link: string): Promise<void> {
+  if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+    throw new Error('Copying needs https or localhost. Use Download instead.');
+  }
+  const png = await canvasToBlob(canvas);
+  const dataUrl = await new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = () => rej(r.error);
+    r.readAsDataURL(png);
+  });
+  const text = `I sent you a secret. Open ${link} , paste the image there (or drop the file) and enter the passphrase I gave you separately.`;
+  const html =
+    `<p>I sent you a secret. Open <a href="${link}">${link}</a>, paste the image below there (or save it and drop the file) and enter the passphrase I gave you separately.</p>` +
+    `<p><img src="${dataUrl}" alt="Secret image" width="${Math.min(canvas.width, 480)}"></p>`;
+  await navigator.clipboard.write([
+    new ClipboardItem({
+      'text/html': new Blob([html], { type: 'text/html' }),
+      'text/plain': new Blob([text], { type: 'text/plain' }),
+      'image/png': png,
+    }),
+  ]);
+}
+
 export function download(canvas: HTMLCanvasElement, name: string): void {
   canvasToBlob(canvas).then((b) => {
     const a = document.createElement('a');
@@ -52,7 +77,7 @@ export function download(canvas: HTMLCanvasElement, name: string): void {
 }
 
 /** A pleasant noisy gradient: the noise hides least-significant-bit changes. */
-export function generateCover(w = 1280, h = 853): Rgba {
+export function generateCover(w = 1280, h = 848): Rgba {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;

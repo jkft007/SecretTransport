@@ -35,9 +35,26 @@
           <legend>Image style</legend>
           <label class="opt"><input type="radio" name="mode" value="codeart" checked />
             <b>Code art</b> <span>A colourful mosaic. Survives JPEG compression, resizing and screenshots, so it works in nearly every app. Obviously not a normal picture.</span></label>
-          <label class="opt"><input type="radio" name="mode" value="stego" />
-            <b>Hidden in a photo</b> <span>Looks like an ordinary picture. Fragile: only survives if sent as an original PNG file. Gmail inline, WhatsApp, iMessage and social apps usually destroy it.</span></label>
+          <label class="opt"><input type="radio" name="mode" value="qr" />
+            <b>QR code</b> <span>A standard QR code holding the encrypted data. Any phone can scan it, but sees gibberish.</span></label>
+          <label class="opt"><input type="radio" name="mode" value="fakeqr" />
+            <b>Fake QR code</b> <span>Scans as a harmless decoy of your choice (like a web link). The real secret is hidden inside the QR image itself.</span></label>
+          <label class="opt"><input type="radio" name="mode" value="photo" />
+            <b>Hidden in a photo</b> <span>Looks like an ordinary picture.</span></label>
         </fieldset>
+
+        <div id="decoy-row" hidden>
+          <label for="decoy">Decoy text <span class="hint">(what a normal QR scanner will show)</span></label>
+          <input id="decoy" type="text" value="https://www.wikipedia.org" spellcheck="false" />
+        </div>
+
+        <div id="photo-opts" hidden>
+          <label for="photo-kind">Photo method</label>
+          <select id="photo-kind">
+            <option value="dct">Survives JPEG recompression (recommended, up to a few KB, no resizing or cropping)</option>
+            <option value="lsb">Lossless only (more capacity, PNG file only; chat apps destroy it)</option>
+          </select>
+        </div>
 
         <div id="cover-row" hidden>
           <label for="cover-file">Cover photo <span class="hint">(optional; a generated one is used if empty)</span></label>
@@ -51,7 +68,8 @@
           <canvas id="out-canvas"></canvas>
           <div id="out-info" class="hint"></div>
           <div class="row">
-            <button id="btn-copy" class="primary">Copy image</button>
+            <button id="btn-copy-msg" class="primary">Copy message (image + link)</button>
+            <button id="btn-copy" class="ghost">Copy image only</button>
             <button id="btn-download" class="ghost">Download PNG</button>
           </div>
           <div id="warn" class="warn" hidden></div>

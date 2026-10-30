@@ -1,8 +1,10 @@
 import { decodeCodeArt, encodeCodeArt, MAX_PACKET, type Rgba } from './codeart';
+import { cropTo8, dctCapacity, embedDct, extractDct, MAX_COVER_SIDE } from './dct';
+import { decodeFakeQr, decodePlainQr, encodeFakeQr, encodePlainQr } from './qrmodes';
 import { openPacket, sealText, WrongPassphraseError } from './crypto';
-import { MODE_CODEART, MODE_STEGO } from './packet';
+import { MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, parsePacket } from './packet';
 import { embed, extract, stegoCapacity } from './stego';
-import { blobToRgba, copyImage, download, generateCover, rgbaToCanvas } from './imageio';
+import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
 import { playReveal, type RevealHandle } from './reveal-anim';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -62,8 +64,16 @@ $('pass-gen').onclick = () => {
 
 // ---- hide -------------------------------------------------------------------
 const modeRadios = () => document.querySelectorAll<HTMLInputElement>('input[name=mode]');
-const currentMode = () => [...modeRadios()].find((r) => r.checked)!.value as 'codeart' | 'stego';
-modeRadios().forEach((r) => r.addEventListener('change', () => ($('cover-row').hidden = currentMode() !== 'stego')));
+type Mode = 'codeart' | 'qr' | 'fakeqr' | 'photo';
+const currentMode = () => [...modeRadios()].find((r) => r.checked)!.value as Mode;
+const photoKind = () => $<HTMLSelectElement>('photo-kind').value as 'dct' | 'lsb';
+function syncModeUi() {
+  const m = currentMode();
+  $('decoy-row').hidden = m !== 'fakeqr';
+  $('photo-opts').hidden = m !== 'photo';
+  $('cover-row').hidden = m !== 'photo';
+}
+modeRadios().forEach((r) => r.addEventListener('change', syncModeUi));
 
 let lastOut: HTMLCanvasElement | null = null;
 
@@ -82,7 +92,9 @@ $('btn-create').onclick = async () => {
   warn.hidden = true;
   try {
     const mode = currentMode();
-    const packet = await sealText(text, pass, mode === 'codeart' ? MODE_CODEART : MODE_STEGO);
+    const kind = photoKind();
+    const packetMode = { codeart: MODE_CODEART, qr: MODE_QR, fakeqr: MODE_FAKEQR, photo: kind === 'dct' ? MODE_DCT : MODE_STEGO }[mode];
+    const packet = await sealText(text, pass, packetMode);
     let img: Rgba;
     if (mode === 'codeart') {
       if (packet.length > MAX_PACKET) throw new Error('That is too much text for one image.');
@@ -91,12 +103,29 @@ $('btn-create').onclick = async () => {
         warn.textContent = 'This is a large image. Some apps shrink big images, which can make it unreadable. Consider splitting the text.';
         warn.hidden = false;
       }
+    } else if (mode === 'qr') {
+      img = encodePlainQr(packet);
+      warn.textContent = 'Anyone can scan this QR code, but they will only see encrypted gibberish without the passphrase.';
+      warn.hidden = false;
+    } else if (mode === 'fakeqr') {
+      const decoy = $<HTMLInputElement>('decoy').value;
+      if (!decoy) throw new Error('Enter the decoy text a scanner should show.');
+      img = await encodeFakeQr(packet, decoy, pass);
+      warn.textContent = 'A phone scanner will show your decoy. Keep the image at its original size: cropping or heavy shrinking breaks the hidden data.';
+      warn.hidden = false;
     } else {
       const file = $<HTMLInputElement>('cover-file').files?.[0];
-      const cover = file ? await blobToRgba(file, 2400) : generateCover();
-      if (packet.length > stegoCapacity(cover)) throw new Error('The cover photo is too small for this much text. Pick a larger photo.');
-      img = await embed(cover, packet, pass);
-      warn.textContent = 'Send this as an original PNG file or attachment. Pasting it inline in Gmail, WhatsApp, iMessage and most social apps usually recompresses it and destroys the hidden data. If in doubt, use Code art.';
+      let cover = file ? await blobToRgba(file, kind === 'dct' ? MAX_COVER_SIDE : 2400) : generateCover();
+      if (kind === 'dct') {
+        cover = cropTo8(cover);
+        if (packet.length > dctCapacity(cover)) throw new Error('The cover photo is too small for this much text. Pick a larger photo or use less text.');
+        img = await embedDct(cover, packet, pass);
+        warn.textContent = 'Survives normal JPEG recompression, but not cropping, rotating or heavy resizing. Photos are limited to 1280 px so most apps leave them alone.';
+      } else {
+        if (packet.length > stegoCapacity(cover)) throw new Error('The cover photo is too small for this much text. Pick a larger photo.');
+        img = await embed(cover, packet, pass);
+        warn.textContent = 'Send this as an original PNG file or attachment. Pasting it inline in Gmail, WhatsApp, iMessage and most social apps usually recompresses it and destroys the hidden data. If in doubt, use the JPEG-safe method.';
+      }
       warn.hidden = false;
     }
     lastOut = rgbaToCanvas(img, $<HTMLCanvasElement>('out-canvas'));
@@ -114,6 +143,14 @@ $('btn-copy').onclick = async () => {
   try {
     await copyImage(lastOut!);
     setStatus($('hide-status'), 'Image copied. Paste it into your message.');
+  } catch (e) {
+    setStatus($('hide-status'), (e as Error).message, true);
+  }
+};
+$('btn-copy-msg').onclick = async () => {
+  try {
+    await copyMessage(lastOut!, location.origin + location.pathname);
+    setStatus($('hide-status'), 'Message copied: paste it into an email or chat. If an app only takes the image, paste the link separately.');
   } catch (e) {
     setStatus($('hide-status'), (e as Error).message, true);
   }
@@ -192,16 +229,25 @@ $('btn-reveal').onclick = async () => {
   btn.disabled = true;
   setStatus(status, 'Decoding…');
   try {
+    const img = loaded;
+    const attempts: [() => Promise<Uint8Array> | Uint8Array, 'codeart' | 'stego'][] = [
+      [() => decodePlainQr(img), 'codeart'],
+      [() => decodeCodeArt(img), 'codeart'],
+      [() => decodeFakeQr(img, pass), 'codeart'],
+      [() => extractDct(img, pass), 'stego'],
+      [() => extract(img, pass), 'stego'],
+    ];
     let packet: Uint8Array | undefined;
     let mode: 'codeart' | 'stego' = 'codeart';
-    try {
-      packet = decodeCodeArt(loaded);
-    } catch {
+    for (const [fn, m] of attempts) {
       try {
-        packet = await extract(loaded, pass);
-        mode = 'stego';
+        const p = await fn();
+        parsePacket(p); // validates framing and checksum
+        packet = p;
+        mode = m;
+        break;
       } catch {
-        /* fall through */
+        /* try the next method */
       }
     }
     if (!packet) throw new Error('No hidden secret found in this image. It may have been cropped, recompressed or resized by the app it travelled through.');
@@ -235,3 +281,5 @@ $('btn-reveal').onclick = async () => {
     btn.disabled = false;
   }
 };
+
+syncModeUi();

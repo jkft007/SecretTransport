@@ -4,6 +4,9 @@
 
 export const MODE_CODEART = 1;
 export const MODE_STEGO = 2;
+export const MODE_DCT = 3;
+export const MODE_QR = 4;
+export const MODE_FAKEQR = 5;
 export const FLAG_COMPRESSED = 0x10;
 export const VERSION = 1;
 export const HEADER_LEN = 36;

@@ -2,10 +2,17 @@
 
 Turn any text into an image you can paste into a message or email. Only someone with the passphrase can turn it back. Runs entirely in the browser; nothing is uploaded.
 
+## Image styles
 - **Code art**: a colourful mosaic that survives JPEG compression, resizing and screenshots.
-- **Hidden in a photo**: invisible LSB embedding in a photo. Only survives as an original PNG; most chat apps recompress and destroy it.
-- Encryption: AES-256-GCM, key from the passphrase via PBKDF2-SHA256 (600k rounds). Reed-Solomon error correction for code art.
-- Animated reveal when decoding.
+- **QR code**: a standard QR holding the encrypted data (any phone scans it, but sees gibberish).
+- **Fake QR code**: scans as a decoy you choose (e.g. a web link). The real secret is hidden in the QR's error-correction budget and is only recovered with the passphrase.
+- **Hidden in a photo**:
+  - *JPEG-safe* (default): bits stored in DCT coefficients with heavy redundancy and error correction. Survives normal JPEG recompression (about quality 50+), not cropping, rotation or resizing.
+  - *Lossless*: LSB embedding, more capacity, but only survives as an original PNG.
+
+**Copy message (image + link)** puts the image, the link to this site and a short explanation on the clipboard (as rich text plus plain text and a PNG) so you can paste it straight into an email or chat.
+
+Encryption: AES-256-GCM, key from the passphrase via PBKDF2-SHA256 (600k rounds), Reed-Solomon error correction. The reveal is animated.
 
 ## Run
 
@@ -16,7 +23,10 @@ npm test
 npm run build   # static site in dist/
 ```
 
-Use a long random passphrase: anyone holding the image can guess offline. The image size hints at the message length.
+## Limits
+- Use a long random passphrase: anyone holding the image can guess offline. The image size hints at the message length.
+- Fake QR hides the message from casual scanning, not from analysis: a forensic tool would see far more corrected errors than a normal QR has.
+- Cropped, rotated or heavily resized images cannot be decoded. Camera scanning is not supported yet.
 
 ## License
 
