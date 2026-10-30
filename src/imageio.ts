@@ -47,29 +47,39 @@ export async function copyImage(canvas: HTMLCanvasElement): Promise<void> {
   await navigator.clipboard.write([new ClipboardItem({ 'image/png': canvasToBlob(canvas) })]);
 }
 
-/** Puts the image, a rich-text version (image + link) and plain text with the link on the clipboard. */
-export async function copyMessage(canvas: HTMLCanvasElement, link: string): Promise<void> {
+/**
+ * Puts a ready-to-paste message on the clipboard: rich text (all images + the link), plain text,
+ * and, when there is just one image, the PNG itself for apps that only take images.
+ */
+export async function copyMessage(canvases: HTMLCanvasElement | HTMLCanvasElement[], link: string): Promise<void> {
   if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
     throw new Error('Copying needs https or localhost. Use Download instead.');
   }
-  const png = await canvasToBlob(canvas);
-  const dataUrl = await new Promise<string>((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result as string);
-    r.onerror = () => rej(r.error);
-    r.readAsDataURL(png);
-  });
-  const text = `I sent you a secret. Open ${link} , paste the image there (or drop the file) and enter the passphrase I gave you separately.`;
+  const list = Array.isArray(canvases) ? canvases : [canvases];
+  const blobs = await Promise.all(list.map(canvasToBlob));
+  const urls = await Promise.all(
+    blobs.map(
+      (png) =>
+        new Promise<string>((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result as string);
+          r.onerror = () => rej(r.error);
+          r.readAsDataURL(png);
+        }),
+    ),
+  );
+  const many = list.length > 1;
+  const what = many ? `the ${list.length} images below, in order` : 'the image below';
+  const text = `I sent you a secret. Open ${link} , add ${many ? 'all the images' : 'the image'} there (paste or drop ${many ? 'them' : 'it'}) and enter the passphrase I gave you separately.`;
   const html =
-    `<p>I sent you a secret. Open <a href="${link}">${link}</a>, paste the image below there (or save it and drop the file) and enter the passphrase I gave you separately.</p>` +
-    `<p><img src="${dataUrl}" alt="Secret image" width="${Math.min(canvas.width, 480)}"></p>`;
-  await navigator.clipboard.write([
-    new ClipboardItem({
-      'text/html': new Blob([html], { type: 'text/html' }),
-      'text/plain': new Blob([text], { type: 'text/plain' }),
-      'image/png': png,
-    }),
-  ]);
+    `<p>I sent you a secret. Open <a href="${link}">${link}</a>, add ${what} there (paste or save and drop ${many ? 'them' : 'it'}) and enter the passphrase I gave you separately.</p>` +
+    urls.map((u, i) => `<p><img src="${u}" alt="Secret image ${i + 1} of ${list.length}" width="${Math.min(list[i].width, 480)}"></p>`).join('');
+  const item: Record<string, Blob> = {
+    'text/html': new Blob([html], { type: 'text/html' }),
+    'text/plain': new Blob([text], { type: 'text/plain' }),
+  };
+  if (!many) item['image/png'] = blobs[0];
+  await navigator.clipboard.write([new ClipboardItem(item)]);
 }
 
 export function download(canvas: HTMLCanvasElement, name: string): void {

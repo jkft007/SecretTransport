@@ -1,7 +1,7 @@
 // Plain QR (packet as base64) and fake QR (valid QR for a decoy; real packet hidden in its
 // error-correction budget).
 import jsQR, { type QRCode } from 'jsqr';
-import { PacketError, parsePacket } from './packet';
+import { PacketError, parseFrame } from './packet';
 import { decodeBuffer, encodedLength, encodeBuffer } from './ecc';
 import { findBounds, type Rgba } from './codeart';
 import { blockMap, byteCapacity, buildSymbol, encodeQr, encodeQrAt, layout, readCodewords, type QrSymbol } from './qr';
@@ -260,7 +260,7 @@ export async function tryDecodeQrFrame(frame: Rgba, passphrase: string): Promise
   if (!res) return { kind: 'none' };
   try {
     const p = fromB64(res.data);
-    parsePacket(p);
+    parseFrame(p);
     return { kind: 'packet', packet: p };
   } catch {
     /* not a plain secret QR */
@@ -268,7 +268,7 @@ export async function tryDecodeQrFrame(frame: Rgba, passphrase: string): Promise
   if (passphrase) {
     try {
       const p = await decodeFakeQr(frame, passphrase, res);
-      parsePacket(p);
+      parseFrame(p);
       return { kind: 'packet', packet: p };
     } catch (e) {
       if (!(e instanceof PacketError) && !(e instanceof Error)) throw e;

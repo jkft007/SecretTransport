@@ -46,17 +46,14 @@
         <div class="meter"><i id="pass-meter"></i></div>
         <div id="pass-note" class="hint"></div>
 
-        <fieldset>
-          <legend>Image style</legend>
-          <label class="opt"><input type="radio" name="mode" value="codeart" checked />
-            <b>Code art</b> <span>A colourful mosaic. Survives JPEG compression, resizing and screenshots, so it works in nearly every app. Obviously not a normal picture.</span></label>
-          <label class="opt"><input type="radio" name="mode" value="qr" />
-            <b>QR code</b> <span>A standard QR code holding the encrypted data. Any phone can scan it, but sees gibberish.</span></label>
-          <label class="opt"><input type="radio" name="mode" value="fakeqr" />
-            <b>Fake QR code</b> <span>Scans as a harmless decoy of your choice (like a web link). The real secret is hidden inside the QR image itself.</span></label>
-          <label class="opt"><input type="radio" name="mode" value="photo" />
-            <b>Hidden in a photo</b> <span>Looks like an ordinary picture.</span></label>
-        </fieldset>
+        <label for="mode">Image style</label>
+        <select id="mode">
+          <option value="codeart" selected>Code art</option>
+          <option value="qr">QR code</option>
+          <option value="fakeqr">Fake QR code</option>
+          <option value="photo">Hidden in a photo</option>
+        </select>
+        <div id="mode-desc" class="hint"></div>
 
         <div id="decoy-row" hidden>
           <label for="decoy">Decoy text <span class="hint">(what a normal QR scanner will show)</span></label>
@@ -74,13 +71,21 @@
         <div id="cover-row" hidden>
           <label for="cover-file">Cover photo <span class="hint">(optional; JPEG, PNG or iPhone HEIC; a generated one is used if empty)</span></label>
           <input id="cover-file" type="file" accept="image/*,.heic,.heif" />
+          <div class="row">
+            <button id="btn-paste-cover" class="ghost" type="button">Paste cover from clipboard</button>
+            <span id="cover-info" class="hint"></span>
+            <button id="btn-cover-clear" class="ghost small" type="button" hidden>Remove</button>
+          </div>
         </div>
+
+        <label class="check split"><input id="chk-split" type="checkbox" checked /> Split across several images when it does not fit in one</label>
 
         <button id="btn-create" class="primary">Create image</button>
         <div id="hide-status" class="status" role="status"></div>
 
         <div id="out-wrap" hidden>
           <canvas id="out-canvas"></canvas>
+          <div id="parts-list" hidden></div>
           <div id="out-info" class="hint"></div>
           <div class="row">
             <button id="btn-copy-msg" class="primary">Copy message (image + link)</button>
@@ -93,8 +98,8 @@
 
       <section id="panel-reveal" class="card" role="tabpanel" hidden>
         <div id="drop" tabindex="0">
-          <canvas id="thumb" hidden></canvas>
-          <p id="drop-text"><b>Paste an image here</b> (Ctrl/Cmd+V), drop a file, or <label class="link" for="file-in">choose one</label>.</p>
+          <div id="tray"></div>
+          <p id="drop-text"><b>Paste an image here</b> (Ctrl/Cmd+V), drop files, or <label class="link" for="file-in">choose some</label>. A split secret needs all its images.</p>
           <div class="row center">
             <button id="btn-paste" class="ghost" type="button">Paste from clipboard</button>
             <button id="btn-scan" class="ghost" type="button">Scan QR with camera</button>
@@ -103,7 +108,7 @@
             <video id="cam" playsinline muted></video>
             <button id="btn-scan-stop" class="ghost small" type="button">Stop camera</button>
           </div>
-          <input id="file-in" type="file" accept="image/*,.heic,.heif" hidden />
+          <input id="file-in" type="file" accept="image/*,.heic,.heif" multiple hidden />
         </div>
 
         <label for="pass2">Passphrase</label>

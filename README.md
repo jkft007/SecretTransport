@@ -17,11 +17,14 @@ Encryption: AES-256-GCM, key from the passphrase via PBKDF2-SHA256 (600k rounds)
 ## Files and documents
 Choose **File or document** on the Hide tab to hide a PDF, spreadsheet, key file, zip or anything else instead of text. The file name and contents are both encrypted, and the recipient gets a **Save file** button (files are never opened automatically; executable-type files get an extra warning). Rough size limits per style: lossless photo ~400 KB, code art ~58 KB (images get big above 8 KB), JPEG-safe photo ~3 KB, QR ~1.6 KB, fake QR ~350 bytes. The app shows the limit for the chosen style and refuses oversize files.
 
+## Splitting across several images
+If a secret does not fit in one image, it is encrypted once and cut into numbered parts (up to 60), each in its own image of the chosen style. On the Reveal tab, add all the images in any order (paste, drop, choose, or scan QR codes one after another); the app says exactly which parts are missing. **Copy message** puts every image plus the link into one rich-text clipboard entry for email; chat apps that take one image at a time can use each part's own Copy button.
+
 ## Camera scanning
 **Scan QR with camera** (Reveal tab) reads QR and fake-QR codes live, including tilted or angled ones, using a perspective transform. Plain QR needs no passphrase to scan; for a fake QR, type the passphrase first or while scanning. Needs https or localhost and camera permission. Only the QR modes can be scanned: code art and photos need a clean image, not a camera view.
 
 ## Cover photos
-JPEG, PNG and iPhone **HEIC/HEIF** photos work as cover images. HEIC is decoded in the browser with [libheif-js](https://github.com/catdad-experiments/libheif-js) (WebAssembly, LGPL-3.0), loaded only when a HEIC file is picked. Output is always PNG or JPEG-safe pixels, never HEIC.
+Choose a file, or paste one from the clipboard (Ctrl/Cmd+V on the Hide tab with the photo style selected, or the **Paste cover from clipboard** button). JPEG, PNG and iPhone **HEIC/HEIF** photos work as cover images. HEIC is decoded in the browser with [libheif-js](https://github.com/catdad-experiments/libheif-js) (WebAssembly, LGPL-3.0), loaded only when a HEIC file is picked. Output is always PNG or JPEG-safe pixels, never HEIC.
 
 ## Run
 

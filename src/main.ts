@@ -5,7 +5,8 @@ import { openPayload, sealPayload, WrongPassphraseError, type Payload } from './
 import { encodedLength } from './ecc';
 import { byteCapacity } from './qr';
 import { fakeQrCapacity } from './qrmodes';
-import { MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, parsePacket } from './packet';
+import { MAX_PARTS, MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, PART_OVERHEAD, parseFrame } from './packet';
+import { assemble, splitPacket } from './split';
 import { embed, extract, stegoCapacity } from './stego';
 import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
 import { playReveal, type RevealHandle } from './reveal-anim';
@@ -67,9 +68,14 @@ $('pass-gen').onclick = () => {
 };
 
 // ---- hide -------------------------------------------------------------------
-const modeRadios = () => document.querySelectorAll<HTMLInputElement>('input[name=mode]');
 type Mode = 'codeart' | 'qr' | 'fakeqr' | 'photo';
-const currentMode = () => [...modeRadios()].find((r) => r.checked)!.value as Mode;
+const currentMode = () => $<HTMLSelectElement>('mode').value as Mode;
+const MODE_HELP: Record<Mode, string> = {
+  codeart: 'A colourful mosaic. Survives JPEG compression, resizing and screenshots, so it works in nearly every app. Obviously not a normal picture.',
+  qr: 'A standard QR code holding the encrypted data. Any phone can scan it, but sees gibberish.',
+  fakeqr: 'Scans as a harmless decoy of your choice (like a web link). The real secret is hidden inside the QR image itself.',
+  photo: 'Looks like an ordinary picture.',
+};
 const photoKind = () => $<HTMLSelectElement>('photo-kind').value as 'dct' | 'lsb';
 // ---- what to hide: text or a file ----------------------------------------------
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
@@ -78,25 +84,26 @@ const fmt = (n: number) => (n < 1024 ? `${n} bytes` : n < 1048576 ? `${(n / 1024
 const kindRadios = () => document.querySelectorAll<HTMLInputElement>('input[name=kind]');
 const currentKind = () => ([...kindRadios()].find((r) => r.checked)!.value as 'text' | 'file');
 
-/** Rough largest file each style can carry (before compression), for the hint under the form. */
-function fileLimit(): number {
-  const overhead = 70; // packet framing, tag, file name
+/** Largest frame (bytes) a single image of the chosen style can carry. */
+function frameCapacity(cover?: Rgba): number {
   const m = currentMode();
-  if (m === 'codeart') return MAX_PACKET - overhead;
-  if (m === 'qr') return Math.floor((byteCapacity(40, 'M') * 3) / 4) - overhead;
+  if (m === 'codeart') return 3000; // keeps images a sensible size; larger secrets are split
+  if (m === 'qr') return Math.floor(byteCapacity(30, 'M') / 4) * 3; // base64 expands by 4/3
   if (m === 'fakeqr') {
     let lo = 0;
     let hi = 5000;
     while (lo < hi) {
       const mid = (lo + hi + 1) >> 1;
-      if (encodedLength(mid) <= fakeQrCapacity(40)) lo = mid;
+      if (encodedLength(mid) <= fakeQrCapacity(30)) lo = mid;
       else hi = mid - 1;
     }
-    return lo - overhead;
+    return lo;
   }
-  const cover = { width: 1280, height: 848, data: new Uint8ClampedArray(0) };
-  return (photoKind() === 'dct' ? dctCapacity(cover) : stegoCapacity(cover)) - overhead;
+  const c = cover ?? { width: 1280, height: 848, data: new Uint8ClampedArray(0) };
+  return photoKind() === 'dct' ? dctCapacity(c) : stegoCapacity(c);
 }
+
+const FRAMING = 70; // packet header, tag and file name
 
 function syncKindUi() {
   const file = currentKind() === 'file';
@@ -106,12 +113,16 @@ function syncKindUi() {
   hint.hidden = !file;
   if (file) {
     const m = currentMode();
+    const one = Math.max(0, frameCapacity() - FRAMING);
+    const all = Math.max(0, (frameCapacity() - PART_OVERHEAD) * MAX_PARTS - FRAMING);
     hint.textContent =
-      `Largest file for this style: about ${fmt(Math.max(0, fileLimit()))}` +
-      (m === 'photo' ? ' with the default cover (a larger cover photo holds more). ' : m === 'codeart' ? ' (images get large above about 8 KB). ' : '. ') +
+      `One image holds about ${fmt(one)}` +
+      (m === 'photo' ? ' with the default cover (a larger cover photo holds more)' : '') +
+      ($<HTMLInputElement>('chk-split').checked ? `; bigger files are split across up to ${MAX_PARTS} images (about ${fmt(all)} in all). ` : '. ') +
       'Files that compress well fit more.';
   }
 }
+
 function syncFileInfo() {
   const f = $<HTMLInputElement>('secret-file').files?.[0];
   $('file-info').textContent = f ? `${f.name} · ${fmt(f.size)}` : '';
@@ -128,11 +139,112 @@ function syncModeUi() {
   $('decoy-row').hidden = m !== 'fakeqr';
   $('photo-opts').hidden = m !== 'photo';
   $('cover-row').hidden = m !== 'photo';
+  $('mode-desc').textContent = MODE_HELP[m];
   syncKindUi();
 }
-modeRadios().forEach((r) => r.addEventListener('change', syncModeUi));
+$('mode').addEventListener('change', syncModeUi);
 
-let lastOut: HTMLCanvasElement | null = null;
+// ---- cover photo: chosen from a file, or pasted from the clipboard ---------------
+let pastedCover: Blob | null = null;
+
+function syncCoverInfo() {
+  $('cover-info').textContent = pastedCover ? 'Using the pasted image as the cover.' : '';
+  $('btn-cover-clear').hidden = !pastedCover;
+}
+
+async function setCover(blob: Blob) {
+  try {
+    await blobToRgba(blob, 64); // make sure it really is a readable image
+  } catch {
+    return setStatus($('hide-status'), 'Could not read that image.', true);
+  }
+  pastedCover = blob;
+  $<HTMLInputElement>('cover-file').value = '';
+  syncCoverInfo();
+  setStatus($('hide-status'), 'Cover photo pasted.');
+}
+
+$('cover-file').addEventListener('change', () => {
+  pastedCover = null; // choosing a file replaces a pasted image
+  syncCoverInfo();
+});
+$('btn-cover-clear').onclick = () => {
+  pastedCover = null;
+  syncCoverInfo();
+};
+$('btn-paste-cover').onclick = async () => {
+  const status = $('hide-status');
+  try {
+    if (!navigator.clipboard?.read) throw new Error('unsupported');
+    for (const item of await navigator.clipboard.read()) {
+      const type = item.types.find((t) => t.startsWith('image/'));
+      if (type) return void (await setCover(await item.getType(type)));
+    }
+    setStatus(status, 'No image found on the clipboard. Copy a photo first, then try again.', true);
+  } catch (e) {
+    const denied = (e as Error).name === 'NotAllowedError';
+    setStatus(status, denied ? 'Clipboard access was blocked. Allow it in the browser, or press Ctrl/Cmd+V instead.' : 'This browser cannot read the clipboard here (needs https or localhost). Press Ctrl/Cmd+V instead.', true);
+  }
+};
+
+let outs: HTMLCanvasElement[] = [];
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const partName = (i: number, n: number) => (n > 1 ? `secret-part-${i + 1}-of-${n}.png` : 'secret.png');
+
+async function renderFrame(frame: Uint8Array, mode: Mode, kind: 'dct' | 'lsb', pass: string, cover: Rgba | null): Promise<Rgba> {
+  if (mode === 'codeart') return encodeCodeArt(frame);
+  if (mode === 'qr') return encodePlainQr(frame);
+  if (mode === 'fakeqr') {
+    const decoy = $<HTMLInputElement>('decoy').value;
+    if (!decoy) throw new Error('Enter the decoy text a scanner should show.');
+    return encodeFakeQr(frame, decoy, pass);
+  }
+  const c = cover ?? generateCover(); // a fresh cover per part unless you chose one
+  return kind === 'dct' ? embedDct(cropTo8(c), frame, pass) : embed(c, frame, pass);
+}
+
+function showOutputs(imgs: Rgba[], packetLen: number) {
+  const n = imgs.length;
+  const single = n === 1;
+  $('out-canvas').hidden = !single;
+  $('parts-list').hidden = single;
+  $('btn-copy').hidden = !single;
+  $('btn-copy-msg').textContent = single ? 'Copy message (image + link)' : `Copy message (all ${n} images + link)`;
+  $('btn-download').textContent = single ? 'Download PNG' : `Download all ${n}`;
+  const list = $('parts-list');
+  list.replaceChildren();
+  if (single) {
+    outs = [rgbaToCanvas(imgs[0], $<HTMLCanvasElement>('out-canvas'))];
+    $('out-info').textContent = `${imgs[0].width} × ${imgs[0].height} px · ${packetLen} bytes of encrypted data`;
+    return;
+  }
+  outs = imgs.map((im) => rgbaToCanvas(im));
+  outs.forEach((canvas, i) => {
+    const row = document.createElement('div');
+    row.className = 'part';
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.innerHTML = `<b>Part ${i + 1} of ${n}</b><span class="hint">${imgs[i].width} × ${imgs[i].height} px</span>`;
+    const copy = document.createElement('button');
+    copy.className = 'ghost';
+    copy.textContent = 'Copy';
+    copy.onclick = async () => {
+      try {
+        await copyImage(canvas);
+        setStatus($('hide-status'), `Part ${i + 1} copied.`);
+      } catch (e) {
+        setStatus($('hide-status'), (e as Error).message, true);
+      }
+    };
+    const save = document.createElement('button');
+    save.className = 'ghost';
+    save.textContent = 'Download';
+    save.onclick = () => download(canvas, partName(i, n));
+    row.append(canvas, meta, copy, save);
+    list.append(row);
+  });
+  $('out-info').textContent = `${n} images · ${packetLen} bytes of encrypted data in total. Send all of them: the recipient needs every part.`;
+}
 
 $('btn-create').onclick = async () => {
   const pass = $<HTMLInputElement>('pass').value;
@@ -141,7 +253,7 @@ $('btn-create').onclick = async () => {
   if (currentKind() === 'file') {
     const f = $<HTMLInputElement>('secret-file').files?.[0];
     if (!f) return setStatus(status, 'Choose the file to hide.', true);
-    if (f.size > MAX_FILE_BYTES) return setStatus(status, `That file is too large (${fmt(f.size)}). The limit is ${fmt(MAX_FILE_BYTES)}, and most image styles hold far less.`, true);
+    if (f.size > MAX_FILE_BYTES) return setStatus(status, `That file is too large (${fmt(f.size)}). The limit is ${fmt(MAX_FILE_BYTES)}.`, true);
     payload = { kind: 'file', name: f.name, data: new Uint8Array(await f.arrayBuffer()) };
   } else {
     const text = $<HTMLTextAreaElement>('secret').value;
@@ -161,44 +273,43 @@ $('btn-create').onclick = async () => {
     const kind = photoKind();
     const packetMode = { codeart: MODE_CODEART, qr: MODE_QR, fakeqr: MODE_FAKEQR, photo: kind === 'dct' ? MODE_DCT : MODE_STEGO }[mode];
     const packet = await sealPayload(payload, pass, packetMode);
-    let img: Rgba;
-    if (mode === 'codeart') {
-      if (packet.length > MAX_PACKET) throw new Error(`That is too much data for one image (about ${fmt(Math.max(0, fileLimit()))} is the most for this style).`);
-      img = encodeCodeArt(packet);
-      if (packet.length > 8000) {
-        warn.textContent = 'This is a large image. Some apps shrink big images, which can make it unreadable. Consider hiding less.';
-        warn.hidden = false;
+
+    let cover: Rgba | null = null;
+    if (mode === 'photo') {
+      const file = pastedCover ?? $<HTMLInputElement>('cover-file').files?.[0];
+      if (file) {
+        cover = await blobToRgba(file, kind === 'dct' ? MAX_COVER_SIDE : 2400);
+        if (kind === 'dct') cover = cropTo8(cover);
       }
-    } else if (mode === 'qr') {
-      if (packet.length > Math.floor((byteCapacity(40, 'M') * 3) / 4)) throw new Error(`Too much data for one QR code (about ${fmt(Math.max(0, fileLimit()))} is the most). Try Code art or a photo style.`);
-      img = encodePlainQr(packet);
-      warn.textContent = 'Anyone can scan this QR code, but they will only see encrypted gibberish without the passphrase.';
-      warn.hidden = false;
-    } else if (mode === 'fakeqr') {
-      const decoy = $<HTMLInputElement>('decoy').value;
-      if (!decoy) throw new Error('Enter the decoy text a scanner should show.');
-      img = await encodeFakeQr(packet, decoy, pass);
-      warn.textContent = 'A phone scanner will show your decoy. Keep the image at its original size: cropping or heavy shrinking breaks the hidden data.';
-      warn.hidden = false;
-    } else {
-      const file = $<HTMLInputElement>('cover-file').files?.[0];
-      let cover = file ? await blobToRgba(file, kind === 'dct' ? MAX_COVER_SIDE : 2400) : generateCover();
-      if (kind === 'dct') {
-        cover = cropTo8(cover);
-        if (packet.length > dctCapacity(cover)) throw new Error('The cover photo is too small for this much data. Pick a larger photo or hide less.');
-        img = await embedDct(cover, packet, pass);
-        warn.textContent = 'Survives normal JPEG recompression, but not cropping, rotating or heavy resizing. Photos are limited to 1280 px so most apps leave them alone.';
-      } else {
-        if (packet.length > stegoCapacity(cover)) throw new Error('The cover photo is too small for this much data. Pick a larger photo.');
-        img = await embed(cover, packet, pass);
-        warn.textContent = 'Send this as an original PNG file or attachment. Pasting it inline in Gmail, WhatsApp, iMessage and most social apps usually recompresses it and destroys the hidden data. If in doubt, use the JPEG-safe method.';
-      }
-      warn.hidden = false;
     }
-    lastOut = rgbaToCanvas(img, $<HTMLCanvasElement>('out-canvas'));
-    $('out-info').textContent = `${img.width} × ${img.height} px · ${packet.length} bytes of encrypted data`;
+    const maxFrame = frameCapacity(cover ?? undefined);
+    const split = $<HTMLInputElement>('chk-split').checked;
+    if (!split && packet.length > maxFrame) {
+      throw new Error(`Too much data for one image (about ${fmt(Math.max(0, maxFrame - FRAMING))} is the most for this style). Turn on splitting, pick a roomier style, or hide less.`);
+    }
+    const frames = split ? splitPacket(packet, maxFrame) : [packet];
+
+    const imgs: Rgba[] = [];
+    for (let i = 0; i < frames.length; i++) {
+      setStatus(status, frames.length > 1 ? `Creating image ${i + 1} of ${frames.length}…` : 'Creating image…');
+      await sleep(0); // let the status paint
+      imgs.push(await renderFrame(frames[i], mode, kind, pass, cover));
+    }
+
+    const notes: string[] = [];
+    if (frames.length > 1) notes.push(`This secret is split across ${frames.length} images. Send all of them (the recipient adds them all on the Reveal tab, in any order).`);
+    if (mode === 'codeart') {
+      if (packet.length > 8000 && frames.length === 1) notes.push('This is a large image. Some apps shrink big images, which can make it unreadable.');
+    } else if (mode === 'qr') notes.push('Anyone can scan these QR codes, but they will only see encrypted gibberish without the passphrase.');
+    else if (mode === 'fakeqr') notes.push('A phone scanner will show your decoy. Keep the images at their original size: cropping or heavy shrinking breaks the hidden data.');
+    else if (kind === 'dct') notes.push('Survives normal JPEG recompression, but not cropping, rotating or heavy resizing. Photos are limited to 1280 px so most apps leave them alone.' + (cover && frames.length > 1 ? ' All parts reuse your cover photo; without one, each part gets its own generated picture.' : ''));
+    else notes.push('Send these as original PNG files or attachments. Pasting inline in Gmail, WhatsApp, iMessage and most social apps usually recompresses images and destroys the hidden data. If in doubt, use the JPEG-safe method.');
+    warn.textContent = notes.join(' ');
+    warn.hidden = notes.length === 0;
+
+    showOutputs(imgs, packet.length);
     $('out-wrap').hidden = false;
-    setStatus(status, 'Done. Copy it into your message, or download it.');
+    setStatus(status, frames.length > 1 ? `Done: ${frames.length} images. Copy the message or download them all.` : 'Done. Copy it into your message, or download it.');
   } catch (e) {
     setStatus(status, (e as Error).message, true);
   } finally {
@@ -208,7 +319,7 @@ $('btn-create').onclick = async () => {
 
 $('btn-copy').onclick = async () => {
   try {
-    await copyImage(lastOut!);
+    await copyImage(outs[0]);
     setStatus($('hide-status'), 'Image copied. Paste it into your message.');
   } catch (e) {
     setStatus($('hide-status'), (e as Error).message, true);
@@ -216,45 +327,129 @@ $('btn-copy').onclick = async () => {
 };
 $('btn-copy-msg').onclick = async () => {
   try {
-    await copyMessage(lastOut!, location.origin + location.pathname + '#reveal');
-    setStatus($('hide-status'), 'Message copied: paste it into an email or chat. If an app only takes the image, paste the link separately.');
+    await copyMessage(outs, location.origin + location.pathname + '#reveal');
+    setStatus(
+      $('hide-status'),
+      outs.length > 1
+        ? `Message copied with all ${outs.length} images: paste it into an email. Chat apps may only take one image, so use each part's Copy button there.`
+        : 'Message copied: paste it into an email or chat. If an app only takes the image, paste the link separately.',
+    );
   } catch (e) {
     setStatus($('hide-status'), (e as Error).message, true);
   }
 };
-$('btn-download').onclick = () => download(lastOut!, 'secret.png');
+$('btn-download').onclick = async () => {
+  for (let i = 0; i < outs.length; i++) {
+    download(outs[i], partName(i, outs.length));
+    if (outs.length > 1) await sleep(350); // browsers throttle rapid-fire downloads
+  }
+};
+$('chk-split').addEventListener('change', syncKindUi);
+
 
 // ---- reveal -----------------------------------------------------------------
-let loaded: Rgba | null = null;
+interface Loaded {
+  id: number;
+  rgba: Rgba;
+}
+let images: Loaded[] = [];
+let nextId = 1;
 let handle: RevealHandle | null = null;
 let clearTimer: number | undefined;
+// frames the camera has read so far (so it knows when a split set is complete)
+let scannedFrames: Uint8Array[] = [];
+const scannedKeys = new Set<string>();
 
-async function loadBlob(blob: Blob) {
-  const status = $('reveal-status');
-  try {
-    loaded = await blobToRgba(blob);
-    const t = rgbaToCanvas(loaded, $<HTMLCanvasElement>('thumb'));
-    t.hidden = false;
-    $('drop-text').innerHTML = '<b>Image loaded.</b> Enter the passphrase below, or paste another image.';
-    setStatus(status, '');
-    showTab('reveal');
-    $<HTMLInputElement>('pass2').focus();
-  } catch {
-    setStatus(status, 'Could not read that image.', true);
+function thumbOf(rgba: Rgba): HTMLCanvasElement {
+  const full = rgbaToCanvas(rgba);
+  const t = document.createElement('canvas');
+  t.width = 168;
+  t.height = 168;
+  const ctx = t.getContext('2d')!;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, 168, 168);
+  const s = Math.min(168 / full.width, 168 / full.height);
+  ctx.drawImage(full, (168 - full.width * s) / 2, (168 - full.height * s) / 2, full.width * s, full.height * s);
+  return t;
+}
+
+function renderTray() {
+  const tray = $('tray');
+  tray.replaceChildren();
+  for (const im of images) {
+    const wrap = document.createElement('div');
+    wrap.className = 'thumb';
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.textContent = '×';
+    x.title = 'Remove this image';
+    x.onclick = () => {
+      images = images.filter((i) => i.id !== im.id);
+      resetScan();
+      renderTray();
+    };
+    wrap.append(thumbOf(im.rgba), x);
+    tray.append(wrap);
   }
+  if (images.length > 1) {
+    const all = document.createElement('button');
+    all.type = 'button';
+    all.className = 'ghost small';
+    all.textContent = 'Remove all';
+    all.onclick = () => {
+      images = [];
+      resetScan();
+      renderTray();
+    };
+    tray.append(all);
+  }
+  $('drop-text').innerHTML = images.length
+    ? `<b>${images.length} image${images.length > 1 ? 's' : ''} loaded.</b> Enter the passphrase below, or add more (a split secret needs all its images).`
+    : '<b>Paste an image here</b> (Ctrl/Cmd+V), drop files, or <label class="link" for="file-in">choose some</label>. A split secret needs all its images.';
+}
+
+function resetScan() {
+  scannedFrames = [];
+  scannedKeys.clear();
+}
+
+function addImage(rgba: Rgba) {
+  images.push({ id: nextId++, rgba });
+  renderTray();
+  setStatus($('reveal-status'), '');
+  showTab('reveal');
+  $<HTMLInputElement>('pass2').focus();
+}
+
+async function loadBlobs(blobs: Blob[]) {
+  let failed = 0;
+  for (const b of blobs) {
+    try {
+      addImage(await blobToRgba(b));
+    } catch {
+      failed++;
+    }
+  }
+  if (failed) setStatus($('reveal-status'), failed === blobs.length ? 'Could not read that image.' : `${failed} file${failed > 1 ? 's' : ''} could not be read as images.`, true);
 }
 
 document.addEventListener('paste', (e) => {
-  const item = [...(e.clipboardData?.items ?? [])].find((i) => i.kind === 'file' && i.type.startsWith('image/'));
-  const file = item?.getAsFile();
-  if (file) {
+  const files = [...(e.clipboardData?.items ?? [])].filter((i) => i.kind === 'file' && i.type.startsWith('image/')).map((i) => i.getAsFile()).filter((f): f is File => !!f);
+  if (files.length) {
     e.preventDefault();
-    loadBlob(file);
+    // On the Hide tab with the photo style chosen, a pasted image is the cover photo.
+    if (!$('panel-hide').hidden && currentMode() === 'photo') {
+      setCover(files[0]);
+      return;
+    }
+    loadBlobs(files);
   }
 });
 $<HTMLInputElement>('file-in').onchange = (e) => {
-  const f = (e.target as HTMLInputElement).files?.[0];
-  if (f) loadBlob(f);
+  const input = e.target as HTMLInputElement;
+  const files = [...(input.files ?? [])];
+  input.value = ''; // allows choosing the same file again
+  if (files.length) loadBlobs(files);
 };
 const drop = $('drop');
 drop.addEventListener('dragover', (e) => {
@@ -265,8 +460,8 @@ drop.addEventListener('dragleave', () => drop.classList.remove('over'));
 drop.addEventListener('drop', (e) => {
   e.preventDefault();
   drop.classList.remove('over');
-  const f = e.dataTransfer?.files[0];
-  if (f) loadBlob(f);
+  const files = [...(e.dataTransfer?.files ?? [])];
+  if (files.length) loadBlobs(files);
 });
 
 let pendingFile: { name: string; data: Uint8Array } | null = null;
@@ -318,46 +513,70 @@ $('btn-copy-plain').onclick = async () => {
   setStatus($('reveal-status'), 'Text copied.');
 };
 
+async function decodeImage(img: Rgba, pass: string): Promise<{ frame: Uint8Array; mode: 'codeart' | 'stego' } | null> {
+  const attempts: [() => Promise<Uint8Array> | Uint8Array, 'codeart' | 'stego'][] = [
+    [() => decodePlainQr(img), 'codeart'],
+    [() => decodeCodeArt(img), 'codeart'],
+    [() => decodeFakeQr(img, pass), 'codeart'],
+    [() => extractDct(img, pass), 'stego'],
+    [() => extract(img, pass), 'stego'],
+  ];
+  for (const [fn, mode] of attempts) {
+    try {
+      const frame = await fn();
+      parseFrame(frame); // a whole packet or one part; checksum verified
+      return { frame, mode };
+    } catch {
+      /* try the next method */
+    }
+  }
+  return null;
+}
+
 $('btn-reveal').onclick = async () => {
   const status = $('reveal-status');
   const pass = $<HTMLInputElement>('pass2').value;
-  if (!loaded) return setStatus(status, 'Paste or choose the image first.', true);
+  if (!images.length) return setStatus(status, 'Paste or choose the image first.', true);
   if (!pass) return setStatus(status, 'Enter the passphrase.', true);
 
   clearResult();
   const btn = $<HTMLButtonElement>('btn-reveal');
   btn.disabled = true;
-  setStatus(status, 'Decoding…');
+  setStatus(status, images.length > 1 ? `Decoding ${images.length} images…` : 'Decoding…');
   try {
-    const img = loaded;
-    const attempts: [() => Promise<Uint8Array> | Uint8Array, 'codeart' | 'stego'][] = [
-      [() => decodePlainQr(img), 'codeart'],
-      [() => decodeCodeArt(img), 'codeart'],
-      [() => decodeFakeQr(img, pass), 'codeart'],
-      [() => extractDct(img, pass), 'stego'],
-      [() => extract(img, pass), 'stego'],
-    ];
-    let packet: Uint8Array | undefined;
+    const frames: Uint8Array[] = [];
     let mode: 'codeart' | 'stego' = 'codeart';
-    for (const [fn, m] of attempts) {
-      try {
-        const p = await fn();
-        parsePacket(p); // validates framing and checksum
-        packet = p;
-        mode = m;
-        break;
-      } catch {
-        /* try the next method */
-      }
+    let unreadable = 0;
+    for (const im of images) {
+      const r = await decodeImage(im.rgba, pass);
+      if (r) {
+        frames.push(r.frame);
+        mode = r.mode;
+      } else unreadable++;
     }
-    if (!packet) throw new Error('No hidden secret found in this image. It may have been cropped, recompressed or resized by the app it travelled through.');
-    const payload = await openPayload(packet, pass);
+    const asm = assemble(frames);
+    const skipped = unreadable ? ` ${unreadable} image${unreadable > 1 ? 's' : ''} could not be read.` : '';
+    if (asm.state === 'none') {
+      throw new Error(
+        images.length > 1
+          ? 'No hidden secret found in these images. They may have been cropped, recompressed or resized by the app they travelled through, or the passphrase may be wrong.'
+          : 'No hidden secret found in this image. It may have been cropped, recompressed or resized by the app it travelled through.',
+      );
+    }
+    if (asm.state === 'incomplete') {
+      const miss = asm.missing.map((i) => i + 1);
+      setStatus(status, `Found ${asm.have} of ${asm.total} parts. Missing part${miss.length > 1 ? 's' : ''} ${miss.join(', ')}: add ${miss.length > 1 ? 'those images' : 'that image'} and press Reveal again.${skipped}`);
+      return;
+    }
+    if (asm.state === 'corrupt') throw new Error('The parts do not fit together (damaged, or from different secrets). Remove all images and add them again.');
+
+    const payload = await openPayload(asm.packet, pass);
     const text = payload.kind === 'text' ? payload.text : `📄 ${payload.name}\n${fmt(payload.data.length)}`;
 
     setStatus(status, '');
     $('stage-wrap').hidden = false;
     $<HTMLTextAreaElement>('plain').value = '';
-    const source = rgbaToCanvas(loaded);
+    const source = rgbaToCanvas(images[images.length - 1].rgba);
     handle = playReveal({ canvas: $<HTMLCanvasElement>('stage'), source, text, mode, reduceMotion: reducedMotion() });
     await handle.done;
     showResult(payload);
@@ -402,11 +621,13 @@ $('btn-paste').onclick = async () => {
   const status = $('reveal-status');
   try {
     if (!navigator.clipboard?.read) throw new Error('unsupported');
+    const blobs: Blob[] = [];
     for (const item of await navigator.clipboard.read()) {
       const type = item.types.find((t) => t.startsWith('image/'));
-      if (type) return void (await loadBlob(await item.getType(type)));
+      if (type) blobs.push(await item.getType(type));
     }
-    setStatus(status, 'No image found on the clipboard. Copy the image first, then try again.', true);
+    if (!blobs.length) return setStatus(status, 'No image found on the clipboard. Copy the image first, then try again.', true);
+    await loadBlobs(blobs);
   } catch (e) {
     const denied = (e as Error).name === 'NotAllowedError';
     setStatus(status, denied ? 'Clipboard access was blocked. Allow it in the browser, or press Ctrl/Cmd+V instead.' : 'This browser cannot read the clipboard here (needs https or localhost). Press Ctrl/Cmd+V instead.', true);
@@ -432,16 +653,31 @@ $('btn-scan').onclick = async () => {
     setStatus(status, 'Starting camera…');
     scanner = await startScanner($<HTMLVideoElement>('cam'), () => $<HTMLInputElement>('pass2').value, {
       onStatus: (m) => setStatus(status, m),
-      onFound: (_packet, frame) => {
+      onFound: (frame, image) => {
+        let info: ReturnType<typeof parseFrame>;
+        try {
+          info = parseFrame(frame);
+        } catch {
+          return true;
+        }
+        const key = info.kind === 'part' ? `${info.part.setId}:${info.part.index}` : 'single';
+        if (!scannedKeys.has(key)) {
+          scannedKeys.add(key);
+          scannedFrames.push(frame);
+          addImage(image);
+        }
+        const asm = assemble(scannedFrames);
+        if (info.kind === 'part' && asm.state !== 'complete') {
+          setStatus(status, `Scanned part ${info.part.index + 1} of ${info.part.total}: ${scannedKeys.size} of ${info.part.total} collected. Keep scanning the other codes.`);
+          return true; // keep the camera running for the next part
+        }
         stopScan();
-        loaded = frame;
-        rgbaToCanvas(frame, $<HTMLCanvasElement>('thumb')).hidden = false;
-        $('drop-text').innerHTML = '<b>QR code scanned.</b>';
         if ($<HTMLInputElement>('pass2').value) $<HTMLButtonElement>('btn-reveal').click();
         else {
           setStatus(status, 'Scanned. Enter the passphrase and press Reveal.');
           $<HTMLInputElement>('pass2').focus();
         }
+        return false;
       },
     });
   } catch (e) {

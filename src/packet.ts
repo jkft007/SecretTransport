@@ -81,3 +81,50 @@ export function parsePacket(buf: Uint8Array): Packet {
 
 /** Total packet size for a given ciphertext length (used for capacity estimates). */
 export const packetSize = (ctLen: number): number => HEADER_LEN + ctLen + 4;
+
+// ---- split parts -------------------------------------------------------------
+// 'S' 'P' | version(1) | setId(6) | index(1) | total(1) | chunk | crc32(4, BE)
+// A large packet is cut into numbered chunks; each chunk travels in its own image.
+
+export const PART_OVERHEAD = 15;
+export const MAX_PARTS = 60;
+
+export interface Part {
+  setId: string; // hex
+  index: number; // 0-based
+  total: number;
+  chunk: Uint8Array;
+}
+
+const hex = (u: Uint8Array) => Array.from(u, (b) => b.toString(16).padStart(2, '0')).join('');
+
+export function buildPart(setId: Uint8Array, index: number, total: number, chunk: Uint8Array): Uint8Array {
+  const out = new Uint8Array(PART_OVERHEAD + chunk.length);
+  out[0] = 0x53;
+  out[1] = 0x50;
+  out[2] = VERSION;
+  out.set(setId, 3);
+  out[9] = index;
+  out[10] = total;
+  out.set(chunk, 11);
+  new DataView(out.buffer).setUint32(out.length - 4, crc32(out.subarray(0, out.length - 4)));
+  return out;
+}
+
+export function parsePart(buf: Uint8Array): Part {
+  if (buf.length < PART_OVERHEAD + 1 || buf[0] !== 0x53 || buf[1] !== 0x50) throw new PacketError('not a split part');
+  if (buf[2] !== VERSION) throw new PacketError('unsupported version');
+  const crc = new DataView(buf.buffer, buf.byteOffset).getUint32(buf.length - 4);
+  if (crc32(buf.subarray(0, buf.length - 4)) !== crc) throw new PacketError('checksum mismatch');
+  const index = buf[9];
+  const total = buf[10];
+  if (total < 2 || total > MAX_PARTS || index >= total) throw new PacketError('bad part numbering');
+  return { setId: hex(buf.subarray(3, 9)), index, total, chunk: buf.slice(11, buf.length - 4) };
+}
+
+/** Accepts either a whole packet or one part; throws if it is neither. */
+export function parseFrame(buf: Uint8Array): { kind: 'packet' } | { kind: 'part'; part: Part } {
+  if (buf.length > 1 && buf[1] === 0x50) return { kind: 'part', part: parsePart(buf) };
+  parsePacket(buf);
+  return { kind: 'packet' };
+}
