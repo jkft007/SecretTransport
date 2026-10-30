@@ -216,7 +216,7 @@ $('btn-copy').onclick = async () => {
 };
 $('btn-copy-msg').onclick = async () => {
   try {
-    await copyMessage(lastOut!, location.origin + location.pathname);
+    await copyMessage(lastOut!, location.origin + location.pathname + '#reveal');
     setStatus($('hide-status'), 'Message copied: paste it into an email or chat. If an app only takes the image, paste the link separately.');
   } catch (e) {
     setStatus($('hide-status'), (e as Error).message, true);
@@ -384,6 +384,19 @@ $('btn-reveal').onclick = async () => {
 };
 
 syncModeUi();
+
+// The shared link ends in #reveal so recipients land on the Reveal tab.
+const openFromHash = () => showTab(location.hash === '#reveal' ? 'reveal' : 'hide');
+if (location.hash === '#reveal') openFromHash();
+window.addEventListener('hashchange', openFromHash);
+
+// Enter in the passphrase box does the same as pressing Reveal.
+$('pass2').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.isComposing) {
+    e.preventDefault();
+    $<HTMLButtonElement>('btn-reveal').click();
+  }
+});
 
 $('btn-paste').onclick = async () => {
   const status = $('reveal-status');
