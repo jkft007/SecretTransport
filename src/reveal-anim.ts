@@ -1,7 +1,10 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane';
-export const STYLES: RevealStyle[] = ['matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane'];
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight';
+export const STYLES: RevealStyle[] = [
+  'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
+  'swarm', 'bubbles', 'ufo', 'spotlight',
+];
 
 export interface RevealOptions {
   canvas: HTMLCanvasElement;
@@ -99,7 +102,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const style: RevealStyle = o.style ?? STYLES[Math.floor(rnd() * STYLES.length)];
   const FLIGHT = 500; // how long a letter takes to fall out of the can
   const FALL = 1100; // how long a parachuted word takes to float down
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : style === 'curtain' || style === 'moon' ? 600 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const SWARM = 700; // how long a speck of dust takes to fly to its letter
+  const RISE = 900; // how long a bubble takes to float up to its place
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight'].includes(style) ? 600 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -107,11 +112,19 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'flag' ? 1400
     : style === 'moon' ? 2400
     : style === 'plane' ? Math.max(T_RESOLVE, 1400) + FALL + 100
+    : style === 'swarm' ? Math.max(T_RESOLVE, 1400) + SWARM + 100
+    : style === 'bubbles' ? Math.max(T_RESOLVE, 1400) + RISE + 200
+    : style === 'ufo' ? Math.max(T_RESOLVE, 1400) + 400
+    : style === 'spotlight' ? 2400
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
   const spread = style === 'fireworks' ? 0.7 : 0.8;
-  const T_LOCK = style === 'can' ? T_RES - FLIGHT - 100 : T_RES;
+  const T_LOCK =
+    style === 'can' ? T_RES - FLIGHT - 100
+    : style === 'swarm' ? T_RES - SWARM - 100
+    : style === 'bubbles' ? T_RES - RISE - 200
+    : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
 
@@ -258,6 +271,128 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.fillRect(s.x, s.y, 2.2, 2.2);
     }
     drawCells(r, (c) => r >= c.lock, false);
+  };
+
+  // Swarm: glowing dust drifts about, then each speck flies in and becomes its letter.
+  const origin = visible.map(() => ({ x: rnd() * W, y: rnd() * H, ph: rnd() * 6 }));
+  const drawSwarm = (r: number, t: number) => {
+    clear();
+    ctx.font = `${fs}px ${FONT}`;
+    visible.forEach((c, i) => {
+      const o2 = origin[i];
+      const sx = o2.x + Math.sin(t / 500 + o2.ph) * 6;
+      const sy = o2.y + Math.cos(t / 420 + o2.ph) * 6;
+      const p = (r - c.lock) / SWARM;
+      if (p <= 0) {
+        ctx.fillStyle = `rgba(160,255,220,${0.4 + 0.4 * Math.sin(t / 200 + o2.ph)})`;
+        ctx.fillRect(sx, sy, 2.2, 2.2);
+        return;
+      }
+      const q = ease(p);
+      ctx.fillStyle = p < 1 ? `rgba(200,255,235,${0.5 + 0.5 * q})` : '#e8fff4';
+      ctx.shadowColor = 'rgba(80,255,190,.6)';
+      ctx.shadowBlur = p < 1 ? 10 : 5;
+      ctx.fillText(c.ch, sx + (c.x - sx) * q, sy + (c.y - sy) * q);
+    });
+    ctx.shadowBlur = 0;
+  };
+
+  // Bubbles: each letter floats up inside a bubble, which pops when it arrives.
+  const drawBubbles = (r: number) => {
+    clear();
+    ctx.font = `${fs}px ${FONT}`;
+    const rad = cw * 0.95;
+    visible.forEach((c, i) => {
+      const p = (r - c.lock) / RISE;
+      if (p < 0) return;
+      const k = Math.min(1, p);
+      const x = c.x + Math.sin(p * 7 + i) * 8 * (1 - k);
+      const y = H + 20 + (c.y - H - 20) * ease(k);
+      const bx = x + cw / 2;
+      const by = y - fs * 0.3;
+      ctx.fillStyle = '#e8fff4';
+      ctx.fillText(c.ch, x, y);
+      if (p < 1) {
+        ctx.fillStyle = 'rgba(150,220,255,.14)';
+        ctx.strokeStyle = 'rgba(170,230,255,.85)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(bx, by, rad, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(bx, by, rad * 0.7, Math.PI * 1.1, Math.PI * 1.45);
+        ctx.stroke();
+      } else if (p < 1.2) {
+        const pr = (p - 1) / 0.2;
+        ctx.strokeStyle = `rgba(170,230,255,${1 - pr})`;
+        ctx.beginPath();
+        ctx.arc(bx, by, rad * (1 + pr * 0.9), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    });
+  };
+
+  // UFO: a saucer sweeps across and its beam makes the letters appear as it passes over them.
+  const FLYU = T_INTRO + Math.max(T_RESOLVE, 1400);
+  const drawUfo = (t: number) => {
+    clear();
+    for (const s of stars) {
+      ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.3 * Math.sin(t / 300 + s.ph)})`;
+      ctx.fillRect(s.x, s.y, s.s, s.s);
+    }
+    const px = -40 + (W + 80) * (t / FLYU);
+    if (px > -40 && px < W + 40) {
+      const g = ctx.createLinearGradient(0, 24, 0, H);
+      g.addColorStop(0, 'rgba(190,255,210,.35)');
+      g.addColorStop(1, 'rgba(190,255,210,.05)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(px - 10, 24);
+      ctx.lineTo(px + 10, 24);
+      ctx.lineTo(px + 50, H);
+      ctx.lineTo(px - 50, H);
+      ctx.fill();
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const q = Math.min(1, (t - ((c.x + 40) / (W + 80)) * FLYU) / 300);
+      if (q <= 0) continue;
+      ctx.fillStyle = q < 1 ? `rgba(220,255,235,${q})` : '#e8fff4';
+      ctx.shadowColor = 'rgba(160,255,200,.8)';
+      ctx.shadowBlur = q < 1 ? 14 : 5;
+      ctx.fillText(c.ch, c.x, c.y - (1 - q) * 30);
+    }
+    ctx.shadowBlur = 0;
+    if (px > -40 && px < W + 40) {
+      ctx.fillStyle = '#aab6c2';
+      ctx.beginPath();
+      ctx.ellipse(px, 18, 26, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#7fd6ff';
+      ctx.beginPath();
+      ctx.ellipse(px, 15, 12, 9, 0, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = '#ffe27a';
+      for (let k = -2; k <= 2; k++) ctx.fillRect(px + k * 9 - 1.5, 19, 3, 3);
+    }
+  };
+
+  // Spotlight: only a roaming pool of light shows the text, then it swells to light the whole stage.
+  const drawSpot = (p: number) => {
+    clear();
+    drawCells(0, () => true, false, false);
+    const grow = ease((p - 0.55) / 0.45);
+    const rad = 55 + grow * Math.hypot(W, H);
+    // the pool wanders back and forth along the text so it is actually found
+    const tw = Math.max(...shown.map((l) => Array.from(l).length)) * cw;
+    const cx = W / 2 + Math.sin(p * 5.5) * Math.max(40, tw / 2) * (1 - grow);
+    const cy = top + (shown.length * lh) / 2 + Math.sin(p * 3.3) * lh * (1 - grow);
+    const g = ctx.createRadialGradient(cx, cy, rad * 0.55, cx, cy, rad);
+    g.addColorStop(0, `rgba(${BG},0)`);
+    g.addColorStop(1, `rgb(${BG})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
   };
 
   // Plane: it crosses the sky and parachutes the text out, one word per canopy.
@@ -538,7 +673,15 @@ export function playReveal(o: RevealOptions): RevealHandle {
       }
     } else if (t < T_INTRO) {
       const p = t / T_INTRO;
-      if (style === 'plane') {
+      if (style === 'swarm') {
+        drawSwarm(r, t);
+      } else if (style === 'bubbles') {
+        drawBubbles(r);
+      } else if (style === 'ufo') {
+        drawUfo(t);
+      } else if (style === 'spotlight') {
+        drawSpot(0);
+      } else if (style === 'plane') {
         drawPlane(t);
       } else if (style === 'moon') {
         drawMoon(0, 0, t);
@@ -593,6 +736,14 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (style === 'swarm') {
+      drawSwarm(r, t);
+    } else if (style === 'bubbles') {
+      drawBubbles(r);
+    } else if (style === 'ufo') {
+      drawUfo(t);
+    } else if (style === 'spotlight') {
+      drawSpot(Math.min(1, r / (T_RES - 200)));
     } else if (style === 'plane') {
       drawPlane(t);
     } else if (style === 'moon') {
