@@ -101,6 +101,9 @@
           </div>
         </div>
 
+        <label for="anim-pick">Reveal animation <span class="hint">(stored inside the encrypted image; the recipient sees it unless they pick another)</span></label>
+        <select id="anim-pick"></select>
+
         <label class="check split"><input id="chk-split" type="checkbox" checked /> Split across several images when it does not fit in one</label>
 
         <button id="btn-create" class="primary">Create image</button>
@@ -141,7 +144,7 @@
           <button id="btn-reveal" class="primary">Reveal</button>
           <label class="check"><input id="chk-motion" type="checkbox" /> Skip animation</label>
           <select id="anim-style" aria-label="Reveal animation">
-            <option value="auto" selected>Animation: Auto (random)</option>
+            <option value="auto" selected>Animation: Auto (sender's choice, else random)</option>
             <option value="matrix">Matrix rain</option>
             <option value="scramble">Scramble</option>
             <option value="typewriter">Typewriter</option>
@@ -161,6 +164,8 @@
             <option value="ink">Invisible ink</option>
             <option value="safe">Opening a safe</option>
             <option value="train">Express train</option>
+            <option value="oldtype">Old typewriter</option>
+            <option value="printer">Mechanical printer</option>
           </select>
         </div>
         <div id="reveal-status" class="status" role="status"></div>

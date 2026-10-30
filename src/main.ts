@@ -9,7 +9,7 @@ import { MAX_PARTS, MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, PA
 import { assemble, splitPacket } from './split';
 import { embed, extract, stegoCapacity } from './stego';
 import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
-import { playReveal, STYLES, type RevealHandle } from './reveal-anim';
+import { idToStyle, playReveal, styleToId, STYLES, type RevealHandle } from './reveal-anim';
 import { startScanner, type Scanner } from './camera';
 import { startPreview, type Preview } from './capture';
 import { readText } from './ocr';
@@ -59,6 +59,18 @@ function updateMeter() {
   if (level !== 'weak') $<HTMLInputElement>('chk-weak').checked = false;
 }
 $('pass').addEventListener('input', updateMeter);
+
+// The sender's animation list mirrors the reveal list; "auto" there means the recipient's browser picks one.
+{
+  const dst = $<HTMLSelectElement>('anim-pick');
+  const auto = document.createElement('option');
+  auto.value = 'auto';
+  auto.textContent = 'Random (recipient sees a surprise)';
+  dst.append(auto);
+  for (const o of $<HTMLSelectElement>('anim-style').options) {
+    if (o.value !== 'auto') dst.append(new Option(o.textContent ?? o.value, o.value));
+  }
+}
 
 $('pass-toggle').onclick = () => {
   const i = $<HTMLInputElement>('pass');
@@ -322,7 +334,8 @@ $('btn-create').onclick = async () => {
     const mode = currentMode();
     const kind = photoKind();
     const packetMode = { codeart: MODE_CODEART, qr: MODE_QR, fakeqr: MODE_FAKEQR, photo: kind === 'dct' ? MODE_DCT : MODE_STEGO }[mode];
-    const packet = await sealPayload(payload, pass, packetMode);
+    const chosen = STYLES.find((s) => s === $<HTMLSelectElement>('anim-pick').value);
+    const packet = await sealPayload(payload, pass, packetMode, undefined, chosen ? styleToId(chosen) : 0);
 
     let cover: Rgba | null = null;
     if (mode === 'photo') {
@@ -698,8 +711,9 @@ $('btn-reveal').onclick = async () => {
     $('stage-wrap').hidden = false;
     $<HTMLTextAreaElement>('plain').value = '';
     const source = rgbaToCanvas(images[images.length - 1].rgba);
+    // A manual choice wins; on Auto use the sender's stored choice, else playReveal picks at random.
     const pick = $<HTMLSelectElement>('anim-style').value;
-    const style = STYLES.find((s) => s === pick); // undefined (Auto) lets playReveal choose at random
+    const style = STYLES.find((s) => s === pick) ?? idToStyle(payload.anim);
     handle = playReveal({ canvas: $<HTMLCanvasElement>('stage'), source, text, mode, reduceMotion: reducedMotion(), style });
     await handle.done;
     showResult(payload);

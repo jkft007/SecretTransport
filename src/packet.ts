@@ -2,7 +2,8 @@
 // 'S' 'T' | 2 | mode(1) | kdf(1) | memLog2(1) | iterations(1) | salt(16) | iv(12) | ctLen(4, BE) | ciphertext+tag | crc32(4, BE)
 // Version 1 (older images, PBKDF2 with 600,000 rounds):
 // 'S' 'T' | 1 | mode(1) | salt(16) | iv(12) | ctLen(4, BE) | ciphertext+tag | crc32(4, BE)
-// mode: low nibble = image mode, 0x10 = payload was deflated before encryption, 0x20 = payload is a file.
+// mode: low nibble = image mode, 0x10 = payload was deflated before encryption, 0x20 = payload is a file,
+// 0x40 = the first decrypted byte is the sender's chosen reveal animation (kept inside the encryption).
 // The whole header is authenticated by AES-GCM, so the stored key-derivation settings cannot be altered.
 import type { KdfSpec } from './kdf';
 
@@ -13,6 +14,7 @@ export const MODE_QR = 4;
 export const MODE_FAKEQR = 5;
 export const FLAG_COMPRESSED = 0x10;
 export const FLAG_FILE = 0x20;
+export const FLAG_ANIM = 0x40;
 export const VERSION = 1; // also the version of the split-part frame
 export const VERSION_ARGON = 2;
 export const HEADER_LEN = 36; // version 1
@@ -26,6 +28,7 @@ export interface Packet {
   mode: number;
   compressed: boolean;
   isFile: boolean;
+  hasAnim: boolean;
   kdf: KdfSpec;
   salt: Uint8Array;
   iv: Uint8Array;
@@ -56,8 +59,9 @@ export function buildHeader(
   ctLen: number,
   isFile = false,
   kdf: KdfSpec = { type: 'pbkdf2' },
+  hasAnim = false,
 ): Uint8Array {
-  const flags = mode | (compressed ? FLAG_COMPRESSED : 0) | (isFile ? FLAG_FILE : 0);
+  const flags = mode | (compressed ? FLAG_COMPRESSED : 0) | (isFile ? FLAG_FILE : 0) | (hasAnim ? FLAG_ANIM : 0);
   const argon = kdf.type === 'argon2id';
   const h = new Uint8Array(argon ? HEADER_LEN_V2 : HEADER_LEN);
   h[0] = 0x53;
@@ -106,6 +110,7 @@ export function parsePacket(buf: Uint8Array): Packet {
     mode: buf[3] & 0x0f,
     compressed: (buf[3] & FLAG_COMPRESSED) !== 0,
     isFile: (buf[3] & FLAG_FILE) !== 0,
+    hasAnim: (buf[3] & FLAG_ANIM) !== 0,
     kdf,
     salt: buf.slice(o, o + 16),
     iv: buf.slice(o + 16, o + 28),

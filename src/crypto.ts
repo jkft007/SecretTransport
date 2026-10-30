@@ -65,9 +65,22 @@ function decodeFile(plain: Uint8Array): Payload {
   return { kind: 'file', name, data: plain.slice(2 + n) };
 }
 
-/** Encrypts a text or file payload with `passphrase` and returns a framed packet. */
-export async function sealPayload(payload: Payload, passphrase: string, mode: number, kdf: KdfSpec = defaultKdf()): Promise<Uint8Array> {
+/** A decrypted payload plus the reveal animation the sender chose (1-based id, absent if none). */
+export type Opened = Payload & { anim?: number };
+
+/**
+ * Encrypts a text or file payload with `passphrase` and returns a framed packet.
+ * `anim` (1..255) is the sender's chosen reveal animation; it is stored inside the encryption.
+ */
+export async function sealPayload(payload: Payload, passphrase: string, mode: number, kdf: KdfSpec = defaultKdf(), anim = 0): Promise<Uint8Array> {
   let data = encodePayload(payload);
+  const hasAnim = anim > 0 && anim < 256;
+  if (hasAnim) {
+    const tagged = new Uint8Array(data.length + 1);
+    tagged[0] = anim;
+    tagged.set(data, 1);
+    data = tagged;
+  }
   let compressed = false;
   const z = await deflate(data);
   if (z.length < data.length) {
@@ -76,7 +89,7 @@ export async function sealPayload(payload: Payload, passphrase: string, mode: nu
   }
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const header = buildHeader(mode, compressed, salt, iv, data.length + TAG_LEN, payload.kind === 'file', kdf);
+  const header = buildHeader(mode, compressed, salt, iv, data.length + TAG_LEN, payload.kind === 'file', kdf, hasAnim);
   const key = await deriveKey(passphrase, salt, kdf);
   const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: bs(iv), additionalData: bs(header) }, key, bs(data)));
   return finishPacket(header, ct);
@@ -85,7 +98,7 @@ export async function sealPayload(payload: Payload, passphrase: string, mode: nu
 export const sealText = (text: string, passphrase: string, mode: number, kdf?: KdfSpec) => sealPayload({ kind: 'text', text }, passphrase, mode, kdf);
 
 /** Verifies and decrypts a framed packet. Throws WrongPassphraseError on auth failure. */
-export async function openPayload(buf: Uint8Array, passphrase: string): Promise<Payload> {
+export async function openPayload(buf: Uint8Array, passphrase: string): Promise<Opened> {
   const p = parsePacket(buf);
   const key = await deriveKey(passphrase, p.salt, p.kdf);
   let plain: Uint8Array;
@@ -95,8 +108,15 @@ export async function openPayload(buf: Uint8Array, passphrase: string): Promise<
     throw new WrongPassphraseError();
   }
   if (p.compressed) plain = await inflate(plain);
-  if (p.isFile) return decodeFile(plain);
-  return { kind: 'text', text: new TextDecoder('utf-8', { fatal: true }).decode(plain) };
+  let anim: number | undefined;
+  if (p.hasAnim) {
+    if (plain.length < 1) throw new Error('Damaged data');
+    anim = plain[0];
+    plain = plain.subarray(1);
+  }
+  const tag = anim === undefined ? {} : { anim };
+  if (p.isFile) return { ...decodeFile(plain), ...tag };
+  return { kind: 'text', text: new TextDecoder('utf-8', { fatal: true }).decode(plain), ...tag };
 }
 
 /** Text-only convenience wrapper. */

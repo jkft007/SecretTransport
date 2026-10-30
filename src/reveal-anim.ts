@@ -1,10 +1,14 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
-  'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train',
+  'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
 ];
+
+// The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
+export const styleToId = (s: RevealStyle): number => STYLES.indexOf(s) + 1;
+export const idToStyle = (id: number | undefined): RevealStyle | undefined => (id ? STYLES[id - 1] : undefined);
 
 export interface RevealOptions {
   canvas: HTMLCanvasElement;
@@ -100,6 +104,17 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const T_RAIN = 700;
   const T_RESOLVE = Math.min(2600, Math.max(900, visible.length * 20));
   const style: RevealStyle = o.style ?? STYLES[Math.floor(rnd() * STYLES.length)];
+  canvas.dataset.style = style; // which animation is playing (handy for tests)
+  // One character at a time, in reading order, with a pause at each line break (typewriter and printer).
+  const perChar = Math.min(80, Math.max(25, 3000 / Math.max(1, visible.length)));
+  const typeAt: number[] = [];
+  let typeAcc = 0;
+  visible.forEach((c, i) => {
+    if (i > 0 && visible[i - 1].y !== c.y) typeAcc += 220;
+    typeAt.push(typeAcc);
+    typeAcc += perChar;
+  });
+  const T_TYPE = typeAcc;
   const FLIGHT = 500; // how long a letter takes to fall out of the can
   const FALL = 1100; // how long a parachuted word takes to float down
   const SWARM = 700; // how long a speck of dust takes to fly to its letter
@@ -107,7 +122,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const WIN = 1000; // the jackpot celebration after the last reel stops
   const INK = 500; // how long invisible ink takes to darken once the flame reaches it
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train'].includes(style) ? 600 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer'].includes(style) ? 600 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -123,6 +138,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'ink' ? Math.max(T_RESOLVE, 1600) + INK + 100
     : style === 'safe' ? 2200
     : style === 'train' ? Math.max(T_RESOLVE, 1400) + STEAM + 100
+    : style === 'oldtype' || style === 'printer' ? T_TYPE + 200
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
@@ -280,6 +296,144 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.fillRect(s.x, s.y, 2.2, 2.2);
     }
     drawCells(r, (c) => r >= c.lock, false);
+  };
+
+  // Old typewriter: a sheet feeds in, keys strike one at a time, and the bell dings at the end of a line.
+  const fadeToFinal = (r: number) => {
+    if (r > T_RES) {
+      ctx.globalAlpha = Math.min(1, (r - T_RES) / 250);
+      drawFinal();
+      ctx.globalAlpha = 1;
+    }
+  };
+  const latest = (r: number) => {
+    let last = -1;
+    while (last + 1 < visible.length && r >= typeAt[last + 1]) last++;
+    return last;
+  };
+  const drawOldType = (r: number, t: number) => {
+    clear();
+    const off = r < 0 ? (1 - ease(t / T_INTRO)) * H : 0;
+    ctx.save();
+    ctx.translate(0, off);
+    const pg = ctx.createLinearGradient(0, 0, 0, H);
+    pg.addColorStop(0, '#f6eed8');
+    pg.addColorStop(1, '#e6dabb');
+    ctx.fillStyle = pg;
+    ctx.fillRect(0, -4, W, H + 4);
+    ctx.font = `${fs}px ${FONT}`;
+    const last = latest(r);
+    for (let i = 0; i <= last; i++) {
+      const c = visible[i];
+      const fresh = r - typeAt[i] < 80; // a fresh strike is inked a little off-line
+      ctx.fillStyle = 'rgba(25,25,30,.92)';
+      ctx.fillText(c.ch, c.x + (fresh ? Math.sin(i * 12.9898) * 1.2 : 0), c.y + (fresh ? 1 : 0));
+    }
+    ctx.restore();
+    const my = H - 46;
+    ctx.fillStyle = '#2a2f36';
+    ctx.fillRect(0, my, W, 46);
+    ctx.fillStyle = '#8a949e';
+    ctx.fillRect(0, my, W, 4);
+    ctx.fillStyle = '#14171b'; // platen roller
+    ctx.fillRect(0, my - 8, W, 10);
+    ctx.fillStyle = '#3b434b';
+    ctx.fillRect(0, my - 7, W, 2);
+    const nKeys = Math.max(6, Math.floor((W - 30) / 26));
+    const cur = last >= 0 ? visible[last] : undefined;
+    const age = cur ? r - typeAt[last] : 1e9;
+    const pressed = cur ? (cur.ch.charCodeAt(0) * 7 + last) % nKeys : -1;
+    for (let k = 0; k < nKeys; k++) {
+      const kx = 18 + k * ((W - 36) / (nKeys - 1));
+      const down = k === pressed && age < 90 ? 2 : 0;
+      ctx.fillStyle = down ? '#555' : '#1a1e23';
+      ctx.strokeStyle = '#9aa4ae';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(kx, my + 26 + down, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    if (cur && age < 90) {
+      // the type bar swings up from the pressed key to the paper
+      const kx = 18 + pressed * ((W - 36) / (nKeys - 1));
+      ctx.strokeStyle = '#6b747d';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(kx, my + 17);
+      ctx.lineTo(cur.x + cw / 2, cur.y - fs / 2);
+      ctx.stroke();
+    }
+    if (cur && age < 350 && (last + 1 >= visible.length || visible[last + 1].y !== cur.y)) {
+      ctx.fillStyle = '#c9a227';
+      ctx.font = 'italic bold 14px serif';
+      ctx.fillText('ding!', W - 56, my - 18);
+    }
+    fadeToFinal(r);
+  };
+
+  // Mechanical printer: greenbar fanfold paper; a print head shuttles along each line and prints it.
+  const drawPrinter = (r: number, t: number) => {
+    clear();
+    const off = r < 0 ? (1 - ease(t / T_INTRO)) * H : 0;
+    const holeW = 18;
+    ctx.save();
+    ctx.translate(0, off);
+    ctx.fillStyle = '#f4f6ef';
+    ctx.fillRect(0, -4, W, H + 4);
+    ctx.fillStyle = '#dcebd5';
+    for (let y = 4; y < H; y += lh * 4) ctx.fillRect(holeW, y, W - holeW * 2, lh * 2);
+    ctx.fillStyle = '#e6e9df';
+    ctx.fillRect(0, -4, holeW, H + 4);
+    ctx.fillRect(W - holeW, -4, holeW, H + 4);
+    ctx.fillStyle = '#9aa09a';
+    for (let y = 8; y < H; y += 16) {
+      ctx.beginPath();
+      ctx.arc(holeW / 2, y, 3, 0, Math.PI * 2);
+      ctx.arc(W - holeW / 2, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(0,0,0,.08)';
+    ctx.fillRect(holeW, -4, 1, H + 4);
+    ctx.fillRect(W - holeW, -4, 1, H + 4);
+    ctx.font = `${fs}px ${FONT}`;
+    const last = latest(r);
+    for (let i = 0; i <= last; i++) {
+      const c = visible[i];
+      ctx.fillStyle = 'rgba(27,42,58,.95)';
+      ctx.fillText(c.ch, c.x, c.y);
+      ctx.fillStyle = 'rgba(27,42,58,.45)'; // second pass, as a dot-matrix head would strike
+      ctx.fillText(c.ch, c.x + 0.6, c.y);
+    }
+    ctx.restore();
+    // the head rides a rail across the page, and parks at the side when idle
+    const cur = last >= 0 ? visible[last] : undefined;
+    const nxt = last + 1 < visible.length ? visible[last + 1] : undefined;
+    let hx = holeW + 4;
+    let hy = (visible[0]?.y ?? H / 2) + off;
+    if (cur) {
+      const k = nxt ? Math.min(1, (r - typeAt[last]) / (typeAt[last + 1] - typeAt[last])) : 1;
+      hx = nxt ? cur.x + (nxt.x - cur.x) * k : W - holeW - 14;
+      hy = cur.y + (nxt ? (nxt.y - cur.y) * (k > 0.5 && nxt.y !== cur.y ? 1 : 0) : 0) + off;
+    }
+    hy += Math.sin(t * 0.9) * 0.8;
+    ctx.fillStyle = '#555c64';
+    ctx.fillRect(holeW, hy - 22, W - holeW * 2, 4);
+    ctx.fillStyle = '#2b2f36';
+    ctx.fillRect(hx - 5, hy - 28, 14, 22);
+    ctx.fillStyle = '#8a949e';
+    ctx.fillRect(hx - 5, hy - 28, 14, 3);
+    ctx.fillStyle = '#2b2f36';
+    ctx.beginPath();
+    ctx.moveTo(hx - 3, hy - 6);
+    ctx.lineTo(hx + 7, hy - 6);
+    ctx.lineTo(hx + 2, hy + 1);
+    ctx.fill();
+    if (cur && r - typeAt[last] < perChar) {
+      ctx.fillStyle = 'rgba(40,60,90,.7)';
+      ctx.fillRect(hx + 1, hy + 1, 2, 2);
+    }
+    fadeToFinal(r);
   };
 
   // Train: a night express rolls through the snow; the letters puff out of its chimney and drift up into place.
@@ -1040,7 +1194,11 @@ export function playReveal(o: RevealOptions): RevealHandle {
       }
     } else if (t < T_INTRO) {
       const p = t / T_INTRO;
-      if (style === 'train') {
+      if (style === 'oldtype') {
+        drawOldType(r, t);
+      } else if (style === 'printer') {
+        drawPrinter(r, t);
+      } else if (style === 'train') {
         drawTrain(t);
       } else if (style === 'safe') {
         drawSafe(0, t, true);
@@ -1111,6 +1269,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (style === 'oldtype') {
+      drawOldType(r, t);
+    } else if (style === 'printer') {
+      drawPrinter(r, t);
     } else if (style === 'train') {
       drawTrain(t);
     } else if (style === 'safe') {
@@ -1157,17 +1319,43 @@ export function playReveal(o: RevealOptions): RevealHandle {
       const L = MUZZLE * (1 - e);
       const R = MUZZLE + (W - MUZZLE) * e;
       const hh = (H / 2 - 6) * ease(p * 3);
+      // a wavy cloth: the edges, the folds and the writing ripple like a flag in the wind, then settle
+      const damp = 1 - clamp01((r - 1000) / 400);
+      const wv = (x: number) => 8 * damp * (0.2 + 0.8 * clamp01((x - L) / Math.max(60, R - L))) * Math.sin((x - L) * 0.04 - t * 0.009);
+      const notch = Math.min(14, (R - L) * 0.1) * damp;
+      const flagPath = () => {
+        ctx.beginPath();
+        ctx.moveTo(L, gunY - hh + wv(L));
+        for (let x = L + 6; x < R; x += 6) ctx.lineTo(x, gunY - hh + wv(x));
+        ctx.lineTo(R, gunY - hh + wv(R));
+        ctx.lineTo(R - notch, gunY + wv(R));
+        ctx.lineTo(R, gunY + hh + wv(R));
+        for (let x = R - 6; x > L; x -= 6) ctx.lineTo(x, gunY + hh + wv(x));
+        ctx.lineTo(L, gunY + hh + wv(L));
+        ctx.closePath();
+      };
       ctx.save();
-      ctx.beginPath();
-      ctx.rect(L, gunY - hh, R - L, hh * 2);
+      flagPath();
       ctx.clip();
       ctx.fillStyle = 'rgb(22,34,46)';
-      ctx.fillRect(L, gunY - hh, R - L, hh * 2);
-      drawCells(r, () => true, false, false);
+      ctx.fillRect(L - 2, 0, R - L + 4, H);
+      ctx.globalAlpha = damp;
+      ctx.fillStyle = '#9b1c2e';
+      ctx.fillRect(L - 2, 0, R - L + 4, H);
+      for (let x = L; x < R; x += 6) {
+        const s = Math.cos((x - L) * 0.04 - t * 0.009);
+        ctx.fillStyle = s > 0 ? `rgba(255,255,255,${0.14 * s})` : `rgba(0,0,0,${-0.22 * s})`;
+        ctx.fillRect(x, 0, 6, H);
+      }
+      ctx.globalAlpha = 1;
+      ctx.font = `${fs}px ${FONT}`;
+      ctx.fillStyle = '#fff6e0';
+      for (const c of visible) ctx.fillText(c.ch, c.x, c.y + wv(c.x));
       ctx.restore();
-      ctx.strokeStyle = '#e0b030';
+      flagPath();
+      ctx.strokeStyle = `rgba(224,176,48,${damp})`;
       ctx.lineWidth = 3;
-      ctx.strokeRect(L, gunY - hh, R - L, hh * 2);
+      ctx.stroke();
       drawGun(L + 4);
       if (r < 240) {
         const f = 1 - r / 240;
