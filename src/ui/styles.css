@@ -110,7 +110,7 @@ legend { font-weight: 600; padding: 0 6px; }
   transition: border-color 0.15s, background 0.15s;
 }
 #drop.over, #drop:focus { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); outline: none; }
-#drop p { margin: 0; }
+#drop p { margin: 0 0 12px; }
 #thumb { max-height: 180px; margin-bottom: 12px; }
 .link { display: inline; margin: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font-weight: 400; }
 .check { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 0 0 0 8px; color: var(--muted); font-size: 14px; }

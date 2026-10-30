@@ -283,3 +283,18 @@ $('btn-reveal').onclick = async () => {
 };
 
 syncModeUi();
+
+$('btn-paste').onclick = async () => {
+  const status = $('reveal-status');
+  try {
+    if (!navigator.clipboard?.read) throw new Error('unsupported');
+    for (const item of await navigator.clipboard.read()) {
+      const type = item.types.find((t) => t.startsWith('image/'));
+      if (type) return void (await loadBlob(await item.getType(type)));
+    }
+    setStatus(status, 'No image found on the clipboard. Copy the image first, then try again.', true);
+  } catch (e) {
+    const denied = (e as Error).name === 'NotAllowedError';
+    setStatus(status, denied ? 'Clipboard access was blocked. Allow it in the browser, or press Ctrl/Cmd+V instead.' : 'This browser cannot read the clipboard here (needs https or localhost). Press Ctrl/Cmd+V instead.', true);
+  }
+};
