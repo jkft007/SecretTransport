@@ -1,9 +1,10 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
+  'ticker', 'radar', 'film', 'parade',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -115,6 +116,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     typeAcc += perChar;
   });
   const T_TYPE = typeAcc;
+  const lineYs = [...new Set(visible.map((c) => c.y))]; // one entry per printed line, top to bottom
+  const RADAR_REV = 1000; // one sweep of the radar
   const FLIGHT = 500; // how long a letter takes to fall out of the can
   const FALL = 1100; // how long a parachuted word takes to float down
   const SWARM = 700; // how long a speck of dust takes to fly to its letter
@@ -122,7 +125,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const WIN = 1000; // the jackpot celebration after the last reel stops
   const INK = 500; // how long invisible ink takes to darken once the flame reaches it
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer'].includes(style) ? 600 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -139,6 +142,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'safe' ? 2200
     : style === 'train' ? Math.max(T_RESOLVE, 1400) + STEAM + 100
     : style === 'oldtype' || style === 'printer' ? T_TYPE + 200
+    : style === 'ticker' ? 200 * (lineYs.length - 1) + 1100 + 150
+    : style === 'radar' ? RADAR_REV + 700
+    : style === 'film' ? 1900
+    : style === 'parade' ? Math.max(T_RESOLVE, 1400) + 300
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
@@ -149,6 +156,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'bubbles' ? T_RES - RISE - 200
     : style === 'jackpot' ? T_RES - WIN
     : style === 'ink' ? T_RES - INK - 100
+    : style === 'parade' ? T_RES - 300
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -434,6 +442,191 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.fillRect(hx + 1, hy + 1, 2, 2);
     }
     fadeToFinal(r);
+  };
+
+  // Ticker tape: each line is its own strip of paper tape that runs in from the right.
+  const lineCells = lineYs.map((ly) => visible.filter((c) => c.y === ly));
+  const drawTicker = (r: number) => {
+    clear();
+    lineYs.forEach((ly, i) => {
+      const top = ly - lh + 9;
+      const h = lh - 6;
+      ctx.fillStyle = 'rgba(255,255,255,.05)'; // the empty guide the tape will run along
+      ctx.fillRect(0, top, W, h);
+      const p = clamp01((r - i * 200) / 1100);
+      if (r < i * 200) return;
+      ctx.save();
+      ctx.translate((1 - ease(p)) * (W + 40), 0);
+      ctx.fillStyle = '#f3ecd6';
+      ctx.fillRect(0, top, W, h);
+      ctx.fillStyle = 'rgba(0,0,0,.12)';
+      ctx.fillRect(0, top, W, 1);
+      ctx.fillRect(0, top + h - 1, W, 1);
+      ctx.fillRect(0, top, 2, h); // the ragged leading end of the tape
+      for (let x = 7; x < W; x += 14) {
+        ctx.beginPath();
+        ctx.arc(x, top + h / 2, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.font = `${fs}px ${FONT}`;
+      ctx.fillStyle = '#22201a';
+      for (const c of lineCells[i]) ctx.fillText(c.ch, c.x, c.y);
+      ctx.restore();
+    });
+    fadeToFinal(r);
+  };
+
+  // Radar: a sweep goes round the stage and each letter blips into view as it passes.
+  const rcx = W / 2;
+  const rcy = H / 2;
+  const radarAt = visible.map((c) => (((Math.atan2(c.y - fs * 0.3 - rcy, c.x + cw / 2 - rcx) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2)) * RADAR_REV);
+  const drawRadar = (r: number) => {
+    clear();
+    const R = Math.hypot(W, H) / 2;
+    ctx.strokeStyle = 'rgba(60,255,140,.18)';
+    ctx.lineWidth = 1;
+    for (let k = 1; k <= 5; k++) {
+      ctx.beginPath();
+      ctx.arc(rcx, rcy, ((R * k) / 5) * 0.8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(rcx, 0);
+    ctx.lineTo(rcx, H);
+    ctx.moveTo(0, rcy);
+    ctx.lineTo(W, rcy);
+    ctx.stroke();
+    const a = (r / RADAR_REV) * Math.PI * 2;
+    for (let k = 0; k < 24; k++) {
+      ctx.fillStyle = `rgba(40,255,120,${0.2 * (1 - k / 24)})`;
+      ctx.beginPath();
+      ctx.moveTo(rcx, rcy);
+      ctx.arc(rcx, rcy, R, a - (k + 1) * 0.04, a - k * 0.04);
+      ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(140,255,180,.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(rcx, rcy);
+    ctx.lineTo(rcx + Math.cos(a) * R, rcy + Math.sin(a) * R);
+    ctx.stroke();
+    ctx.font = `${fs}px ${FONT}`;
+    visible.forEach((c, i) => {
+      if (r < radarAt[i]) return;
+      const fresh = r - radarAt[i] < 350;
+      ctx.fillStyle = fresh ? '#d6ffe4' : '#b8ffd0';
+      ctx.shadowColor = 'rgba(60,255,140,.9)';
+      ctx.shadowBlur = fresh ? 16 : 5;
+      ctx.fillText(c.ch, c.x, c.y);
+    });
+    ctx.shadowBlur = 0;
+    fadeToFinal(r);
+  };
+
+  // Old film: a 3-2-1 countdown leader, then the text flickers up through scratches and grain.
+  const drawFilm = (r: number, t: number) => {
+    ctx.save();
+    ctx.translate((rnd() - 0.5) * 3, (rnd() - 0.5) * 3);
+    if (r < 0) {
+      ctx.fillStyle = '#b8b2a0';
+      ctx.fillRect(-4, -4, W + 8, H + 8);
+      const rad = Math.min(W, H) * 0.32;
+      const cx = W / 2;
+      const cy = H / 2;
+      ctx.strokeStyle = '#2a2620';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+      ctx.moveTo(cx - rad * 1.3, cy);
+      ctx.lineTo(cx + rad * 1.3, cy);
+      ctx.moveTo(cx, cy - rad * 1.3);
+      ctx.lineTo(cx, cy + rad * 1.3);
+      ctx.stroke();
+      const step = Math.min(2, Math.floor(t / 450));
+      ctx.fillStyle = 'rgba(30,26,20,.25)'; // the clock wipe
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, rad, -Math.PI / 2, -Math.PI / 2 + ((t % 450) / 450) * Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2a2620';
+      ctx.font = `bold ${Math.round(rad * 1.3)}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(3 - step), cx, cy + rad * 0.05);
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+    } else {
+      ctx.fillStyle = '#1b150d';
+      ctx.fillRect(-4, -4, W + 8, H + 8);
+      ctx.font = `${fs}px ${FONT}`;
+      ctx.globalAlpha = clamp01(r / 700) * (0.8 + rnd() * 0.2);
+      ctx.fillStyle = '#f4e5bd';
+      ctx.shadowColor = 'rgba(255,200,120,.8)';
+      ctx.shadowBlur = 4;
+      for (const c of visible) ctx.fillText(c.ch, c.x, c.y);
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+    ctx.fillStyle = `rgba(0,0,0,${rnd() * 0.12})`; // projector flicker
+    ctx.fillRect(0, 0, W, H);
+    if (rnd() < 0.35) {
+      ctx.fillStyle = 'rgba(255,255,255,.25)';
+      ctx.fillRect(rnd() * W, 0, 1, H);
+    }
+    for (let k = 0; k < 14; k++) {
+      ctx.fillStyle = `rgba(255,255,255,${0.1 + rnd() * 0.25})`;
+      ctx.fillRect(rnd() * W, rnd() * H, 1 + rnd() * 1.5, 1 + rnd() * 1.5);
+    }
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.hypot(W, H) / 2);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,.6)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+    fadeToFinal(r);
+  };
+
+  // Parade: ticker-tape streamers and confetti rain down; the letters pop in as it falls.
+  const confetti = Array.from({ length: 90 }, () => ({ x: rnd() * W, o: rnd() * H, vy: 0.05 + rnd() * 0.08, ph: rnd() * 6, h: Math.floor(rnd() * 360) }));
+  const ribbons = Array.from({ length: 14 }, () => ({ x: rnd() * W, v: 0.25 + rnd() * 0.25, ph: rnd() * 6, h: Math.floor(rnd() * 360), d: rnd() * 500 }));
+  const drawParade = (r: number, t: number) => {
+    clear();
+    ctx.lineWidth = 3;
+    for (const b of ribbons) {
+      const head = ((t - b.d) * b.v) % (H + 160);
+      if (t < b.d) continue;
+      ctx.strokeStyle = `hsla(${b.h},85%,60%,.85)`;
+      ctx.beginPath();
+      for (let j = 0; j <= 14; j++) {
+        const x = b.x + Math.sin(j * 0.35 + t / 350 + b.ph) * 12;
+        if (j === 0) ctx.moveTo(x, head);
+        else ctx.lineTo(x, head - j * 10);
+      }
+      ctx.stroke();
+    }
+    for (const k of confetti) {
+      const y = ((t * k.vy + k.o) % (H + 20)) - 10;
+      ctx.save();
+      ctx.translate(k.x + Math.sin(t / 400 + k.ph) * 20, y);
+      ctx.rotate(t / 150 + k.ph);
+      ctx.fillStyle = `hsl(${k.h},85%,62%)`;
+      ctx.fillRect(-3, -1.5, 6, 3);
+      ctx.restore();
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const k = clamp01((r - c.lock) / 260);
+      if (k <= 0) continue;
+      ctx.save();
+      ctx.translate(c.x + cw / 2, c.y - fs * 0.3);
+      ctx.scale(1 + (1 - k) * 0.9, 1 + (1 - k) * 0.9);
+      ctx.globalAlpha = k;
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(255,255,255,.8)';
+      ctx.shadowBlur = k < 1 ? 10 : 4;
+      ctx.fillText(c.ch, -cw / 2, fs * 0.3);
+      ctx.restore();
+    }
   };
 
   // Train: a night express rolls through the snow; the letters puff out of its chimney and drift up into place.
@@ -1194,7 +1387,15 @@ export function playReveal(o: RevealOptions): RevealHandle {
       }
     } else if (t < T_INTRO) {
       const p = t / T_INTRO;
-      if (style === 'oldtype') {
+      if (style === 'ticker') {
+        drawTicker(r);
+      } else if (style === 'radar') {
+        drawRadar(r);
+      } else if (style === 'film') {
+        drawFilm(r, t);
+      } else if (style === 'parade') {
+        drawParade(r, t);
+      } else if (style === 'oldtype') {
         drawOldType(r, t);
       } else if (style === 'printer') {
         drawPrinter(r, t);
@@ -1269,6 +1470,14 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (style === 'ticker') {
+      drawTicker(r);
+    } else if (style === 'radar') {
+      drawRadar(r);
+    } else if (style === 'film') {
+      drawFilm(r, t);
+    } else if (style === 'parade') {
+      drawParade(r, t);
     } else if (style === 'oldtype') {
       drawOldType(r, t);
     } else if (style === 'printer') {
