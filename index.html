@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SecretTransport</title>
+    <link rel="stylesheet" href="/src/ui/styles.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Secret<span>Transport</span></h1>
+        <p>Turn any text into an image you can paste into a message or email. Only someone with the passphrase can turn it back. Everything happens in your browser: nothing is uploaded.</p>
+      </header>
+
+      <div class="tabs" role="tablist">
+        <button id="tab-hide" role="tab" aria-selected="true" aria-controls="panel-hide">Hide a secret</button>
+        <button id="tab-reveal" role="tab" aria-selected="false" aria-controls="panel-reveal">Reveal a secret</button>
+      </div>
+
+      <section id="panel-hide" class="card" role="tabpanel">
+        <label for="secret">Secret text</label>
+        <textarea id="secret" rows="5" placeholder="Anything: a password, a phrase, a note…" spellcheck="false"></textarea>
+
+        <label for="pass">Passphrase <span class="hint">(send it to your recipient a different way)</span></label>
+        <div class="row">
+          <input id="pass" type="password" autocomplete="off" spellcheck="false" />
+          <button id="pass-toggle" class="ghost" type="button">Show</button>
+          <button id="pass-gen" class="ghost" type="button">Generate</button>
+        </div>
+        <div class="meter"><i id="pass-meter"></i></div>
+        <div id="pass-note" class="hint"></div>
+
+        <fieldset>
+          <legend>Image style</legend>
+          <label class="opt"><input type="radio" name="mode" value="codeart" checked />
+            <b>Code art</b> <span>A colourful mosaic. Survives JPEG compression, resizing and screenshots, so it works in nearly every app. Obviously not a normal picture.</span></label>
+          <label class="opt"><input type="radio" name="mode" value="stego" />
+            <b>Hidden in a photo</b> <span>Looks like an ordinary picture. Fragile: only survives if sent as an original PNG file. Gmail inline, WhatsApp, iMessage and social apps usually destroy it.</span></label>
+        </fieldset>
+
+        <div id="cover-row" hidden>
+          <label for="cover-file">Cover photo <span class="hint">(optional; a generated one is used if empty)</span></label>
+          <input id="cover-file" type="file" accept="image/*" />
+        </div>
+
+        <button id="btn-create" class="primary">Create image</button>
+        <div id="hide-status" class="status" role="status"></div>
+
+        <div id="out-wrap" hidden>
+          <canvas id="out-canvas"></canvas>
+          <div id="out-info" class="hint"></div>
+          <div class="row">
+            <button id="btn-copy" class="primary">Copy image</button>
+            <button id="btn-download" class="ghost">Download PNG</button>
+          </div>
+          <div id="warn" class="warn" hidden></div>
+        </div>
+      </section>
+
+      <section id="panel-reveal" class="card" role="tabpanel" hidden>
+        <div id="drop" tabindex="0">
+          <canvas id="thumb" hidden></canvas>
+          <p id="drop-text"><b>Paste an image here</b> (Ctrl/Cmd+V), drop a file, or <label class="link" for="file-in">choose one</label>.</p>
+          <input id="file-in" type="file" accept="image/*" hidden />
+        </div>
+
+        <label for="pass2">Passphrase</label>
+        <input id="pass2" type="password" autocomplete="off" spellcheck="false" />
+
+        <div class="row">
+          <button id="btn-reveal" class="primary">Reveal</button>
+          <label class="check"><input id="chk-motion" type="checkbox" /> Skip animation</label>
+        </div>
+        <div id="reveal-status" class="status" role="status"></div>
+
+        <div id="stage-wrap" hidden>
+          <canvas id="stage"></canvas>
+          <button id="btn-skip" class="ghost small">Skip</button>
+        </div>
+
+        <div id="result" hidden>
+          <label for="plain">Secret</label>
+          <textarea id="plain" rows="5" readonly></textarea>
+          <div class="row">
+            <button id="btn-copy-plain" class="primary">Copy text</button>
+            <button id="btn-clear" class="ghost">Clear now</button>
+            <span id="timer" class="hint"></span>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        AES-256-GCM, key from your passphrase via PBKDF2 (600,000 rounds). The image proves nothing about its content, but its size hints at the message length.
+        Choose a long, random passphrase: anyone holding the image can try guesses offline.
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
