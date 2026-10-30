@@ -1,9 +1,9 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
-  'swarm', 'bubbles', 'ufo', 'spotlight',
+  'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe',
 ];
 
 export interface RevealOptions {
@@ -104,7 +104,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const FALL = 1100; // how long a parachuted word takes to float down
   const SWARM = 700; // how long a speck of dust takes to fly to its letter
   const RISE = 900; // how long a bubble takes to float up to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight'].includes(style) ? 600 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const WIN = 1000; // the jackpot celebration after the last reel stops
+  const INK = 500; // how long invisible ink takes to darken once the flame reaches it
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe'].includes(style) ? 600 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -116,6 +118,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'bubbles' ? Math.max(T_RESOLVE, 1400) + RISE + 200
     : style === 'ufo' ? Math.max(T_RESOLVE, 1400) + 400
     : style === 'spotlight' ? 2400
+    : style === 'jackpot' ? Math.max(T_RESOLVE, 1400) + WIN
+    : style === 'ink' ? Math.max(T_RESOLVE, 1600) + INK + 100
+    : style === 'safe' ? 2200
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
@@ -124,6 +129,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     style === 'can' ? T_RES - FLIGHT - 100
     : style === 'swarm' ? T_RES - SWARM - 100
     : style === 'bubbles' ? T_RES - RISE - 200
+    : style === 'jackpot' ? T_RES - WIN
+    : style === 'ink' ? T_RES - INK - 100
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -271,6 +278,224 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.fillRect(s.x, s.y, 2.2, 2.2);
     }
     drawCells(r, (c) => r >= c.lock, false);
+  };
+
+  // Safe: a vault door; the dial spins to the combination, the bolts slide back, the door swings open.
+  const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+  const drawSafe = (p: number, t: number, intro: boolean) => {
+    const open = clamp01((p - 0.6) / 0.4);
+    // inside the vault: warm light on the text
+    clear();
+    const warm = 0.6 * (1 - clamp01((p - 0.9) / 0.1));
+    const ig = ctx.createRadialGradient(W / 2, H / 2, 10, W / 2, H / 2, Math.hypot(W, H) / 2);
+    ig.addColorStop(0, `rgba(120,90,30,${warm})`);
+    ig.addColorStop(1, `rgba(${BG},0)`);
+    ctx.fillStyle = ig;
+    ctx.fillRect(0, 0, W, H);
+    drawCells(0, () => true, false, false);
+
+    const bolts = clamp01((p - 0.4) / 0.15);
+    const dialAng = intro ? t / 180 : Math.sin(clamp01(p / 0.4) * Math.PI * 3) * Math.PI * 2 * (1 - clamp01(p / 0.4) * 0.5);
+    const ang = ease(open) * 1.5;
+    const sx = Math.max(0.07, Math.cos(ang));
+    const alpha = open > 0.92 ? (1 - open) / 0.08 : 1;
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.transform(sx, 0, 0, 1, 0, 0); // swinging about the left-hand hinge
+    const dg = ctx.createLinearGradient(0, 0, W, H);
+    dg.addColorStop(0, '#7b8793');
+    dg.addColorStop(1, '#4a545e');
+    ctx.fillStyle = dg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#2f373e';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(12, 12, W - 24, H - 24);
+    ctx.fillStyle = '#9aa6b1';
+    for (let x = 22; x < W - 12; x += 34) {
+      for (const y of [20, H - 20]) {
+        ctx.beginPath();
+        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // dial
+    const cx = W / 2 - 20;
+    const cy = H / 2;
+    const R = Math.min(W, H) * 0.28;
+    ctx.fillStyle = '#2d343b';
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fill();
+    const fg = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R * 0.9);
+    fg.addColorStop(0, '#c4ccd4');
+    fg.addColorStop(1, '#7e8a96');
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * 0.88, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#2d343b';
+    ctx.lineWidth = 1.5;
+    for (let k = 0; k < 40; k++) {
+      const a = dialAng + (k / 40) * Math.PI * 2;
+      const len = k % 5 === 0 ? 0.2 : 0.1;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * R * 0.86, cy + Math.sin(a) * R * 0.86);
+      ctx.lineTo(cx + Math.cos(a) * R * (0.86 - len), cy + Math.sin(a) * R * (0.86 - len));
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#6b7783';
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#d33';
+    ctx.beginPath();
+    ctx.moveTo(cx - 5, cy - R - 6);
+    ctx.lineTo(cx + 5, cy - R - 6);
+    ctx.lineTo(cx, cy - R + 4);
+    ctx.fill();
+    // handle: a lever that swings down as the bolts withdraw
+    const hx = cx + R * 1.6;
+    ctx.save();
+    ctx.translate(hx, cy);
+    ctx.rotate(bolts * (Math.PI / 2));
+    ctx.fillStyle = '#d6dde4';
+    ctx.fillRect(-4, -5, 34, 10);
+    ctx.fillStyle = '#2d343b';
+    ctx.beginPath();
+    ctx.arc(0, 0, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // bolts at the free edge
+    ctx.fillStyle = '#c9d1d8';
+    const bl = 22 * (1 - bolts);
+    for (const f of [0.25, 0.5, 0.75]) ctx.fillRect(W - 4 - bl, H * f - 5, bl, 10);
+    ctx.restore();
+  };
+
+  // Invisible ink: blank parchment; a flame travels along the writing and the heat makes it appear.
+  const drawInk = (r: number, t: number) => {
+    const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, Math.hypot(W, H) / 2);
+    g.addColorStop(0, '#ecdcb2');
+    g.addColorStop(1, '#c9b27a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = `${fs}px ${FONT}`;
+    let front = -1;
+    visible.forEach((c, i) => {
+      const k = (r - c.lock) / INK;
+      if (k <= 0) return;
+      front = Math.max(front, i);
+      const a = Math.min(1, k);
+      ctx.fillStyle = `rgba(${Math.round(230 - 156 * a)},${Math.round(120 - 76 * a)},${Math.round(30 - 12 * a)},${Math.min(1, k * 3)})`;
+      ctx.fillText(c.ch, c.x, c.y);
+    });
+    const lead = visible[Math.max(0, front)];
+    if (lead) {
+      const life = Math.min(1, Math.max(0, 1 - (r - T_LOCK) / 300));
+      const fx = lead.x + cw / 2 - (front < 0 ? 30 : 0);
+      const fy = lead.y + 12;
+      const fl = Math.sin(t / 45) * 2 + Math.sin(t / 23);
+      ctx.globalAlpha = life;
+      const glow = ctx.createRadialGradient(fx, fy - 4, 2, fx, fy - 4, 46);
+      glow.addColorStop(0, 'rgba(255,170,60,.55)');
+      glow.addColorStop(1, 'rgba(255,170,60,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(fx - 50, fy - 54, 100, 100);
+      ctx.fillStyle = '#ff9a2e';
+      ctx.beginPath();
+      ctx.ellipse(fx, fy - 4, 4.5, 9 + fl, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff2a8';
+      ctx.beginPath();
+      ctx.ellipse(fx, fy - 1, 2.2, 5 + fl / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    if (r > T_RES) {
+      // the parchment fades into the dark stage the other styles end on
+      ctx.globalAlpha = Math.min(1, (r - T_RES) / 250);
+      drawFinal();
+      ctx.globalAlpha = 1;
+    }
+  };
+
+  // Jackpot: every letter is a slot reel; they stop one by one, then lights flash and coins pour down.
+  const coins = Array.from({ length: 70 }, () => ({ x: rnd() * W, d: rnd() * 600, vy: 0.25 + rnd() * 0.25, ph: rnd() * 6 }));
+  const drawJackpot = (r: number, t: number) => {
+    clear();
+    const win = r >= T_LOCK;
+    const rw = r - T_LOCK;
+    if (win) {
+      ctx.fillStyle = `rgba(255,200,40,${0.07 + 0.06 * Math.sin(rw / 60)})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    visible.forEach((c, i) => {
+      const boxTop = c.y - lh + 7;
+      if (r < c.lock) {
+        const pos = t * 0.5 + i * 13;
+        const off = pos % lh;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(c.x - 1, boxTop, cw + 2, lh);
+        ctx.clip();
+        ctx.fillStyle = 'rgba(255,255,255,.07)';
+        ctx.fillRect(c.x - 1, boxTop, cw + 2, lh);
+        ctx.fillStyle = 'rgba(255,225,130,.85)';
+        ctx.fillText(glyph(i * 31 + Math.floor(pos / lh)), c.x, boxTop + off + fs - 4);
+        ctx.fillText(glyph(i * 31 + Math.floor(pos / lh) - 1), c.x, boxTop + off - lh + fs - 4);
+        ctx.restore();
+      } else {
+        const k = Math.min(1, (r - c.lock) / 220);
+        ctx.fillStyle = win ? '#fff3c0' : '#e8fff4';
+        ctx.shadowColor = win ? 'rgba(255,200,40,.9)' : 'rgba(80,255,190,.6)';
+        ctx.shadowBlur = win ? 10 : 5;
+        ctx.fillText(c.ch, c.x, c.y - Math.sin(k * Math.PI) * 5);
+        ctx.shadowBlur = 0;
+      }
+    });
+    if (win && top >= 48) {
+      const s = 1 + 0.08 * Math.sin(rw / 70);
+      ctx.save();
+      ctx.translate(W / 2, top - 16);
+      ctx.scale(s, s);
+      ctx.font = `bold 22px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd24a';
+      ctx.shadowColor = 'rgba(255,160,0,.95)';
+      ctx.shadowBlur = 14;
+      ctx.fillText('JACKPOT!', 0, 0);
+      ctx.restore();
+      ctx.shadowBlur = 0;
+    }
+    if (win) {
+      for (const k of coins) {
+        const y = -10 + k.vy * (rw - k.d);
+        if (rw < k.d || y > H + 10) continue;
+        const w = 1 + 5 * Math.abs(Math.cos(rw / 90 + k.ph));
+        ctx.fillStyle = '#ffd24a';
+        ctx.strokeStyle = '#b8860b';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(k.x, y, w, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+    // marquee bulbs round the edge, chasing slowly while spinning and flashing fast on the win
+    let n = 0;
+    const step = Math.floor(t / (win ? 90 : 220));
+    const bulb = (x: number, y: number) => {
+      ctx.fillStyle = (n++ + step) % 3 === 0 ? '#fff0a0' : 'rgba(255,170,40,.35)';
+      ctx.beginPath();
+      ctx.arc(x, y, 2.4, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    for (let x = 8; x < W - 4; x += 20) bulb(x, 5);
+    for (let y = 8; y < H - 4; y += 20) bulb(W - 5, y);
+    for (let x = W - 8; x > 4; x -= 20) bulb(x, H - 5);
+    for (let y = H - 8; y > 4; y -= 20) bulb(5, y);
   };
 
   // Swarm: glowing dust drifts about, then each speck flies in and becomes its letter.
@@ -673,7 +898,13 @@ export function playReveal(o: RevealOptions): RevealHandle {
       }
     } else if (t < T_INTRO) {
       const p = t / T_INTRO;
-      if (style === 'swarm') {
+      if (style === 'safe') {
+        drawSafe(0, t, true);
+      } else if (style === 'ink') {
+        drawInk(r, t);
+      } else if (style === 'jackpot') {
+        drawJackpot(r, t);
+      } else if (style === 'swarm') {
         drawSwarm(r, t);
       } else if (style === 'bubbles') {
         drawBubbles(r);
@@ -736,6 +967,12 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (style === 'safe') {
+      drawSafe(Math.min(1, r / T_RES), t, false);
+    } else if (style === 'ink') {
+      drawInk(r, t);
+    } else if (style === 'jackpot') {
+      drawJackpot(r, t);
     } else if (style === 'swarm') {
       drawSwarm(r, t);
     } else if (style === 'bubbles') {
