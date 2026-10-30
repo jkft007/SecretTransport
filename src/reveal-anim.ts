@@ -377,15 +377,55 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.fill();
       ctx.stroke();
     }
-    if (cur && age < 90) {
-      // the type bar swings up from the pressed key to the paper
-      const kx = 18 + pressed * ((W - 36) / (nKeys - 1));
-      ctx.strokeStyle = '#6b747d';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(kx, my + 17);
-      ctx.lineTo(cur.x + cw / 2, cur.y - fs / 2);
-      ctx.stroke();
+    // The metal type ball rides along the line on its carriage, spins round to the next character, then strikes.
+    const nxt = last + 1 < visible.length ? visible[last + 1] : undefined;
+    const spinFor = (ch: string) => (ch.charCodeAt(0) * 0.61) % (Math.PI * 2);
+    let hx = visible[0] ? visible[0].x + cw / 2 : W / 2;
+    let hy = visible[0] ? visible[0].y : H / 2;
+    let spin = 0;
+    if (cur) {
+      const k = nxt ? clamp01((r - typeAt[last]) / (typeAt[last + 1] - typeAt[last])) : 1;
+      const ke = ease(k);
+      hx = nxt ? cur.x + cw / 2 + (nxt.x - cur.x) * ke : cur.x + cw / 2;
+      hy = nxt && nxt.y !== cur.y ? cur.y + (nxt.y - cur.y) * clamp01((k - 0.3) / 0.4) : cur.y; // carriage return
+      spin = nxt ? spinFor(cur.ch) + (spinFor(nxt.ch) - spinFor(cur.ch) + Math.PI * 2) * ke : spinFor(cur.ch);
+    }
+    const strike = cur && age < 70 ? 5 : 0;
+    const bR = 13;
+    const bcy = hy - fs - 14 + strike; // centre of the ball, above the line being typed
+    ctx.fillStyle = '#6b747d'; // the rail the carriage slides on
+    ctx.fillRect(0, hy - fs - 40, W, 4);
+    ctx.fillStyle = '#4a535c';
+    ctx.fillRect(hx - 18, hy - fs - 40, 36, 12);
+    ctx.fillRect(hx - 4, hy - fs - 30, 8, bcy - (hy - fs - 30)); // the arm holding the ball
+    const bg =ctx.createRadialGradient(hx - 4, bcy - 4, 2, hx, bcy, bR);
+    bg.addColorStop(0, '#f4f7fa');
+    bg.addColorStop(0.6, '#a3adb8');
+    bg.addColorStop(1, '#4a535c');
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.arc(hx, bcy, bR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = 'bold 6px monospace'; // the raised characters round the ball turn with it
+    ctx.fillStyle = 'rgba(25,30,36,.85)';
+    const faces = 'ETAOINSHRDLUCMFWYPGBVKXQJZ0123456789.,';
+    for (let row = 0; row < 3; row++) {
+      for (let j = 0; j < 9; j++) {
+        const phi = spin + (j / 9) * Math.PI * 2;
+        const c = Math.cos(phi);
+        if (c < 0.2) continue;
+        ctx.save();
+        ctx.translate(hx + Math.sin(phi) * (bR - 2), bcy + (row - 1) * 6);
+        ctx.scale(c, 1);
+        ctx.fillText(faces[(j * 7 + row * 13) % faces.length], -2, 2);
+        ctx.restore();
+      }
+    }
+    ctx.fillStyle = '#2a2f36'; // the ribbon guide between the ball and the paper
+    ctx.fillRect(hx - 9, bcy + bR - 1, 18, 5);
+    if (strike) {
+      ctx.fillStyle = 'rgba(20,20,25,.55)';
+      ctx.fillRect(hx - 4, hy - fs * 0.75, 8, 3);
     }
     if (cur && age < 350 && (last + 1 >= visible.length || visible[last + 1].y !== cur.y)) {
       ctx.fillStyle = '#c9a227';
