@@ -65,6 +65,13 @@ textarea, select, input[type='password'], input[type='text'] {
   font: inherit;
 }
 #anim-style, #read-clear { width: auto; padding: 6px 10px; }
+details.more { margin-top: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; }
+details.more summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+details.more summary .hint { font-weight: 400; }
+.opt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+.opt-grid label { margin: 0 0 4px; }
+details.more > label { margin-top: 12px; }
+details.more p.hint { margin: 10px 0 0; }
 textarea { resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 15px; }
 textarea:focus, input:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 

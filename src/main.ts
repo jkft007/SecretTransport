@@ -69,12 +69,27 @@ $('passcode').addEventListener('input', () => {
   if (level !== 'weak') $<HTMLInputElement>('chk-weak-code').checked = false;
 });
 
+// The collapsed "More options" box says which of its settings are not at their defaults.
+function updateOptSummary() {
+  const text = (id: string) => {
+    const s = $<HTMLSelectElement>(id);
+    return s.options[s.selectedIndex]?.textContent ?? '';
+  };
+  const parts: string[] = [];
+  if ($<HTMLSelectElement>('anim-pick').value !== 'auto') parts.push(text('anim-pick'));
+  if ($<HTMLSelectElement>('read-time').value !== '60') parts.push(`reading ${text('read-time').toLowerCase()}`);
+  if ($<HTMLSelectElement>('expiry').value !== '0') parts.push(`expires ${text('expiry').toLowerCase()}`);
+  if ($<HTMLInputElement>('passcode').value) parts.push('pass code');
+  $('opt-summary').textContent = parts.length ? `(${parts.join(' · ')})` : '(defaults)';
+}
+for (const id of ['anim-pick', 'read-time', 'expiry', 'passcode']) $(id).addEventListener('input', updateOptSummary);
+
 // The sender's animation list mirrors the reveal list; "auto" there means the recipient's browser picks one.
 {
   const dst = $<HTMLSelectElement>('anim-pick');
   const auto = document.createElement('option');
   auto.value = 'auto';
-  auto.textContent = 'Random (recipient sees a surprise)';
+  auto.textContent = 'Random';
   dst.append(auto);
   for (const o of $<HTMLSelectElement>('anim-style').options) {
     if (o.value !== 'auto') dst.append(new Option(o.textContent ?? o.value, o.value));
@@ -337,6 +352,7 @@ $('btn-create').onclick = async () => {
 
   const passcode = $<HTMLInputElement>('passcode').value;
   if (passcode && strength(passcode).level === 'weak' && !$<HTMLInputElement>('chk-weak-code').checked) {
+    $<HTMLDetailsElement>('more-opts').open = true; // the weak-pass-code tick box lives in there
     return setStatus(status, 'That pass code is too easy to guess. Make it longer, or tick "Use this weak pass code anyway".', true);
   }
 

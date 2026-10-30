@@ -69,11 +69,6 @@
         <div id="pass-note" class="hint"></div>
         <label class="check" id="weak-row" hidden><input id="chk-weak" type="checkbox" /> Use this weak passphrase anyway</label>
 
-        <label for="passcode">Recipient pass code <span class="hint">(optional second way in: the key to this image is also stored inside it, locked by this pass code, so you can give the recipient just the pass code and keep the passphrase to yourself. Either one opens the image, so it is only as strong as the weaker of the two.)</span></label>
-        <input id="passcode" type="password" autocomplete="off" spellcheck="false" />
-        <div id="code-note" class="hint"></div>
-        <label class="check" id="weak-code-row" hidden><input id="chk-weak-code" type="checkbox" /> Use this weak pass code anyway</label>
-
         <label for="mode">Image style</label>
         <select id="mode">
           <option value="codeart" selected>Code art</option>
@@ -106,27 +101,41 @@
           </div>
         </div>
 
-        <label for="anim-pick">Reveal animation <span class="hint">(stored inside the encrypted image; the recipient sees it unless they pick another)</span></label>
-        <select id="anim-pick"></select>
-
-        <label for="read-time">Reading time <span class="hint">(how long the recipient's screen shows the secret before clearing it. They can shorten this but not extend it.)</span></label>
-        <select id="read-time">
-          <option value="10">10 seconds</option>
-          <option value="30">30 seconds</option>
-          <option value="60" selected>1 minute (default)</option>
-          <option value="300">5 minutes</option>
-          <option value="900">15 minutes</option>
-          <option value="65535">Until they clear it</option>
-        </select>
-
-        <label for="expiry">Expires <span class="hint">(optional; the reveal step refuses to show it after this time. It is enforced by this app and the recipient's clock, so it is a courtesy, not a lock: anyone who can open it can copy it first.)</span></label>
-        <select id="expiry">
-          <option value="0" selected>Never</option>
-          <option value="3600">In 1 hour</option>
-          <option value="86400">In 24 hours</option>
-          <option value="604800">In 7 days</option>
-          <option value="2592000">In 30 days</option>
-        </select>
+        <details class="more" id="more-opts">
+          <summary>More options <span class="hint" id="opt-summary">(defaults)</span></summary>
+          <div class="opt-grid">
+            <div title="Stored inside the encrypted image. The recipient sees it unless they pick another.">
+              <label for="anim-pick">Reveal animation</label>
+              <select id="anim-pick"></select>
+            </div>
+            <div title="How long the recipient's screen shows the secret before clearing it. They can shorten this but not extend it.">
+              <label for="read-time">Reading time</label>
+              <select id="read-time">
+                <option value="10">10 seconds</option>
+                <option value="30">30 seconds</option>
+                <option value="60" selected>1 minute</option>
+                <option value="300">5 minutes</option>
+                <option value="900">15 minutes</option>
+                <option value="65535">Until cleared</option>
+              </select>
+            </div>
+            <div title="The reveal step refuses to show the secret after this time. Enforced by this app and the recipient's clock, so it is a courtesy, not a lock.">
+              <label for="expiry">Expires</label>
+              <select id="expiry">
+                <option value="0" selected>Never</option>
+                <option value="3600">In 1 hour</option>
+                <option value="86400">In 24 hours</option>
+                <option value="604800">In 7 days</option>
+                <option value="2592000">In 30 days</option>
+              </select>
+            </div>
+          </div>
+          <label for="passcode" title="A second way in: the image key is also stored inside the image, locked by this pass code.">Recipient pass code <span class="hint">(optional)</span></label>
+          <input id="passcode" type="password" autocomplete="off" spellcheck="false" />
+          <div id="code-note" class="hint"></div>
+          <label class="check" id="weak-code-row" hidden><input id="chk-weak-code" type="checkbox" /> Use this weak pass code anyway</label>
+          <p class="hint">The animation, reading time and expiry are stored inside the encrypted image. Expiry is a courtesy enforced by this app, not a lock. A pass code is a second way in (the image key is stored in the image, locked by it), so the image is only as strong as the weaker of the passphrase and the pass code. Hover over a setting for details.</p>
+        </details>
 
         <label class="check split"><input id="chk-split" type="checkbox" checked /> Split across several images when it does not fit in one</label>
 
