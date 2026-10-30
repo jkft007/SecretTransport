@@ -17,3 +17,7 @@ npm run build   # static site in dist/
 ```
 
 Use a long random passphrase: anyone holding the image can guess offline. The image size hints at the message length.
+
+## License
+
+MIT
