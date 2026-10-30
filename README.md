@@ -14,6 +14,9 @@ Turn any text into an image you can paste into a message or email. Only someone 
 
 Encryption: AES-256-GCM, key from the passphrase via PBKDF2-SHA256 (600k rounds), Reed-Solomon error correction. The reveal is animated.
 
+## Cover photos
+JPEG, PNG and iPhone **HEIC/HEIF** photos work as cover images. HEIC is decoded in the browser with [libheif-js](https://github.com/catdad-experiments/libheif-js) (WebAssembly, LGPL-3.0), loaded only when a HEIC file is picked. Output is always PNG or JPEG-safe pixels, never HEIC.
+
 ## Run
 
 ```

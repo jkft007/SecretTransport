@@ -57,8 +57,8 @@
         </div>
 
         <div id="cover-row" hidden>
-          <label for="cover-file">Cover photo <span class="hint">(optional; a generated one is used if empty)</span></label>
-          <input id="cover-file" type="file" accept="image/*" />
+          <label for="cover-file">Cover photo <span class="hint">(optional; JPEG, PNG or iPhone HEIC; a generated one is used if empty)</span></label>
+          <input id="cover-file" type="file" accept="image/*,.heic,.heif" />
         </div>
 
         <button id="btn-create" class="primary">Create image</button>
@@ -81,7 +81,7 @@
           <canvas id="thumb" hidden></canvas>
           <p id="drop-text"><b>Paste an image here</b> (Ctrl/Cmd+V), drop a file, or <label class="link" for="file-in">choose one</label>.</p>
           <button id="btn-paste" class="ghost" type="button">Paste from clipboard</button>
-          <input id="file-in" type="file" accept="image/*" hidden />
+          <input id="file-in" type="file" accept="image/*,.heic,.heif" hidden />
         </div>
 
         <label for="pass2">Passphrase</label>

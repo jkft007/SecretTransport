@@ -1,4 +1,5 @@
 import type { Rgba } from './codeart';
+import { decodeHeic, looksLikeHeic } from './heic';
 
 export function rgbaToCanvas(img: Rgba, canvas = document.createElement('canvas')): HTMLCanvasElement {
   canvas.width = img.width;
@@ -7,25 +8,30 @@ export function rgbaToCanvas(img: Rgba, canvas = document.createElement('canvas'
   return canvas;
 }
 
-/** Decodes an image blob to raw pixels, flattened onto opaque white, without colour conversion. */
+/** Decodes an image blob to raw pixels, flattened onto opaque white, without colour conversion. HEIC works everywhere. */
 export async function blobToRgba(blob: Blob, maxSide = Infinity): Promise<Rgba> {
-  let bmp: ImageBitmap;
+  let src: CanvasImageSource & { width: number; height: number };
   try {
-    bmp = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
+    src = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
   } catch {
-    bmp = await createImageBitmap(blob);
+    try {
+      src = await createImageBitmap(blob);
+    } catch {
+      if (!(await looksLikeHeic(blob))) throw new Error('Could not read that image file.');
+      src = await decodeHeic(blob);
+    }
   }
-  const f = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
-  const w = Math.max(1, Math.round(bmp.width * f));
-  const h = Math.max(1, Math.round(bmp.height * f));
+  const f = Math.min(1, maxSide / Math.max(src.width, src.height));
+  const w = Math.max(1, Math.round(src.width * f));
+  const h = Math.max(1, Math.round(src.height * f));
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
   const ctx = c.getContext('2d', { willReadFrequently: true })!;
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(bmp, 0, 0, w, h);
-  bmp.close();
+  ctx.drawImage(src, 0, 0, w, h);
+  if ('close' in src) (src as ImageBitmap).close();
   const d = ctx.getImageData(0, 0, w, h);
   return { width: w, height: h, data: d.data };
 }
