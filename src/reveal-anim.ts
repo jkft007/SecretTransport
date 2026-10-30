@@ -1,7 +1,7 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
-// fireworks) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks';
-export const STYLES: RevealStyle[] = ['matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks'];
+// fireworks, curtain, can, flag) turns the scanned image into the decoded text.
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag';
+export const STYLES: RevealStyle[] = ['matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag'];
 
 export interface RevealOptions {
   canvas: HTMLCanvasElement;
@@ -91,11 +91,20 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const T_RAIN = 700;
   const T_RESOLVE = Math.min(2600, Math.max(900, visible.length * 20));
   const style: RevealStyle = o.style ?? STYLES[Math.floor(rnd() * STYLES.length)];
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : 1000;
-  const T_RES = style === 'iris' ? 1300 : style === 'fireworks' ? Math.max(T_RESOLVE, 2200) : T_RESOLVE;
+  const FLIGHT = 500; // how long a letter takes to fall out of the can
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : style === 'curtain' ? 600 : style === 'can' || style === 'flag' ? 800 : 1000;
+  const T_RES =
+    style === 'iris' ? 1300
+    : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
+    : style === 'curtain' ? 1700
+    : style === 'flag' ? 1400
+    : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
+    : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
   const spread = style === 'fireworks' ? 0.7 : 0.8;
-  visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_RES * spread + rnd() * T_RES * 0.15));
+  const T_LOCK = style === 'can' ? T_RES - FLIGHT - 100 : T_RES;
+  visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
+  const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
 
   const drawFinal = () => {
     ctx.fillStyle = `rgb(${BG})`;
@@ -242,6 +251,81 @@ export function playReveal(o: RevealOptions): RevealHandle {
     drawCells(r, (c) => r >= c.lock, false);
   };
 
+  // Curtain: red velvet panels draw apart to show the text.
+  const drawCurtain = (open: number) => {
+    clear();
+    drawCells(0, () => true, false, false);
+    const pw = (W / 2) * (1 - open);
+    const panel = (x0: number, x1: number) => {
+      for (let x = x0; x < x1; x += 8) {
+        const shade = 0.5 + 0.5 * Math.sin(x * 0.55);
+        ctx.fillStyle = `rgb(${Math.round(105 + 55 * shade)},${Math.round(18 + 14 * shade)},${Math.round(32 + 18 * shade)})`;
+        ctx.fillRect(x, 0, Math.min(8, x1 - x), H);
+      }
+    };
+    panel(0, pw);
+    panel(W - pw, W);
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.fillRect(pw - 3, 0, 3, H);
+    ctx.fillRect(W - pw, 0, 3, H);
+    ctx.fillStyle = '#c9a227';
+    ctx.fillRect(0, 0, W, 12);
+    ctx.fillStyle = '#7a5f0c';
+    ctx.fillRect(0, 12, W, 2);
+  };
+
+  // Can: a tin tips over at the top right and the letters tumble out of it into place.
+  const canAngle = -1.75;
+  const canCx = W - 46;
+  const canCy = 46;
+  const mouthX = canCx + 30 * Math.sin(canAngle);
+  const mouthY = canCy - 30 * Math.cos(canAngle);
+  const drawCan = (tilt: number, dx: number, wobble: number) => {
+    ctx.save();
+    ctx.translate(canCx + dx, canCy);
+    ctx.rotate(canAngle * tilt + wobble);
+    ctx.fillStyle = '#9aa7b3';
+    ctx.fillRect(-22, -30, 44, 60);
+    ctx.fillStyle = '#e07b39';
+    ctx.fillRect(-22, -12, 44, 24);
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    ctx.fillRect(-14, -30, 6, 60);
+    ctx.fillStyle = '#5c6670';
+    ctx.beginPath();
+    ctx.ellipse(0, -30, 22, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#10151a';
+    ctx.beginPath();
+    ctx.ellipse(0, -30, 17, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  // Flag: a toy gun goes BANG and a banner with the text unfurls from its barrel.
+  const gunY = H / 2;
+  const MUZZLE = 130;
+  const drawGun = (mx: number) => {
+    ctx.fillStyle = '#3a444e';
+    ctx.fillRect(mx - 110, gunY - 10, 110, 20);
+    ctx.fillStyle = '#56626d';
+    ctx.fillRect(mx - 110, gunY - 10, 110, 5);
+    ctx.fillStyle = '#2b333a';
+    ctx.beginPath();
+    ctx.moveTo(mx - 100, gunY + 10);
+    ctx.lineTo(mx - 70, gunY + 10);
+    ctx.lineTo(mx - 78, gunY + 52);
+    ctx.lineTo(mx - 106, gunY + 52);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#2b333a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(mx - 62, gunY + 18, 9, 0, Math.PI);
+    ctx.stroke();
+    ctx.fillStyle = '#0b0e11';
+    ctx.fillRect(mx - 4, gunY - 5, 4, 10);
+  };
+
   const frame = (now: number) => {
     const t = now - t0;
     if (skipped || t >= T_END) {
@@ -272,7 +356,15 @@ export function playReveal(o: RevealOptions): RevealHandle {
       }
     } else if (t < T_INTRO) {
       const p = t / T_INTRO;
-      if (style === 'pixelate') {
+      if (style === 'curtain') {
+        drawCurtain(0);
+      } else if (style === 'can') {
+        clear();
+        drawCan(ease(p), (1 - ease(p)) * 100, 0);
+      } else if (style === 'flag') {
+        clear();
+        drawGun(MUZZLE - (1 - ease(p)) * 170 + (p > 0.8 ? (rnd() - 0.5) * 3 : 0));
+      } else if (style === 'pixelate') {
         clear();
         drawPixels(1 + p * p * 30, 1);
       } else if (style === 'fireworks') {
@@ -315,6 +407,60 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (style === 'curtain') {
+      const p = Math.min(1, r / (T_RES - 200));
+      drawCurtain(p * p * (3 - 2 * p));
+    } else if (style === 'can') {
+      clear();
+      ctx.font = `${fs}px ${FONT}`;
+      for (const c of visible) {
+        const p = (r - c.lock) / FLIGHT;
+        if (p < 0) continue;
+        const q = Math.min(1, p);
+        ctx.fillStyle = q < 1 ? '#7dffe0' : '#e8fff4';
+        ctx.shadowColor = 'rgba(80,255,190,.6)';
+        ctx.shadowBlur = q < 1 ? 10 : 5;
+        ctx.fillText(c.ch, mouthX + (c.x - mouthX) * q, mouthY + (c.y - mouthY) * q * q - 70 * q * (1 - q));
+      }
+      ctx.shadowBlur = 0;
+      const out = ease((r - (T_RES - 450)) / 450);
+      drawCan(1, out * 140, Math.sin(r / 45) * 0.04 * (1 - out));
+    } else if (style === 'flag') {
+      clear();
+      const p = Math.min(1, r / 1100);
+      const e = p * p * (3 - 2 * p); // slow start so the gun and the flag are seen leaving the barrel
+      const L = MUZZLE * (1 - e);
+      const R = MUZZLE + (W - MUZZLE) * e;
+      const hh = (H / 2 - 6) * ease(p * 3);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(L, gunY - hh, R - L, hh * 2);
+      ctx.clip();
+      ctx.fillStyle = 'rgb(22,34,46)';
+      ctx.fillRect(L, gunY - hh, R - L, hh * 2);
+      drawCells(r, () => true, false, false);
+      ctx.restore();
+      ctx.strokeStyle = '#e0b030';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(L, gunY - hh, R - L, hh * 2);
+      drawGun(L + 4);
+      if (r < 240) {
+        const f = 1 - r / 240;
+        ctx.fillStyle = `rgba(255,255,255,${0.5 * f})`;
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = `rgba(255,200,40,${f})`;
+        ctx.beginPath();
+        for (let k = 0; k < 16; k++) {
+          const a = (k / 16) * Math.PI * 2;
+          const rad = (k % 2 ? 16 : 40) * (0.6 + f);
+          ctx.lineTo(MUZZLE + Math.cos(a) * rad, gunY + Math.sin(a) * rad);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = `rgba(220,40,40,${f})`;
+        ctx.font = `bold 22px ${FONT}`;
+        ctx.fillText('BANG!', MUZZLE + 14, gunY - 44);
+      }
     } else {
       if (r < 20) clear();
       drawFireworks(r);
