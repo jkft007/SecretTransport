@@ -1,7 +1,7 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag';
-export const STYLES: RevealStyle[] = ['matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag'];
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane';
+export const STYLES: RevealStyle[] = ['matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane'];
 
 export interface RevealOptions {
   canvas: HTMLCanvasElement;
@@ -92,12 +92,15 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const T_RESOLVE = Math.min(2600, Math.max(900, visible.length * 20));
   const style: RevealStyle = o.style ?? STYLES[Math.floor(rnd() * STYLES.length)];
   const FLIGHT = 500; // how long a letter takes to fall out of the can
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : style === 'curtain' ? 600 : style === 'can' || style === 'flag' ? 800 : 1000;
+  const FALL = 1100; // how long a parachuted word takes to float down
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : style === 'curtain' || style === 'moon' ? 600 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
     : style === 'curtain' ? 1700
     : style === 'flag' ? 1400
+    : style === 'moon' ? 2400
+    : style === 'plane' ? Math.max(T_RESOLVE, 1400) + FALL + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
@@ -251,6 +254,179 @@ export function playReveal(o: RevealOptions): RevealHandle {
     drawCells(r, (c) => r >= c.lock, false);
   };
 
+  // Plane: it crosses the sky and parachutes the text out, one word per canopy.
+  const FLY = T_INTRO + Math.max(T_RESOLVE, 1400);
+  const words: { cells: Cell[]; cx: number; x0: number; x1: number; tl: number; hue: number }[] = [];
+  for (const c of visible) {
+    const w = words[words.length - 1];
+    const last = w?.cells[w.cells.length - 1];
+    if (w && last.y === c.y && c.x - last.x < cw * 1.01) w.cells.push(c);
+    else words.push({ cells: [c], cx: 0, x0: 0, x1: 0, tl: 0, hue: 0 });
+  }
+  words.forEach((w, i) => {
+    w.x0 = w.cells[0].x;
+    w.x1 = w.cells[w.cells.length - 1].x + cw;
+    w.cx = (w.x0 + w.x1) / 2;
+    w.tl = ((w.cx + 80) / (W + 160)) * FLY;
+    w.hue = (i * 47) % 360;
+  });
+  const planeY = 12;
+  const clouds = Array.from({ length: 6 }, () => ({ x: rnd() * W, y: H * (0.25 + rnd() * 0.65), s: 24 + rnd() * 40 }));
+  const drawPlane = (t: number) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#1d4468');
+    sky.addColorStop(1, `rgb(${BG})`);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,.08)';
+    for (const k of clouds) {
+      const x = (((k.x - t * 0.03) % (W + 120)) + W + 120) % (W + 120) - 60;
+      ctx.beginPath();
+      ctx.ellipse(x, k.y, k.s, k.s * 0.3, 0, 0, Math.PI * 2);
+      ctx.ellipse(x + k.s * 0.5, k.y - k.s * 0.12, k.s * 0.6, k.s * 0.28, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    for (const w of words) {
+      const q = (t - w.tl) / FALL;
+      if (q < 0) continue;
+      const e = 1 - Math.pow(1 - Math.min(1, q), 2);
+      const sway = Math.sin(Math.min(1, q) * 9) * 16 * (1 - Math.min(1, q));
+      const dy = (planeY + 6 - w.cells[0].y) * (1 - e);
+      const flying = q < 1;
+      ctx.fillStyle = flying ? '#ffffff' : '#e8fff4';
+      ctx.shadowColor = 'rgba(80,255,190,.55)';
+      ctx.shadowBlur = 5;
+      for (const c of w.cells) ctx.fillText(c.ch, c.x + sway, c.y + dy);
+      ctx.shadowBlur = 0;
+      if (flying) {
+        const open = 1 - Math.min(1, Math.max(0, (q - 0.8) / 0.2)); // canopy folds up as it lands
+        const top = w.cells[0].y + dy - fs;
+        const rad = Math.max(16, (w.x1 - w.x0) / 2 + 8);
+        const cx = w.cx + sway;
+        const ch = 20 * open;
+        ctx.globalAlpha = open;
+        ctx.strokeStyle = 'rgba(255,255,255,.7)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - rad, top - 4);
+        ctx.lineTo(w.x0 + sway, top + fs * 0.5);
+        ctx.moveTo(cx + rad, top - 4);
+        ctx.lineTo(w.x1 + sway, top + fs * 0.5);
+        ctx.moveTo(cx, top - 4);
+        ctx.lineTo(cx, top + fs * 0.5);
+        ctx.stroke();
+        ctx.fillStyle = `hsl(${w.hue},75%,58%)`;
+        ctx.beginPath();
+        ctx.ellipse(cx, top - 4, rad, ch, 0, Math.PI, 0);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+    // the plane, drawn last so it stays on top
+    const px = -80 + ((t / FLY) * (W + 160));
+    if (px > -80 && px < W + 80) {
+      ctx.save();
+      ctx.translate(px, planeY);
+      ctx.fillStyle = '#e4ebf2';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 30, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath(); // tail fin
+      ctx.moveTo(-24, -2);
+      ctx.lineTo(-34, -15);
+      ctx.lineTo(-16, -3);
+      ctx.fill();
+      ctx.fillStyle = '#b5c2cf'; // wing
+      ctx.beginPath();
+      ctx.moveTo(-6, 2);
+      ctx.lineTo(8, 2);
+      ctx.lineTo(-2, 13);
+      ctx.lineTo(-10, 13);
+      ctx.fill();
+      ctx.fillStyle = '#1d4468';
+      for (let k = 0; k < 4; k++) ctx.fillRect(-12 + k * 7, -3, 4, 3);
+      ctx.strokeStyle = 'rgba(255,255,255,.6)'; // spinning propeller
+      ctx.lineWidth = 2;
+      const pa = (t / 20) % Math.PI;
+      ctx.beginPath();
+      ctx.moveTo(31 + Math.cos(pa) * 1, -Math.sin(pa) * 11);
+      ctx.lineTo(31 - Math.cos(pa) * 1, Math.sin(pa) * 11);
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
+
+  // Moon: the Earth climbs over the lunar horizon and pushes the text up into view.
+  const stars = Array.from({ length: 70 }, () => ({ x: rnd() * W, y: rnd() * H, s: 0.6 + rnd() * 1.4, ph: rnd() * 6 }));
+  const craters = Array.from({ length: 9 }, () => ({ x: rnd(), y: rnd(), rx: 8 + rnd() * 26, ry: 3 + rnd() * 7 }));
+  const earthR = Math.max(40, Math.min(W, H) * 0.22);
+  const textBottom = pad + shown.length * lh;
+  const land = [[-0.35, -0.2, 0.32, 0.22], [0.25, 0.1, 0.3, 0.3], [-0.1, 0.5, 0.25, 0.16], [0.6, -0.4, 0.18, 0.14]];
+  const drawMoon = (rise: number, pan: number, tt: number) => {
+    clear();
+    for (const s of stars) {
+      ctx.fillStyle = `rgba(255,255,255,${0.35 + 0.35 * Math.sin(tt / 300 + s.ph)})`;
+      ctx.fillRect(s.x, s.y, s.s, s.s);
+    }
+    const hy = H * 0.88 + pan * H * 0.3;
+    const dy = (1 - rise) * H;
+    // Earth, directly under the text block so it looks like it is pushing it up
+    const ex = W / 2;
+    const ey = textBottom + dy + earthR + 10;
+    ctx.save();
+    ctx.shadowColor = 'rgba(110,180,255,.7)';
+    ctx.shadowBlur = 22;
+    const eg = ctx.createRadialGradient(ex - earthR * 0.35, ey - earthR * 0.35, earthR * 0.1, ex, ey, earthR);
+    eg.addColorStop(0, '#7cc4ff');
+    eg.addColorStop(1, '#16418a');
+    ctx.fillStyle = eg;
+    ctx.beginPath();
+    ctx.arc(ex, ey, earthR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.clip();
+    for (const [lx, ly, lw, lhh] of land) {
+      const gx = (((lx + tt / 9000) % 1.4) + 1.4) % 1.4 - 0.7; // slow spin
+      ctx.fillStyle = 'rgba(70,160,80,.9)';
+      ctx.beginPath();
+      ctx.ellipse(ex + gx * earthR * 1.6, ey + ly * earthR, lw * earthR, lhh * earthR, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    for (let k = 0; k < 4; k++) {
+      ctx.beginPath();
+      ctx.ellipse(ex + Math.sin(k * 2 + tt / 4000) * earthR * 0.6, ey + (k - 1.5) * earthR * 0.4, earthR * 0.4, earthR * 0.07, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    // the text it is lifting
+    ctx.font = `${fs}px ${FONT}`;
+    ctx.fillStyle = '#e8fff4';
+    ctx.shadowColor = 'rgba(80,255,190,.55)';
+    ctx.shadowBlur = 6;
+    for (const c of cells) if (c.ch !== ' ') ctx.fillText(c.ch, c.x, c.y + dy);
+    ctx.shadowBlur = 0;
+    // lunar surface on top, hiding whatever is still below the horizon
+    const sg = ctx.createLinearGradient(0, hy - 20, 0, H);
+    sg.addColorStop(0, '#b9b9b4');
+    sg.addColorStop(1, '#55554f');
+    ctx.fillStyle = sg;
+    ctx.beginPath();
+    ctx.moveTo(0, H + 2);
+    ctx.lineTo(0, hy + 18);
+    ctx.quadraticCurveTo(W / 2, hy - 18, W, hy + 18);
+    ctx.lineTo(W, H + 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(60,60,55,.45)';
+    for (const k of craters) {
+      ctx.beginPath();
+      ctx.ellipse(k.x * W, hy + 20 + k.y * Math.max(0, H - hy - 24), k.rx, k.ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+
   // Curtain: red velvet panels draw apart to show the text.
   const drawCurtain = (open: number) => {
     clear();
@@ -356,7 +532,11 @@ export function playReveal(o: RevealOptions): RevealHandle {
       }
     } else if (t < T_INTRO) {
       const p = t / T_INTRO;
-      if (style === 'curtain') {
+      if (style === 'plane') {
+        drawPlane(t);
+      } else if (style === 'moon') {
+        drawMoon(0, 0, t);
+      } else if (style === 'curtain') {
         drawCurtain(0);
       } else if (style === 'can') {
         clear();
@@ -407,6 +587,11 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (style === 'plane') {
+      drawPlane(t);
+    } else if (style === 'moon') {
+      const p = Math.min(1, r / (T_RES - 700));
+      drawMoon(p * p * (3 - 2 * p), Math.min(1, Math.max(0, (r - (T_RES - 700)) / 700)), t);
     } else if (style === 'curtain') {
       const p = Math.min(1, r / (T_RES - 200));
       drawCurtain(p * p * (3 - 2 * p));

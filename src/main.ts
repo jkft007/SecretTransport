@@ -9,7 +9,7 @@ import { MAX_PARTS, MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, PA
 import { assemble, splitPacket } from './split';
 import { embed, extract, stegoCapacity } from './stego';
 import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
-import { playReveal, type RevealHandle } from './reveal-anim';
+import { playReveal, STYLES, type RevealHandle } from './reveal-anim';
 import { startScanner, type Scanner } from './camera';
 import { startPreview, type Preview } from './capture';
 import { readText } from './ocr';
@@ -698,7 +698,9 @@ $('btn-reveal').onclick = async () => {
     $('stage-wrap').hidden = false;
     $<HTMLTextAreaElement>('plain').value = '';
     const source = rgbaToCanvas(images[images.length - 1].rgba);
-    handle = playReveal({ canvas: $<HTMLCanvasElement>('stage'), source, text, mode, reduceMotion: reducedMotion() });
+    const pick = $<HTMLSelectElement>('anim-style').value;
+    const style = STYLES.find((s) => s === pick); // undefined (Auto) lets playReveal choose at random
+    handle = playReveal({ canvas: $<HTMLCanvasElement>('stage'), source, text, mode, reduceMotion: reducedMotion(), style });
     await handle.done;
     showResult(payload);
     $('result').hidden = false;

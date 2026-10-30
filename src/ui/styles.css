@@ -64,6 +64,7 @@ textarea, select, input[type='password'], input[type='text'] {
   border-radius: 8px;
   font: inherit;
 }
+#anim-style { width: auto; padding: 6px 10px; }
 textarea { resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 15px; }
 textarea:focus, input:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
