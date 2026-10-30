@@ -125,13 +125,13 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const HEART_RISE = 1000; // how long a heart takes to carry its letter up
   const BLOOM = 500; // how long a flower takes to open
   const BOOM_T = 1000; // when the cartoon bomb goes off, measured from the end of the intro
-  const WIZ_SPREAD = Math.max(4500, Math.min(9000, visible.length * 110)); // the magic ink takes its time
+  const WIZ_SPREAD = Math.max(6500, Math.min(13000, visible.length * 160)); // the magic ink takes its time
   const FLIGHT = 500; // how long a letter takes to fall out of the can
   const FALL = 1100; // how long a parachuted word takes to float down
   const SWARM = 700; // how long a speck of dust takes to fly to its letter
   const RISE = 900; // how long a bubble takes to float up to its place
   const WIN = 1000; // the jackpot celebration after the last reel stops
-  const INK = 500; // how long invisible ink takes to darken once the flame reaches it
+  const INK = 900; // how long invisible ink takes to darken once the flame reaches it
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
   const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
@@ -146,7 +146,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'ufo' ? Math.max(T_RESOLVE, 1400) + 400
     : style === 'spotlight' ? 2400
     : style === 'jackpot' ? Math.max(T_RESOLVE, 1400) + WIN
-    : style === 'ink' ? Math.max(T_RESOLVE, 1600) + INK + 100
+    : style === 'ink' ? Math.max(3500, Math.min(8000, visible.length * 90)) + INK + 100
     : style === 'safe' ? 2200
     : style === 'train' ? Math.max(T_RESOLVE, 1400) + STEAM + 100
     : style === 'oldtype' || style === 'printer' ? T_TYPE + 200
@@ -158,7 +158,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'hearts' ? Math.max(T_RESOLVE, 1400) + HEART_RISE + 300
     : style === 'flowers' ? Math.max(T_RESOLVE, 1400) + BLOOM + 500
     : style === 'bomb' ? BOOM_T + 1000
-    : style === 'wizard' ? WIZ_SPREAD + 2300
+    : style === 'wizard' ? WIZ_SPREAD + 3600
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
@@ -1332,7 +1332,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     }
     runs.forEach((run, k) => {
       const start = (k / runs.length) * WIZ_SPREAD * 0.95 + rnd() * 120;
-      run.forEach((idx, j) => (wizAt[idx] = start + j * 160));
+      run.forEach((idx, j) => (wizAt[idx] = start + j * 280));
     });
   }
   const stains = Array.from({ length: 9 }, () => ({ x: rnd() * W, y: rnd() * H, rx: 20 + rnd() * 50, ry: 10 + rnd() * 30 }));
@@ -1353,8 +1353,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     visible.forEach((c, i) => {
       const age = r - wizAt[i];
       if (age <= 0) return;
-      const k = clamp01(age / 1400); // each letter seeps in slowly
-      if (age < 900 && (focus < 0 || wizAt[i] > wizAt[focus])) focus = i;
+      const k = clamp01(age / 2400); // each letter seeps in very slowly
+      if (age < 1500 && (focus < 0 || wizAt[i] > wizAt[focus])) focus = i;
       const bx = c.x + cw / 2;
       const by = c.y - fs * 0.3;
       const blot = ctx.createRadialGradient(bx, by, 0, bx, by, cw * (0.4 + 0.8 * ease(k)));
