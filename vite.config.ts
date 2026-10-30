@@ -44,5 +44,5 @@ const ocrAssets: Plugin = {
 export default defineConfig({
   base: './',
   plugins: [csp, ocrAssets],
-  test: { environment: 'node', testTimeout: 30000 },
+  test: { environment: 'node', testTimeout: 60000, setupFiles: ['tests/setup.ts'] },
 });

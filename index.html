@@ -67,6 +67,7 @@
         </div>
         <div class="meter"><i id="pass-meter"></i></div>
         <div id="pass-note" class="hint"></div>
+        <label class="check" id="weak-row" hidden><input id="chk-weak" type="checkbox" /> Use this weak passphrase anyway</label>
 
         <label for="mode">Image style</label>
         <select id="mode">
@@ -169,8 +170,8 @@
       </section>
 
       <footer>
-        AES-256-GCM, key from your passphrase via PBKDF2 (600,000 rounds). The image proves nothing about its content, but its size hints at the message length.
-        Choose a long, random passphrase: anyone holding the image can try guesses offline.
+        AES-256-GCM, with the key derived from your passphrase by Argon2id (64 MiB of memory per guess, so mass guessing is expensive). The image proves nothing about its content, but its size hints at the message length.
+        Anyone who copies the image can try guesses offline, and nothing in a web page can limit that: a long, random passphrase is your real protection. Repeated wrong guesses on this device are also slowed down.
       </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>

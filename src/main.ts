@@ -13,6 +13,8 @@ import { playReveal, type RevealHandle } from './reveal-anim';
 import { startScanner, type Scanner } from './camera';
 import { startPreview, type Preview } from './capture';
 import { readText } from './ocr';
+import { strength } from './strength';
+import { checkLock, defaultStore, fingerprint, recordFailure, recordSuccess } from './throttle';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches || $<HTMLInputElement>('chk-motion').checked;
@@ -33,22 +35,28 @@ $('tab-hide').onclick = () => showTab('hide');
 $('tab-reveal').onclick = () => showTab('reveal');
 
 // ---- passphrase helpers -----------------------------------------------------
-function passBits(p: string): number {
-  if (!p) return 0;
-  let pool = 0;
-  if (/[a-z]/.test(p)) pool += 26;
-  if (/[A-Z]/.test(p)) pool += 26;
-  if (/\d/.test(p)) pool += 10;
-  if (/[^A-Za-z0-9]/.test(p)) pool += 32;
-  return Math.min(p.length, new Set(p).size * 3) * Math.log2(Math.max(pool, 2));
+let generatedPass = ''; // a passphrase made by the Generate button is known to be random
+
+function passStrength() {
+  const v = $<HTMLInputElement>('pass').value;
+  return strength(v, v !== '' && v === generatedPass);
 }
 
 function updateMeter() {
-  const bits = passBits($<HTMLInputElement>('pass').value);
+  const { bits, level } = passStrength();
   const m = $('pass-meter');
   m.style.width = `${Math.min(100, (bits / 80) * 100)}%`;
-  m.style.background = bits < 40 ? 'var(--err)' : bits < 64 ? '#e0a100' : 'var(--accent)';
-  $('pass-note').textContent = bits === 0 ? '' : bits < 40 ? 'Weak: anyone holding the image could guess this.' : bits < 64 ? 'Okay. Longer is better.' : 'Strong.';
+  m.style.background = level === 'ok' ? '#e0a100' : level === 'strong' ? 'var(--accent)' : 'var(--err)';
+  $('pass-note').textContent =
+    level === 'none'
+      ? ''
+      : level === 'weak'
+        ? 'Too easy to guess. Anyone who copies the image can try guesses offline, so use a longer one (press Generate for a strong one).'
+        : level === 'ok'
+          ? 'Acceptable, but longer is better.'
+          : 'Strong.';
+  $('weak-row').hidden = level !== 'weak';
+  if (level !== 'weak') $<HTMLInputElement>('chk-weak').checked = false;
 }
 $('pass').addEventListener('input', updateMeter);
 
@@ -64,6 +72,7 @@ $('pass-gen').onclick = () => {
   const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
   const i = $<HTMLInputElement>('pass');
   i.value = chars.match(/.{4}/g)!.join('-');
+  generatedPass = i.value;
   i.type = 'text';
   $('pass-toggle').textContent = 'Hide';
   updateMeter();
@@ -298,10 +307,14 @@ $('btn-create').onclick = async () => {
     payload = { kind: 'text', text };
   }
   if (!pass) return setStatus(status, 'Enter a passphrase (or press Generate).', true);
+  if (passStrength().level === 'weak' && !$<HTMLInputElement>('chk-weak').checked) {
+    return setStatus(status, 'That passphrase is too easy to guess. Press Generate for a strong one, make it longer, or tick "Use it anyway".', true);
+  }
 
   const btn = $<HTMLButtonElement>('btn-create');
   btn.disabled = true;
-  setStatus(status, 'Encrypting…');
+  setStatus(status, 'Encrypting… (deriving a memory-hard key takes about a second)');
+  await sleep(30); // let the status paint before the heavy work
   $('out-wrap').hidden = true;
   const warn = $('warn');
   warn.hidden = true;
@@ -589,6 +602,30 @@ $('btn-copy-plain').onclick = async () => {
   setStatus($('reveal-status'), 'Text copied.');
 };
 
+class NoSecretError extends Error {}
+const attemptStore = defaultStore();
+let lockTimer: number | undefined;
+
+const waitText = (ms: number) => (ms >= 60_000 ? `${Math.ceil(ms / 60_000)} min` : `${Math.ceil(ms / 1000)} s`);
+
+/** Shows a live countdown; the note explains what this protection is and is not. */
+function showLockout(ms: number) {
+  clearInterval(lockTimer);
+  const status = $('reveal-status');
+  const until = Date.now() + ms;
+  const tick = () => {
+    const left = until - Date.now();
+    if (left <= 0) {
+      clearInterval(lockTimer);
+      setStatus(status, 'You can try again now.');
+      return;
+    }
+    setStatus(status, `Too many failed attempts on these images. Try again in ${waitText(left)}. (This slows guessing on this device; a strong passphrase is what stops offline guessing.)`, true);
+  };
+  tick();
+  lockTimer = window.setInterval(tick, 1000);
+}
+
 async function decodeImage(img: Rgba, pass: string): Promise<{ frame: Uint8Array; mode: 'codeart' | 'stego' } | null> {
   const attempts: [() => Promise<Uint8Array> | Uint8Array, 'codeart' | 'stego'][] = [
     [() => decodePlainQr(img), 'codeart'],
@@ -596,6 +633,10 @@ async function decodeImage(img: Rgba, pass: string): Promise<{ frame: Uint8Array
     [() => decodeFakeQr(img, pass), 'codeart'],
     [() => extractDct(img, pass), 'stego'],
     [() => extract(img, pass), 'stego'],
+    // images made before the memory-hard layout key
+    [() => decodeFakeQr(img, pass, undefined, true), 'codeart'],
+    [() => extractDct(img, pass, true), 'stego'],
+    [() => extract(img, pass, true), 'stego'],
   ];
   for (const [fn, mode] of attempts) {
     try {
@@ -614,6 +655,9 @@ $('btn-reveal').onclick = async () => {
   const pass = $<HTMLInputElement>('pass2').value;
   if (!images.length) return setStatus(status, 'Paste or choose the image first.', true);
   if (!pass) return setStatus(status, 'Enter the passphrase.', true);
+  const fp = await fingerprint(images.map((i) => i.rgba));
+  const lock = checkLock(attemptStore, fp);
+  if (lock.locked) return showLockout(lock.waitMs);
 
   clearResult();
   const btn = $<HTMLButtonElement>('btn-reveal');
@@ -633,7 +677,7 @@ $('btn-reveal').onclick = async () => {
     const asm = assemble(frames);
     const skipped = unreadable ? ` ${unreadable} image${unreadable > 1 ? 's' : ''} could not be read.` : '';
     if (asm.state === 'none') {
-      throw new Error(
+      throw new NoSecretError(
         images.length > 1
           ? 'No hidden secret found in these images. They may have been cropped, recompressed or resized by the app they travelled through, or the passphrase may be wrong.'
           : 'No hidden secret found in this image. It may have been cropped, recompressed or resized by the app it travelled through.',
@@ -647,6 +691,7 @@ $('btn-reveal').onclick = async () => {
     if (asm.state === 'corrupt') throw new Error('The parts do not fit together (damaged, or from different secrets). Remove all images and add them again.');
 
     const payload = await openPayload(asm.packet, pass);
+    recordSuccess(attemptStore, fp);
     const text = payload.kind === 'text' ? payload.text : `📄 ${payload.name}\n${fmt(payload.data.length)}`;
 
     setStatus(status, '');
@@ -666,6 +711,7 @@ $('btn-reveal').onclick = async () => {
     tick();
     clearTimer = window.setInterval(tick, 1000);
   } catch (e) {
+    const countsAsGuess = e instanceof WrongPassphraseError || e instanceof NoSecretError;
     if (e instanceof WrongPassphraseError) {
       const card = $('panel-reveal');
       card.classList.remove('shake');
@@ -673,6 +719,10 @@ $('btn-reveal').onclick = async () => {
       card.classList.add('shake');
     }
     setStatus(status, (e as Error).message, true);
+    if (countsAsGuess) {
+      const after = recordFailure(attemptStore, fp);
+      if (after.locked) showLockout(after.waitMs);
+    }
   } finally {
     btn.disabled = false;
   }

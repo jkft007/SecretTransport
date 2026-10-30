@@ -12,7 +12,7 @@ Turn any text into an image you can paste into a message or email. Only someone 
 
 **Copy message (image + link)** puts the image, the link to this site and a short explanation on the clipboard (as rich text plus plain text and a PNG) so you can paste it straight into an email or chat.
 
-Encryption: AES-256-GCM, key from the passphrase via PBKDF2-SHA256 (600k rounds), Reed-Solomon error correction. The reveal is animated.
+Encryption: AES-256-GCM, key from the passphrase via Argon2id (64 MiB, 3 passes), Reed-Solomon error correction. The reveal is animated.
 
 ## Files and documents
 Choose **File or document** on the Hide tab to hide a PDF, spreadsheet, key file, zip or anything else instead of text. The file name and contents are both encrypted, and the recipient gets a **Save file** button (files are never opened automatically; executable-type files get an extra warning). Rough size limits per style: lossless photo ~400 KB, code art ~58 KB (images get big above 8 KB), JPEG-safe photo ~3 KB, QR ~1.6 KB, fake QR ~350 bytes. The app shows the limit for the chosen style and refuses oversize files.
@@ -40,6 +40,13 @@ npm run dev     # http://localhost:5173
 npm test
 npm run build   # static site in dist/
 ```
+
+## Protection against guessing
+Because everything runs in the browser, anyone who copies an image can guess passphrases offline, and no web page can rate-limit that. What the app does about it:
+- **Argon2id key derivation** (memory-hard: 64 MiB per guess), so mass guessing on GPUs or custom hardware is expensive. The parameters are stored in each image's authenticated header; older PBKDF2 images still open.
+- **No cheap shortcut.** In the photo and fake-QR styles, where the data hides depends on the passphrase and could be checked without decrypting. That position key is derived with the same memory-hard function, so it costs as much to guess as the encryption key. Images made before this change still open through a fallback.
+- **Passphrase strength gate.** Weak passphrases (common passwords, patterns, short or repetitive ones, famous word phrases) are refused unless you tick "Use it anyway". The Generate button makes a 99-bit random one.
+- **Lockout on this device.** After 4 wrong passphrases on the same images, further tries are delayed (5 s, then doubling up to 5 min). This only frustrates casual guessing at the keyboard; it cannot stop offline attacks, so a strong passphrase is still what matters.
 
 ## Limits
 - Use a long random passphrase: anyone holding the image can guess offline. The image size hints at the message length.

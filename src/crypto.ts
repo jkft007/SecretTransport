@@ -1,6 +1,7 @@
+import { argon2Bytes, defaultKdf, type KdfSpec } from './kdf';
 import { TAG_LEN, buildHeader, finishPacket, parsePacket } from './packet';
 
-const PBKDF2_ITERATIONS = 600_000;
+const PBKDF2_ITERATIONS = 600_000; // version 1 packets only
 const subtle = globalThis.crypto.subtle;
 const bs = (u: Uint8Array) => u as unknown as BufferSource;
 
@@ -10,7 +11,11 @@ export class WrongPassphraseError extends Error {
   }
 }
 
-async function deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKey> {
+async function deriveKey(passphrase: string, salt: Uint8Array, kdf: KdfSpec): Promise<CryptoKey> {
+  if (kdf.type === 'argon2id') {
+    const raw = await argon2Bytes(passphrase, salt, kdf.memLog2, kdf.iterations);
+    return subtle.importKey('raw', bs(raw), { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  }
   const raw = await subtle.importKey('raw', bs(new TextEncoder().encode(passphrase.normalize('NFKC'))), 'PBKDF2', false, ['deriveKey']);
   return subtle.deriveKey(
     { name: 'PBKDF2', salt: bs(salt), iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
@@ -33,7 +38,7 @@ export type Payload = { kind: 'text'; text: string } | { kind: 'file'; name: str
 /** Strips paths and characters that are unsafe in file names; never returns an empty name. */
 export function safeFileName(raw: string): string {
   let n = raw.split(/[\\/]/).pop() ?? '';
-  n = n.replace(/[\u0000-\u001f\u007f<>:\"|?*]/g, '_').replace(/^[. ]+|[. ]+$/g, '');
+  n = n.replace(/[\u0000-\u001f\u007f<>:"|?*]/g, '_').replace(/^[. ]+|[. ]+$/g, '');
   if (n.length > 120) {
     const dot = n.lastIndexOf('.');
     const ext = dot > 0 && n.length - dot <= 12 ? n.slice(dot) : '';
@@ -61,7 +66,7 @@ function decodeFile(plain: Uint8Array): Payload {
 }
 
 /** Encrypts a text or file payload with `passphrase` and returns a framed packet. */
-export async function sealPayload(payload: Payload, passphrase: string, mode: number): Promise<Uint8Array> {
+export async function sealPayload(payload: Payload, passphrase: string, mode: number, kdf: KdfSpec = defaultKdf()): Promise<Uint8Array> {
   let data = encodePayload(payload);
   let compressed = false;
   const z = await deflate(data);
@@ -71,18 +76,18 @@ export async function sealPayload(payload: Payload, passphrase: string, mode: nu
   }
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const header = buildHeader(mode, compressed, salt, iv, data.length + TAG_LEN, payload.kind === 'file');
-  const key = await deriveKey(passphrase, salt);
+  const header = buildHeader(mode, compressed, salt, iv, data.length + TAG_LEN, payload.kind === 'file', kdf);
+  const key = await deriveKey(passphrase, salt, kdf);
   const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: bs(iv), additionalData: bs(header) }, key, bs(data)));
   return finishPacket(header, ct);
 }
 
-export const sealText = (text: string, passphrase: string, mode: number) => sealPayload({ kind: 'text', text }, passphrase, mode);
+export const sealText = (text: string, passphrase: string, mode: number, kdf?: KdfSpec) => sealPayload({ kind: 'text', text }, passphrase, mode, kdf);
 
 /** Verifies and decrypts a framed packet. Throws WrongPassphraseError on auth failure. */
 export async function openPayload(buf: Uint8Array, passphrase: string): Promise<Payload> {
   const p = parsePacket(buf);
-  const key = await deriveKey(passphrase, p.salt);
+  const key = await deriveKey(passphrase, p.salt, p.kdf);
   let plain: Uint8Array;
   try {
     plain = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: bs(p.iv), additionalData: bs(p.header) }, key, bs(p.ciphertext)));

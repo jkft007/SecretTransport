@@ -2,6 +2,7 @@
 // Bit positions follow a passphrase-keyed permutation of every RGB channel slot.
 // Only survives lossless formats (PNG): any recompression destroys it.
 import type { Rgba } from './codeart';
+import { layoutKey, legacyLayoutKey } from './kdf';
 
 const HEADER = 6; // 'S' 'T' + 4-byte length
 
@@ -14,9 +15,10 @@ function gcd(a: number, b: number): number {
   return a;
 }
 
-async function permutation(img: Rgba, passphrase: string): Promise<(k: number) => number> {
+async function permutation(img: Rgba, passphrase: string, legacy: boolean): Promise<(k: number) => number> {
   const M = img.width * img.height * 3;
-  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('ST-stego|' + passphrase.normalize('NFKC'))));
+  // legacy: images made before the memory-hard layout key; they can be read, never created (except by tests)
+  const h = legacy ? await legacyLayoutKey('ST-stego', passphrase) : await layoutKey(passphrase, 'stego');
   const dv = new DataView(h.buffer);
   let a = (dv.getUint32(0) % M) | 1;
   while (gcd(a, M) !== 1) a = (a + 2) % M || 1;
@@ -27,11 +29,11 @@ async function permutation(img: Rgba, passphrase: string): Promise<(k: number) =
 
 const slotOffset = (idx: number) => Math.floor(idx / 3) * 4 + (idx % 3);
 
-export async function embed(cover: Rgba, packet: Uint8Array, passphrase: string): Promise<Rgba> {
+export async function embed(cover: Rgba, packet: Uint8Array, passphrase: string, legacy = false): Promise<Rgba> {
   if (packet.length > stegoCapacity(cover)) throw new Error('Cover image is too small for this message');
   const out: Rgba = { width: cover.width, height: cover.height, data: new Uint8ClampedArray(cover.data) };
   for (let i = 3; i < out.data.length; i += 4) out.data[i] = 255;
-  const perm = await permutation(out, passphrase);
+  const perm = await permutation(out, passphrase, legacy);
   const payload = new Uint8Array(HEADER + packet.length);
   payload[0] = 0x53;
   payload[1] = 0x54;
@@ -46,8 +48,8 @@ export async function embed(cover: Rgba, packet: Uint8Array, passphrase: string)
   return out;
 }
 
-export async function extract(img: Rgba, passphrase: string): Promise<Uint8Array> {
-  const perm = await permutation(img, passphrase);
+export async function extract(img: Rgba, passphrase: string, legacy = false): Promise<Uint8Array> {
+  const perm = await permutation(img, passphrase, legacy);
   let k = 0;
   const readBytes = (n: number): Uint8Array => {
     const out = new Uint8Array(n);

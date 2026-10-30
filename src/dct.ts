@@ -5,6 +5,7 @@
 // Survives recompression (roughly quality 50+). Does not survive crops, rotation or resizing.
 import { decodeBuffer, encodeBuffer, encodedLength } from './ecc';
 import type { Rgba } from './codeart';
+import { layoutKey, legacyLayoutKey } from './kdf';
 
 const COEFS: [number, number][] = [[1, 2], [2, 1], [2, 2], [0, 3], [3, 0], [1, 3]];
 const STEP = 44;
@@ -53,8 +54,8 @@ function gcd(a: number, b: number): number {
   return a;
 }
 
-async function slotPermutation(S: number, passphrase: string): Promise<(k: number) => number> {
-  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('ST-dct|' + passphrase.normalize('NFKC'))));
+async function slotPermutation(S: number, passphrase: string, legacy: boolean): Promise<(k: number) => number> {
+  const h = legacy ? await legacyLayoutKey('ST-dct', passphrase) : await layoutKey(passphrase, 'dct');
   const dv = new DataView(h.buffer);
   let a = (dv.getUint32(0) % S) | 1;
   while (gcd(a, S) !== 1) a = (a + 2) % S || 1;
@@ -82,13 +83,13 @@ function coefficient(img: Rgba, bx: number, by: number, u: number, v: number): n
   return s;
 }
 
-export async function embedDct(cover: Rgba, packet: Uint8Array, passphrase: string): Promise<Rgba> {
+export async function embedDct(cover: Rgba, packet: Uint8Array, passphrase: string, legacy = false): Promise<Rgba> {
   const img = cropTo8(cover);
   const S = slotCount(img);
   const enc = encodeBuffer(packet);
   const reps = repsFor(S, enc.length * 8);
   if (reps < MIN_REPS) throw new Error('Cover photo is too small for this message. Use a larger photo or less text.');
-  const perm = await slotPermutation(S, passphrase);
+  const perm = await slotPermutation(S, passphrase, legacy);
 
   const want = new Int8Array(S).fill(-1);
   for (let i = 0; i < HEADER_BITS; i++)
@@ -129,10 +130,10 @@ export async function embedDct(cover: Rgba, packet: Uint8Array, passphrase: stri
   return out;
 }
 
-export async function extractDct(img: Rgba, passphrase: string): Promise<Uint8Array> {
+export async function extractDct(img: Rgba, passphrase: string, legacy = false): Promise<Uint8Array> {
   const S = slotCount(img);
   if (S < HEADER_SLOTS + 8) throw new Error('No hidden data');
-  const perm = await slotPermutation(S, passphrase);
+  const perm = await slotPermutation(S, passphrase, legacy);
   const cache = new Map<number, number>();
   // Positive soft value => bit 0, negative => bit 1.
   const soft = (slot: number): number => {
