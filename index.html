@@ -80,7 +80,14 @@
         <div id="drop" tabindex="0">
           <canvas id="thumb" hidden></canvas>
           <p id="drop-text"><b>Paste an image here</b> (Ctrl/Cmd+V), drop a file, or <label class="link" for="file-in">choose one</label>.</p>
-          <button id="btn-paste" class="ghost" type="button">Paste from clipboard</button>
+          <div class="row center">
+            <button id="btn-paste" class="ghost" type="button">Paste from clipboard</button>
+            <button id="btn-scan" class="ghost" type="button">Scan QR with camera</button>
+          </div>
+          <div id="cam-wrap" hidden>
+            <video id="cam" playsinline muted></video>
+            <button id="btn-scan-stop" class="ghost small" type="button">Stop camera</button>
+          </div>
           <input id="file-in" type="file" accept="image/*,.heic,.heif" hidden />
         </div>
 

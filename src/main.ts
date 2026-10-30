@@ -6,6 +6,7 @@ import { MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, parsePacket }
 import { embed, extract, stegoCapacity } from './stego';
 import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
 import { playReveal, type RevealHandle } from './reveal-anim';
+import { startScanner, type Scanner } from './camera';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches || $<HTMLInputElement>('chk-motion').checked;
@@ -298,3 +299,51 @@ $('btn-paste').onclick = async () => {
     setStatus(status, denied ? 'Clipboard access was blocked. Allow it in the browser, or press Ctrl/Cmd+V instead.' : 'This browser cannot read the clipboard here (needs https or localhost). Press Ctrl/Cmd+V instead.', true);
   }
 };
+
+// ---- camera scanning --------------------------------------------------------
+let scanner: Scanner | null = null;
+
+function stopScan() {
+  scanner?.stop();
+  scanner = null;
+  $('cam-wrap').hidden = true;
+  $<HTMLButtonElement>('btn-scan').disabled = false;
+}
+
+$('btn-scan').onclick = async () => {
+  const status = $('reveal-status');
+  stopScan();
+  try {
+    $<HTMLButtonElement>('btn-scan').disabled = true;
+    $('cam-wrap').hidden = false;
+    setStatus(status, 'Starting camera…');
+    scanner = await startScanner($<HTMLVideoElement>('cam'), () => $<HTMLInputElement>('pass2').value, {
+      onStatus: (m) => setStatus(status, m),
+      onFound: (_packet, frame) => {
+        stopScan();
+        loaded = frame;
+        rgbaToCanvas(frame, $<HTMLCanvasElement>('thumb')).hidden = false;
+        $('drop-text').innerHTML = '<b>QR code scanned.</b>';
+        if ($<HTMLInputElement>('pass2').value) $<HTMLButtonElement>('btn-reveal').click();
+        else {
+          setStatus(status, 'Scanned. Enter the passphrase and press Reveal.');
+          $<HTMLInputElement>('pass2').focus();
+        }
+      },
+    });
+  } catch (e) {
+    stopScan();
+    const err = e as Error;
+    const msg =
+      err.name === 'NotAllowedError' ? 'Camera access was blocked. Allow it in the browser and try again.'
+      : err.name === 'NotFoundError' ? 'No camera was found on this device.'
+      : err.message || 'Could not start the camera.';
+    setStatus(status, msg, true);
+  }
+};
+$('btn-scan-stop').onclick = () => {
+  stopScan();
+  setStatus($('reveal-status'), '');
+};
+document.addEventListener('visibilitychange', () => document.hidden && stopScan());
+$('tab-hide').addEventListener('click', stopScan);

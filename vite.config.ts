@@ -7,7 +7,7 @@ const csp: Plugin = {
   transformIndexHtml(html) {
     const policy =
       "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'";
+      "img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'none'; base-uri 'none'; form-action 'none'";
     return html.replace('<head>', `<head>\n    <meta http-equiv="Content-Security-Policy" content="${policy}">`);
   },
 };

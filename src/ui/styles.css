@@ -129,3 +129,8 @@ legend { font-weight: 600; padding: 0 6px; }
 
 footer { margin-top: 20px; color: var(--muted); font-size: 13px; }
 [hidden] { display: none !important; }
+
+.row.center { justify-content: center; margin-top: 0; }
+#cam-wrap { position: relative; margin-top: 14px; }
+#cam { display: block; width: 100%; max-height: 360px; object-fit: cover; border-radius: 10px; background: #000; }
+#cam-wrap button { position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.55); color: #fff; border-color: #555; }

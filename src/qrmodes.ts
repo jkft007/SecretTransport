@@ -1,6 +1,7 @@
 // Plain QR (packet as base64) and fake QR (valid QR for a decoy; real packet hidden in its
 // error-correction budget).
-import jsQR from 'jsqr';
+import jsQR, { type QRCode } from 'jsqr';
+import { PacketError, parsePacket } from './packet';
 import { decodeBuffer, encodedLength, encodeBuffer } from './ecc';
 import { findBounds, type Rgba } from './codeart';
 import { blockMap, byteCapacity, buildSymbol, encodeQr, encodeQrAt, layout, readCodewords, type QrSymbol } from './qr';
@@ -25,7 +26,9 @@ export function qrToRgba(sym: QrSymbol): Rgba {
   return { width: size, height: size, data };
 }
 
-function scan(img: Rgba) {
+type QrLocation = QRCode['location'];
+
+function scan(img: Rgba): QRCode {
   const r = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
   if (!r) throw new Error('No QR code found');
   return r;
@@ -58,6 +61,82 @@ function sampleModules(img: Rgba, n: number): boolean[][] {
     out.push(row);
   }
   return out;
+}
+
+
+type Pt = { x: number; y: number };
+
+/** Solves the 3x3 projective map taking module coordinates to image pixels from 4 point pairs. */
+function homography(src: [number, number][], dst: Pt[]): number[] {
+  const A: number[][] = [];
+  src.forEach(([u, v], i) => {
+    const { x, y } = dst[i];
+    A.push([u, v, 1, 0, 0, 0, -u * x, -v * x, x]);
+    A.push([0, 0, 0, u, v, 1, -u * y, -v * y, y]);
+  });
+  for (let c = 0; c < 8; c++) {
+    let piv = c;
+    for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+    [A[c], A[piv]] = [A[piv], A[c]];
+    for (let r = 0; r < 8; r++) {
+      if (r === c) continue;
+      const f = A[r][c] / A[c][c];
+      for (let k = c; k < 9; k++) A[r][k] -= f * A[c][k];
+    }
+  }
+  return A.map((row, i) => row[8] / row[i]);
+}
+
+/** Samples a QR symbol of any orientation/perspective using the locator points jsQR found. */
+function sampleModulesProjective(img: Rgba, n: number, loc: QrLocation): boolean[][] {
+  const src: [number, number][] = [[3.5, 3.5], [n - 3.5, 3.5], [3.5, n - 3.5]];
+  const dst: Pt[] = [loc.topLeftFinderPattern, loc.topRightFinderPattern, loc.bottomLeftFinderPattern];
+  if (loc.bottomRightAlignmentPattern) {
+    src.push([n - 6.5, n - 6.5]);
+    dst.push(loc.bottomRightAlignmentPattern);
+  } else {
+    src.push([n - 3.5, n - 3.5]);
+    dst.push({ x: dst[1].x + dst[2].x - dst[0].x, y: dst[1].y + dst[2].y - dst[0].y });
+  }
+  const h = homography(src, dst);
+  const gray = (x: number, y: number): number => {
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+    if (x0 < 0 || y0 < 0 || x0 + 1 >= img.width || y0 + 1 >= img.height) return 255;
+    const fx = x - x0;
+    const fy = y - y0;
+    const g = (xx: number, yy: number) => {
+      const o = (yy * img.width + xx) * 4;
+      return (img.data[o] + img.data[o + 1] + img.data[o + 2]) / 3;
+    };
+    return (g(x0, y0) * (1 - fx) + g(x0 + 1, y0) * fx) * (1 - fy) + (g(x0, y0 + 1) * (1 - fx) + g(x0 + 1, y0 + 1) * fx) * fy;
+  };
+  const vals: number[][] = [];
+  const offs = [-0.22, 0, 0.22];
+  for (let my = 0; my < n; my++) {
+    const row: number[] = [];
+    for (let mx = 0; mx < n; mx++) {
+      let sum = 0;
+      for (const dy of offs)
+        for (const dx of offs) {
+          const u = mx + 0.5 + dx;
+          const v = my + 0.5 + dy;
+          const w = h[6] * u + h[7] * v + 1;
+          sum += gray((h[0] * u + h[1] * v + h[2]) / w, (h[3] * u + h[4] * v + h[5]) / w);
+        }
+      row.push(sum / 9);
+    }
+    vals.push(row);
+  }
+  // 2-means threshold copes with uneven camera exposure
+  let t = 128;
+  for (let it = 0; it < 12; it++) {
+    let lo = 0, nl = 0, hi = 0, nh = 0;
+    for (const row of vals) for (const v of row) if (v < t) (lo += v, nl++); else (hi += v, nh++);
+    if (!nl || !nh) break;
+    t = (lo / nl + hi / nh) / 2;
+  }
+  return vals.map((row) => row.map((v) => v < t));
 }
 
 // ---- plain QR ----------------------------------------------------------------
@@ -144,12 +223,23 @@ export async function encodeFakeQr(packet: Uint8Array, decoy: string, passphrase
   return qrToRgba(buildSymbol(version, 'H', cw, clean.mask));
 }
 
-export async function decodeFakeQr(img: Rgba, passphrase: string): Promise<Uint8Array> {
-  const res = scan(img);
+export async function decodeFakeQr(img: Rgba, passphrase: string, res: QRCode = scan(img)): Promise<Uint8Array> {
   const clean = encodeQrAt(Uint8Array.from(res.binaryData), 'H', res.version);
-  const observed = readCodewords(sampleModules(img, clean.size), res.version, clean.mask);
   const plan = await hiddenPlan(res.version, passphrase);
-  const delta = (i: number) => observed[plan[i]] ^ clean.codewords[plan[i]];
+  const samplers = [() => sampleModulesProjective(img, clean.size, res.location), () => sampleModules(img, clean.size)];
+  let lastError: unknown = new Error('No hidden data');
+  for (const sample of samplers) {
+    try {
+      return extractHidden(readCodewords(sample(), res.version, clean.mask), clean.codewords, plan);
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError;
+}
+
+function extractHidden(observed: Uint8Array, clean: Uint8Array, plan: number[]): Uint8Array {
+  const delta = (i: number) => observed[plan[i]] ^ clean[plan[i]];
   const vote = (k: number) => {
     const [x, y, z] = [delta(k), delta(k + 2), delta(k + 4)];
     return x === y || x === z ? x : y === z ? y : x;
@@ -160,4 +250,29 @@ export async function decodeFakeQr(img: Rgba, passphrase: string): Promise<Uint8
   const enc = new Uint8Array(need);
   for (let i = 0; i < need; i++) enc[i] = delta(HIDDEN_HEADER + i);
   return decodeBuffer(enc, len);
+}
+
+export type FrameResult = { kind: 'packet'; packet: Uint8Array } | { kind: 'qr-no-secret' } | { kind: 'none' };
+
+/** One camera frame: a plain-QR packet needs no passphrase; a fake QR needs it for the hidden positions. */
+export async function tryDecodeQrFrame(frame: Rgba, passphrase: string): Promise<FrameResult> {
+  const res = jsQR(frame.data, frame.width, frame.height, { inversionAttempts: 'dontInvert' });
+  if (!res) return { kind: 'none' };
+  try {
+    const p = fromB64(res.data);
+    parsePacket(p);
+    return { kind: 'packet', packet: p };
+  } catch {
+    /* not a plain secret QR */
+  }
+  if (passphrase) {
+    try {
+      const p = await decodeFakeQr(frame, passphrase, res);
+      parsePacket(p);
+      return { kind: 'packet', packet: p };
+    } catch (e) {
+      if (!(e instanceof PacketError) && !(e instanceof Error)) throw e;
+    }
+  }
+  return { kind: 'qr-no-secret' };
 }
