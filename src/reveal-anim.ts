@@ -1,11 +1,11 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
   'ticker', 'radar', 'film', 'parade', 'asteroids',
-  'hearts', 'flowers', 'bomb',
+  'hearts', 'flowers', 'bomb', 'wizard',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -125,6 +125,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const HEART_RISE = 1000; // how long a heart takes to carry its letter up
   const BLOOM = 500; // how long a flower takes to open
   const BOOM_T = 1000; // when the cartoon bomb goes off, measured from the end of the intro
+  const WIZ_SPREAD = Math.max(2200, Math.min(4500, visible.length * 55)); // the magic ink takes its time
   const FLIGHT = 500; // how long a letter takes to fall out of the can
   const FALL = 1100; // how long a parachuted word takes to float down
   const SWARM = 700; // how long a speck of dust takes to fly to its letter
@@ -132,7 +133,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const WIN = 1000; // the jackpot celebration after the last reel stops
   const INK = 500; // how long invisible ink takes to darken once the flame reaches it
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -157,6 +158,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'hearts' ? Math.max(T_RESOLVE, 1400) + HEART_RISE + 300
     : style === 'flowers' ? Math.max(T_RESOLVE, 1400) + BLOOM + 500
     : style === 'bomb' ? BOOM_T + 1000
+    : style === 'wizard' ? WIZ_SPREAD + 1100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
@@ -1315,6 +1317,85 @@ export function playReveal(o: RevealOptions): RevealHandle {
     ctx.shadowBlur = 0;
   };
 
+  // Wizard's ink: aged parchment on which the writing seeps into view in scattered bits, lit by a wand tip.
+  const wizAt: number[] = new Array(visible.length).fill(0);
+  {
+    const runs: number[][] = []; // the writing arrives in little runs of 1..5 letters, in a random order
+    for (let i = 0; i < visible.length; ) {
+      const n = Math.min(visible.length - i, 1 + Math.floor(rnd() * 5));
+      runs.push(Array.from({ length: n }, (_, j) => i + j));
+      i += n;
+    }
+    for (let k = runs.length - 1; k > 0; k--) {
+      const j = Math.floor(rnd() * (k + 1));
+      [runs[k], runs[j]] = [runs[j], runs[k]];
+    }
+    runs.forEach((run, k) => {
+      const start = (k / runs.length) * WIZ_SPREAD * 0.95 + rnd() * 120;
+      run.forEach((idx, j) => (wizAt[idx] = start + j * 80));
+    });
+  }
+  const stains = Array.from({ length: 9 }, () => ({ x: rnd() * W, y: rnd() * H, rx: 20 + rnd() * 50, ry: 10 + rnd() * 30 }));
+  const drawWizard = (r: number, t: number) => {
+    const pg = ctx.createRadialGradient(W / 2, H / 2, H * 0.1, W / 2, H / 2, Math.hypot(W, H) / 2);
+    pg.addColorStop(0, '#ead8a8');
+    pg.addColorStop(1, '#b99b62');
+    ctx.fillStyle = pg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(120,80,30,.07)';
+    for (const s of stains) {
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    let focus = -1;
+    visible.forEach((c, i) => {
+      const age = r - wizAt[i];
+      if (age <= 0) return;
+      const k = clamp01(age / 700);
+      if (age < 500 && (focus < 0 || wizAt[i] > wizAt[focus])) focus = i;
+      const bx = c.x + cw / 2;
+      const by = c.y - fs * 0.3;
+      const blot = ctx.createRadialGradient(bx, by, 0, bx, by, cw * (0.4 + 0.8 * ease(k)));
+      blot.addColorStop(0, `rgba(60,35,10,${0.3 * (1 - 0.6 * k)})`);
+      blot.addColorStop(1, 'rgba(60,35,10,0)');
+      ctx.fillStyle = blot;
+      ctx.fillRect(bx - cw * 1.3, by - cw * 1.3, cw * 2.6, cw * 2.6);
+      ctx.globalAlpha = k;
+      ctx.fillStyle = `rgb(${Math.round(224 - 182 * k)},${Math.round(160 - 134 * k)},${Math.round(48 - 36 * k)})`; // golden, cooling to ink
+      ctx.shadowColor = 'rgba(255,190,60,.9)';
+      ctx.shadowBlur = 10 * (1 - k);
+      ctx.fillText(c.ch, c.x, c.y);
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    });
+    // the wand: its glowing tip rests on the writing that is appearing
+    const tip = focus >= 0 ? { x: visible[focus].x + cw / 2, y: visible[focus].y - fs * 0.3 } : { x: W * 0.2 + Math.sin(t / 500) * 20, y: H * 0.35 + Math.cos(t / 700) * 12 };
+    const bob = Math.sin(t / 180) * 2;
+    ctx.strokeStyle = '#3b2616';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(tip.x + 4, tip.y - 3 + bob);
+    ctx.lineTo(tip.x + 40, tip.y - 38 + bob);
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+    const glow = ctx.createRadialGradient(tip.x, tip.y + bob, 0, tip.x, tip.y + bob, 22);
+    glow.addColorStop(0, 'rgba(255,240,170,.9)');
+    glow.addColorStop(1, 'rgba(255,200,80,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(tip.x - 24, tip.y + bob - 24, 48, 48);
+    ctx.fillStyle = 'rgba(255,230,140,.9)';
+    for (let k = 0; k < 7; k++) ctx.fillRect(tip.x + (rnd() - 0.5) * 30, tip.y + bob + (rnd() - 0.5) * 30, 1.5, 1.5);
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.hypot(W, H) / 2);
+    vg.addColorStop(0, 'rgba(70,40,10,0)');
+    vg.addColorStop(1, 'rgba(70,40,10,.55)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+    fadeToFinal(r);
+  };
+
   // Old cartoon bomb: a round black bomb with a sparking fuse; it goes KA-BOOM and blows the letters into place.
   const bx = W / 2;
   const by = H / 2 + 12;
@@ -1709,7 +1790,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
       }
     } else if (t < T_INTRO) {
       const p = t / T_INTRO;
-      if (style === 'bomb') {
+      if (style === 'wizard') {
+        drawWizard(r, t);
+      } else if (style === 'bomb') {
         drawBomb(r, t);
       } else if (style === 'hearts') {
         drawHearts(r, t);
@@ -1800,6 +1883,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (style === 'wizard') {
+      drawWizard(r, t);
     } else if (style === 'bomb') {
       drawBomb(r, t);
     } else if (style === 'hearts') {

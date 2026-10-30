@@ -69,6 +69,11 @@
         <div id="pass-note" class="hint"></div>
         <label class="check" id="weak-row" hidden><input id="chk-weak" type="checkbox" /> Use this weak passphrase anyway</label>
 
+        <label for="passcode">Recipient pass code <span class="hint">(optional second way in: the key to this image is also stored inside it, locked by this pass code, so you can give the recipient just the pass code and keep the passphrase to yourself. Either one opens the image, so it is only as strong as the weaker of the two.)</span></label>
+        <input id="passcode" type="password" autocomplete="off" spellcheck="false" />
+        <div id="code-note" class="hint"></div>
+        <label class="check" id="weak-code-row" hidden><input id="chk-weak-code" type="checkbox" /> Use this weak pass code anyway</label>
+
         <label for="mode">Image style</label>
         <select id="mode">
           <option value="codeart" selected>Code art</option>
@@ -104,6 +109,25 @@
         <label for="anim-pick">Reveal animation <span class="hint">(stored inside the encrypted image; the recipient sees it unless they pick another)</span></label>
         <select id="anim-pick"></select>
 
+        <label for="read-time">Reading time <span class="hint">(how long the recipient's screen shows the secret before clearing it. They can shorten this but not extend it.)</span></label>
+        <select id="read-time">
+          <option value="10">10 seconds</option>
+          <option value="30">30 seconds</option>
+          <option value="60" selected>1 minute (default)</option>
+          <option value="300">5 minutes</option>
+          <option value="900">15 minutes</option>
+          <option value="65535">Until they clear it</option>
+        </select>
+
+        <label for="expiry">Expires <span class="hint">(optional; the reveal step refuses to show it after this time. It is enforced by this app and the recipient's clock, so it is a courtesy, not a lock: anyone who can open it can copy it first.)</span></label>
+        <select id="expiry">
+          <option value="0" selected>Never</option>
+          <option value="3600">In 1 hour</option>
+          <option value="86400">In 24 hours</option>
+          <option value="604800">In 7 days</option>
+          <option value="2592000">In 30 days</option>
+        </select>
+
         <label class="check split"><input id="chk-split" type="checkbox" checked /> Split across several images when it does not fit in one</label>
 
         <button id="btn-create" class="primary">Create image</button>
@@ -137,12 +161,19 @@
           <input id="file-in" type="file" accept="image/*,.heic,.heif" multiple hidden />
         </div>
 
-        <label for="pass2">Passphrase</label>
+        <label for="pass2">Passphrase or pass code</label>
         <input id="pass2" type="password" autocomplete="off" spellcheck="false" />
 
         <div class="row">
           <button id="btn-reveal" class="primary">Reveal</button>
           <label class="check"><input id="chk-motion" type="checkbox" /> Skip animation</label>
+          <select id="read-clear" aria-label="Clear the revealed secret after">
+            <option value="0" selected>Clear: as the sender set</option>
+            <option value="15">Clear after 15 s</option>
+            <option value="30">Clear after 30 s</option>
+            <option value="60">Clear after 1 min</option>
+            <option value="300">Clear after 5 min</option>
+          </select>
           <select id="anim-style" aria-label="Reveal animation">
             <option value="auto" selected>Animation: Auto (sender's choice, else random)</option>
             <option value="matrix">Matrix rain</option>
@@ -174,6 +205,7 @@
             <option value="hearts">Hearts</option>
             <option value="flowers">Flowers</option>
             <option value="bomb">Cartoon bomb</option>
+            <option value="wizard">Wizard's magic ink</option>
           </select>
         </div>
         <div id="reveal-status" class="status" role="status"></div>
@@ -204,9 +236,46 @@
         </div>
       </section>
 
+      <details class="about" id="about">
+        <summary>How it works, when to use it, and which apps keep the image</summary>
+
+        <h3>How it works</h3>
+        <ol>
+          <li>Your browser encrypts the secret with your passphrase (AES-256-GCM; the key comes from Argon2id, which is deliberately slow and memory-hungry so that guessing is expensive).</li>
+          <li>The encrypted bytes, with error correction added, are drawn into an image: a code-art mosaic, a QR code, a fake QR code (it scans as a harmless decoy while the real data hides in the error-correction budget) or an ordinary-looking photo.</li>
+          <li>You send the image like any picture. The recipient pastes or drops it on the Reveal tab, types the passphrase, and the original comes back. Nothing is uploaded: there is no server.</li>
+        </ol>
+
+        <h3>When to use this</h3>
+        <ul>
+          <li><b>Good for:</b> sending a password, API key, recovery phrase or private note over a channel you do not fully trust (email, chat), when you can give the passphrase by a different route (a phone call, in person). Also for hiding text in plain sight inside a photo.</li>
+          <li><b>Not for:</b> anything that must stay safe against someone who gets the image and can guess the passphrase. They can try guesses offline for as long as they like, so use a long random passphrase (the Generate button makes one).</li>
+          <li><b>Not for:</b> long-term storage or anything you cannot afford to lose: there is no recovery if the passphrase is forgotten. It is also no replacement for an end-to-end encrypted messenger or a password manager, and an expiry is a courtesy rather than a lock.</li>
+        </ul>
+
+        <h3>Which apps keep the image intact</h3>
+        <p>What matters is whether an app delivers your image <em>as it is</em> or re-compresses and shrinks it like a photo.</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr><th>How the image travels</th><th>Code art, QR, fake QR</th><th>Photo, JPEG-safe</th><th>Photo, lossless</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Sent as a file: email attachment, "send as file" or "document" in chat apps, cloud-drive link</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+              <tr><td>Re-compressed as JPEG at the same size</td><td>Yes (tested down to JPEG quality 50)</td><td>Yes (tested down to quality 50)</td><td>No</td></tr>
+              <tr><td>Shrunk, as many chat apps do to photos</td><td>Code art: yes (tested at 60% size plus JPEG). QR and fake QR: usually, while still big enough to scan</td><td>No</td><td>No</td></tr>
+              <tr><td>Screenshot of the whole image</td><td>Yes</td><td>Usually, if it is not scaled</td><td>Only if exact pixels</td></tr>
+              <tr><td>Cropped, rotated or only part of it</td><td>No</td><td>No</td><td>No</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">In practice: attachments and "send as file/document" options (email, Telegram, WhatsApp, Signal) generally deliver the original. Sending as a normal photo in most chat and social apps (WhatsApp, iMessage, Messenger, Instagram, and Telegram or Signal photo mode) re-compresses it and may shrink it, so use Code art or a JPEG-safe photo there. Pasting inline into an email usually works but some mail programs resize large pictures. Apps differ and change their behaviour between versions, and not every app has been tested: send yourself a test image first.</p>
+      </details>
+
       <footer>
         AES-256-GCM, with the key derived from your passphrase by Argon2id (64 MiB of memory per guess, so mass guessing is expensive). The image proves nothing about its content, but its size hints at the message length.
         Anyone who copies the image can try guesses offline, and nothing in a web page can limit that: a long, random passphrase is your real protection. Repeated wrong guesses on this device are also slowed down.
+        <br />Open source (MIT): <a href="https://github.com/jkft007/SecretTransport" target="_blank" rel="noopener noreferrer">github.com/jkft007/SecretTransport</a>
       </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>

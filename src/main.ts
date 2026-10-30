@@ -1,7 +1,7 @@
 import { decodeCodeArt, encodeCodeArt, MAX_PACKET, type Rgba } from './codeart';
 import { cropTo8, dctCapacity, embedDct, extractDct, MAX_COVER_SIDE } from './dct';
 import { decodeFakeQr, decodePlainQr, encodeFakeQr, encodePlainQr } from './qrmodes';
-import { openPayload, sealPayload, WrongPassphraseError, type Payload } from './crypto';
+import { ExpiredError, NEVER_CLEAR, openPayload, sealPayload, WrongPassphraseError, type Payload } from './crypto';
 import { encodedLength } from './ecc';
 import { byteCapacity } from './qr';
 import { fakeQrCapacity } from './qrmodes';
@@ -59,6 +59,15 @@ function updateMeter() {
   if (level !== 'weak') $<HTMLInputElement>('chk-weak').checked = false;
 }
 $('pass').addEventListener('input', updateMeter);
+
+// The optional recipient pass code gets the same strength check: it opens the image just like the passphrase does.
+$('passcode').addEventListener('input', () => {
+  const { level } = strength($<HTMLInputElement>('passcode').value);
+  $('code-note').textContent =
+    level === 'none' ? '' : level === 'weak' ? 'Too easy to guess. Anyone who copies the image can try guesses offline, so make it longer.' : level === 'ok' ? 'Acceptable, but longer is better.' : 'Strong.';
+  $('weak-code-row').hidden = level !== 'weak';
+  if (level !== 'weak') $<HTMLInputElement>('chk-weak-code').checked = false;
+});
 
 // The sender's animation list mirrors the reveal list; "auto" there means the recipient's browser picks one.
 {
@@ -323,6 +332,11 @@ $('btn-create').onclick = async () => {
     return setStatus(status, 'That passphrase is too easy to guess. Press Generate for a strong one, make it longer, or tick "Use it anyway".', true);
   }
 
+  const passcode = $<HTMLInputElement>('passcode').value;
+  if (passcode && strength(passcode).level === 'weak' && !$<HTMLInputElement>('chk-weak-code').checked) {
+    return setStatus(status, 'That pass code is too easy to guess. Make it longer, or tick "Use this weak pass code anyway".', true);
+  }
+
   const btn = $<HTMLButtonElement>('btn-create');
   btn.disabled = true;
   setStatus(status, 'Encrypting… (deriving a memory-hard key takes about a second)');
@@ -335,7 +349,11 @@ $('btn-create').onclick = async () => {
     const kind = photoKind();
     const packetMode = { codeart: MODE_CODEART, qr: MODE_QR, fakeqr: MODE_FAKEQR, photo: kind === 'dct' ? MODE_DCT : MODE_STEGO }[mode];
     const chosen = STYLES.find((s) => s === $<HTMLSelectElement>('anim-pick').value);
-    const packet = await sealPayload(payload, pass, packetMode, undefined, chosen ? styleToId(chosen) : 0);
+    const readTime = Number($<HTMLSelectElement>('read-time').value); // the 60 s default is not stored
+    const readSecs = readTime === 60 ? 0 : readTime;
+    const ttl = Number($<HTMLSelectElement>('expiry').value); // seconds, 0 = never
+    const expiresAt = ttl > 0 ? Math.floor(Date.now() / 1000) + ttl : 0;
+    const packet = await sealPayload(payload, pass, packetMode, undefined, chosen ? styleToId(chosen) : 0, expiresAt, passcode, readSecs);
 
     let cover: Rgba | null = null;
     if (mode === 'photo') {
@@ -718,16 +736,26 @@ $('btn-reveal').onclick = async () => {
     await handle.done;
     showResult(payload);
     $('result').hidden = false;
+    if (payload.expires) setStatus(status, `Note: the sender set this secret to expire on ${new Date(payload.expires * 1000).toLocaleString()}.`);
 
-    let left = 60;
-    const tick = () => {
-      $('timer').textContent = `Clears in ${left}s`;
-      if (left-- <= 0) clearResult();
-    };
-    tick();
-    clearTimer = window.setInterval(tick, 1000);
+    // The sender's reading time is a ceiling: the recipient may shorten it but never stretch it.
+    const senderLimit = payload.readSecs === undefined ? 60 : payload.readSecs === NEVER_CLEAR ? Infinity : payload.readSecs;
+    const myLimit = Number($<HTMLSelectElement>('read-clear').value) || Infinity;
+    const limit = Math.min(senderLimit, myLimit);
+    if (limit === Infinity) {
+      $('timer').textContent = 'Stays on screen until you press Clear now.';
+    } else {
+      let left = limit;
+      const tick = () => {
+        $('timer').textContent = `Clears in ${left}s`;
+        if (left-- <= 0) clearResult();
+      };
+      tick();
+      clearTimer = window.setInterval(tick, 1000);
+    }
   } catch (e) {
     const countsAsGuess = e instanceof WrongPassphraseError || e instanceof NoSecretError;
+    if (e instanceof ExpiredError) recordSuccess(attemptStore, fp); // the passphrase was right, so it is not a guess
     if (e instanceof WrongPassphraseError) {
       const card = $('panel-reveal');
       card.classList.remove('shake');

@@ -12,7 +12,7 @@ Turn any text into an image you can paste into a message or email. Only someone 
 
 **Copy message (image + link)** puts the image, the link to this site and a short explanation on the clipboard (as rich text plus plain text and a PNG) so you can paste it straight into an email or chat.
 
-Encryption: AES-256-GCM, key from the passphrase via Argon2id (64 MiB, 3 passes), Reed-Solomon error correction. The reveal is animated, with 29 styles (matrix rain, fireworks, a safe opening, a train puffing the text out of its chimney, and more). The sender can pick one when creating the image: the choice is stored inside the encrypted data, so only the passphrase holder can see it, and it is played when the recipient reveals the secret. The recipient can still override it from the animation menu, and images with no choice get a random one.
+Encryption: AES-256-GCM, key from the passphrase via Argon2id (64 MiB, 3 passes), Reed-Solomon error correction. The reveal is animated, with 30 styles (matrix rain, fireworks, a safe opening, a train puffing the text out of its chimney, and more). The sender can pick one when creating the image: the choice is stored inside the encrypted data, so only the passphrase holder can see it, and it is played when the recipient reveals the secret. The recipient can still override it from the animation menu, and images with no choice get a random one.
 
 ## Files and documents
 Choose **File or document** on the Hide tab to hide a PDF, spreadsheet, key file, zip or anything else instead of text. The file name and contents are both encrypted, and the recipient gets a **Save file** button (files are never opened automatically; executable-type files get an extra warning). Rough size limits per style: lossless photo ~400 KB, code art ~58 KB (images get big above 8 KB), JPEG-safe photo ~3 KB, QR ~1.6 KB, fake QR ~350 bytes. The app shows the limit for the chosen style and refuses oversize files.
@@ -47,6 +47,41 @@ Because everything runs in the browser, anyone who copies an image can guess pas
 - **No cheap shortcut.** In the photo and fake-QR styles, where the data hides depends on the passphrase and could be checked without decrypting. That position key is derived with the same memory-hard function, so it costs as much to guess as the encryption key. Images made before this change still open through a fallback.
 - **Passphrase strength gate.** Weak passphrases (common passwords, patterns, short or repetitive ones, famous word phrases) are refused unless you tick "Use it anyway". The Generate button makes a 99-bit random one.
 - **Lockout on this device.** After 4 wrong passphrases on the same images, further tries are delayed (5 s, then doubling up to 5 min). This only frustrates casual guessing at the keyboard; it cannot stop offline attacks, so a strong passphrase is still what matters.
+
+## How it works
+1. The browser encrypts the secret with your passphrase (AES-256-GCM, key from Argon2id).
+2. The encrypted bytes, with Reed-Solomon error correction, are drawn into an image: code art, QR, fake QR or a photo.
+3. You send the image like any picture. The recipient pastes or drops it on the Reveal tab, types the passphrase, and the original comes back. There is no server and nothing is uploaded.
+
+## When to use it
+- **Good for:** a password, API key, recovery phrase or private note sent over a channel you do not fully trust, when the passphrase travels by a different route. Also for hiding text in plain sight inside a photo.
+- **Not for:** anything that must stay safe against someone who holds the image and can guess the passphrase (they can guess offline indefinitely), long-term storage (there is no recovery for a forgotten passphrase), or replacing an end-to-end encrypted messenger or a password manager.
+
+## Which apps keep the image intact
+It depends on whether an app delivers the image as it is, or re-compresses and shrinks it like a photo.
+
+| How the image travels | Code art, QR, fake QR | Photo, JPEG-safe | Photo, lossless |
+| --- | --- | --- | --- |
+| Sent as a file (email attachment, "send as file/document" in chat apps, cloud-drive link) | Yes | Yes | Yes |
+| Re-compressed as JPEG at the same size | Yes (tested to JPEG quality 50) | Yes (tested to quality 50) | No |
+| Shrunk, as many chat apps do to photos | Code art: yes (tested at 60% plus JPEG). QR / fake QR: usually, while still big enough to scan (not tested) | No | No |
+| Screenshot of the whole image | Yes | Usually, if not scaled | Only if exact pixels |
+| Cropped, rotated, or only part of it | No | No | No |
+
+Attachments and "send as file/document" options generally deliver the original. Sending as a normal photo in most chat and social apps (WhatsApp, iMessage, Messenger, Instagram, Telegram or Signal in photo mode) re-compresses and may shrink it, so use Code art or a JPEG-safe photo there. Apps differ and change between versions and have not all been tested: send yourself a test image first. "Tested" above refers to the automated tests in `tests/`, which simulate JPEG recompression and scaling in code, not real apps.
+
+## Expiry (optional)
+The Hide tab can set the secret to expire in 1 hour, 24 hours, 7 days or 30 days. The expiry time is stored inside the encrypted payload (so it cannot be read or edited without the passphrase, and it is covered by the same authentication as the rest) and the Reveal step refuses to show the secret after it. A wrong passphrase learns nothing about the expiry.
+
+What this is not: it is enforced by this app and the recipient's clock, not by cryptography or a server. Someone who has the passphrase can copy the secret before it expires, change their clock, or decrypt the image with other software. Treat it as a courtesy that limits accidental late reads, not as a way to make a leaked image safe.
+
+## Recipient pass code (optional)
+The Hide tab can also take a **recipient pass code**. The image's encryption key is then stored inside the image too, locked by a key derived from the pass code (a second key slot, 76 bytes; the packet becomes version 3). The recipient types either the passphrase or the pass code on the Reveal tab. This lets you give the recipient only the pass code and keep the master passphrase to yourself, or press Generate for a random passphrase you never need to share.
+
+It is not extra protection: either one opens the image, so the image is only as strong as the weaker of the two. The pass code goes through the same strength check as the passphrase and the same Argon2id cost per guess. The slot is part of the authenticated header, so editing it breaks both ways in.
+
+## Reading time (optional)
+The Reveal tab clears the revealed secret from the screen after a countdown (1 minute by default). The sender can set a different **reading time** (10 s to 15 min, or until cleared by hand) when creating the image; it is stored inside the encrypted data. The recipient can shorten it from the "Clear" menu but not stretch it. This only clears the screen: it cannot stop the recipient copying the text first.
 
 ## Limits
 - Use a long random passphrase: anyone holding the image can guess offline. The image size hints at the message length.

@@ -64,7 +64,7 @@ textarea, select, input[type='password'], input[type='text'] {
   border-radius: 8px;
   font: inherit;
 }
-#anim-style { width: auto; padding: 6px 10px; }
+#anim-style, #read-clear { width: auto; padding: 6px 10px; }
 textarea { resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 15px; }
 textarea:focus, input:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
@@ -128,6 +128,15 @@ legend { font-weight: 600; padding: 0 6px; }
 }
 @media (prefers-reduced-motion: reduce) { .shake { animation: none; } }
 
+details.about { margin-top: 16px; padding: 12px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; font-size: 15px; }
+details.about summary { cursor: pointer; font-weight: 600; }
+details.about h3 { margin: 18px 0 6px; font-size: 15px; }
+details.about ol, details.about ul { margin: 6px 0; padding-left: 22px; }
+details.about li { margin: 4px 0; }
+.tablewrap { overflow-x: auto; }
+details.about table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+details.about th, details.about td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+footer a { color: inherit; }
 footer { margin-top: 20px; color: var(--muted); font-size: 13px; }
 [hidden] { display: none !important; }
 

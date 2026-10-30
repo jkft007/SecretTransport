@@ -1,9 +1,16 @@
 // Binary framing, version 2 (current):
 // 'S' 'T' | 2 | mode(1) | kdf(1) | memLog2(1) | iterations(1) | salt(16) | iv(12) | ctLen(4, BE) | ciphertext+tag | crc32(4, BE)
+// Version 3 (an image that a second "pass code" can also open): the version 2 header followed by one key slot,
+//   slot = salt(16) | iv(12) | wrapped key(32 + 16 tag)   (76 bytes)
+// The slot holds the image's encryption key, locked by a key derived from the pass code, so either the passphrase
+// or the pass code opens it. The slot is part of the authenticated header.
 // Version 1 (older images, PBKDF2 with 600,000 rounds):
 // 'S' 'T' | 1 | mode(1) | salt(16) | iv(12) | ctLen(4, BE) | ciphertext+tag | crc32(4, BE)
 // mode: low nibble = image mode, 0x10 = payload was deflated before encryption, 0x20 = payload is a file,
-// 0x40 = the first decrypted byte is the sender's chosen reveal animation (kept inside the encryption).
+// 0x40 = the first decrypted byte is the sender's chosen reveal animation (kept inside the encryption),
+// 0x80 = a 4-byte big-endian expiry time (Unix seconds) follows it, also inside the encryption,
+// 0x08 = a 2-byte big-endian reading time (seconds the revealed secret stays on screen; 0xFFFF = until cleared) follows that.
+// (Image modes are 1..5, so the low three bits are enough for the mode.)
 // The whole header is authenticated by AES-GCM, so the stored key-derivation settings cannot be altered.
 import type { KdfSpec } from './kdf';
 
@@ -12,13 +19,17 @@ export const MODE_STEGO = 2;
 export const MODE_DCT = 3;
 export const MODE_QR = 4;
 export const MODE_FAKEQR = 5;
+export const FLAG_READ = 0x08;
 export const FLAG_COMPRESSED = 0x10;
 export const FLAG_FILE = 0x20;
 export const FLAG_ANIM = 0x40;
+export const FLAG_EXPIRY = 0x80;
 export const VERSION = 1; // also the version of the split-part frame
 export const VERSION_ARGON = 2;
+export const VERSION_SLOT = 3;
 export const HEADER_LEN = 36; // version 1
 export const HEADER_LEN_V2 = 39;
+export const SLOT_LEN = 76; // salt 16 + iv 12 + wrapped key 48
 export const TAG_LEN = 16;
 const KDF_ARGON2ID = 1;
 
@@ -29,6 +40,9 @@ export interface Packet {
   compressed: boolean;
   isFile: boolean;
   hasAnim: boolean;
+  hasExpiry: boolean;
+  hasRead: boolean;
+  slot?: Uint8Array; // the pass-code key slot (version 3 only)
   kdf: KdfSpec;
   salt: Uint8Array;
   iv: Uint8Array;
@@ -60,13 +74,19 @@ export function buildHeader(
   isFile = false,
   kdf: KdfSpec = { type: 'pbkdf2' },
   hasAnim = false,
+  hasExpiry = false,
+  slot?: Uint8Array,
+  hasRead = false,
 ): Uint8Array {
-  const flags = mode | (compressed ? FLAG_COMPRESSED : 0) | (isFile ? FLAG_FILE : 0) | (hasAnim ? FLAG_ANIM : 0);
+  const flags =
+    mode | (compressed ? FLAG_COMPRESSED : 0) | (isFile ? FLAG_FILE : 0) | (hasAnim ? FLAG_ANIM : 0) | (hasExpiry ? FLAG_EXPIRY : 0) | (hasRead ? FLAG_READ : 0);
   const argon = kdf.type === 'argon2id';
-  const h = new Uint8Array(argon ? HEADER_LEN_V2 : HEADER_LEN);
+  if (slot && (!argon || slot.length !== SLOT_LEN)) throw new PacketError('a pass code needs Argon2id and a full key slot');
+  const fixed = argon ? HEADER_LEN_V2 : HEADER_LEN;
+  const h = new Uint8Array(fixed + (slot ? SLOT_LEN : 0));
   h[0] = 0x53;
   h[1] = 0x54;
-  h[2] = argon ? VERSION_ARGON : VERSION;
+  h[2] = slot ? VERSION_SLOT : argon ? VERSION_ARGON : VERSION;
   h[3] = flags;
   let o = 4;
   if (kdf.type === 'argon2id') {
@@ -78,6 +98,7 @@ export function buildHeader(
   h.set(salt, o);
   h.set(iv, o + 16);
   new DataView(h.buffer).setUint32(o + 28, ctLen);
+  if (slot) h.set(slot, fixed);
   return h;
 }
 
@@ -92,25 +113,30 @@ export function finishPacket(header: Uint8Array, ciphertext: Uint8Array): Uint8A
 export function parsePacket(buf: Uint8Array): Packet {
   if (buf.length < HEADER_LEN + TAG_LEN + 4 || buf[0] !== 0x53 || buf[1] !== 0x54) throw new PacketError('not a SecretTransport image');
   const v = buf[2];
-  if (v !== VERSION && v !== VERSION_ARGON) throw new PacketError('unsupported version');
+  if (v !== VERSION && v !== VERSION_ARGON && v !== VERSION_SLOT) throw new PacketError('unsupported version');
   let kdf: KdfSpec = { type: 'pbkdf2' };
   let o = 4; // start of the salt
-  if (v === VERSION_ARGON) {
-    if (buf.length < HEADER_LEN_V2 + TAG_LEN + 4 || buf[4] !== KDF_ARGON2ID) throw new PacketError('unsupported key derivation');
+  const slotLen = v === VERSION_SLOT ? SLOT_LEN : 0;
+  if (v === VERSION_ARGON || v === VERSION_SLOT) {
+    if (buf.length < HEADER_LEN_V2 + slotLen + TAG_LEN + 4 || buf[4] !== KDF_ARGON2ID) throw new PacketError('unsupported key derivation');
     kdf = { type: 'argon2id', memLog2: buf[5], iterations: buf[6] };
     o = 7;
   }
-  const headerLen = o + 32;
+  const fixedEnd = o + 32;
+  const headerLen = fixedEnd + slotLen;
   const dv = new DataView(buf.buffer, buf.byteOffset);
   const ctLen = dv.getUint32(o + 28);
   if (headerLen + ctLen + 4 > buf.length || ctLen < TAG_LEN) throw new PacketError('truncated packet');
   const end = headerLen + ctLen;
   if (crc32(buf.subarray(0, end)) !== dv.getUint32(end)) throw new PacketError('checksum mismatch');
   return {
-    mode: buf[3] & 0x0f,
+    mode: buf[3] & 0x07,
     compressed: (buf[3] & FLAG_COMPRESSED) !== 0,
     isFile: (buf[3] & FLAG_FILE) !== 0,
     hasAnim: (buf[3] & FLAG_ANIM) !== 0,
+    hasExpiry: (buf[3] & FLAG_EXPIRY) !== 0,
+    hasRead: (buf[3] & FLAG_READ) !== 0,
+    ...(slotLen ? { slot: buf.slice(fixedEnd, headerLen) } : {}),
     kdf,
     salt: buf.slice(o, o + 16),
     iv: buf.slice(o + 16, o + 28),
