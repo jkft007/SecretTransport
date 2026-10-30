@@ -1,7 +1,10 @@
 import { decodeCodeArt, encodeCodeArt, MAX_PACKET, type Rgba } from './codeart';
 import { cropTo8, dctCapacity, embedDct, extractDct, MAX_COVER_SIDE } from './dct';
 import { decodeFakeQr, decodePlainQr, encodeFakeQr, encodePlainQr } from './qrmodes';
-import { openPacket, sealText, WrongPassphraseError } from './crypto';
+import { openPayload, sealPayload, WrongPassphraseError, type Payload } from './crypto';
+import { encodedLength } from './ecc';
+import { byteCapacity } from './qr';
+import { fakeQrCapacity } from './qrmodes';
 import { MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, parsePacket } from './packet';
 import { embed, extract, stegoCapacity } from './stego';
 import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
@@ -68,21 +71,83 @@ const modeRadios = () => document.querySelectorAll<HTMLInputElement>('input[name
 type Mode = 'codeart' | 'qr' | 'fakeqr' | 'photo';
 const currentMode = () => [...modeRadios()].find((r) => r.checked)!.value as Mode;
 const photoKind = () => $<HTMLSelectElement>('photo-kind').value as 'dct' | 'lsb';
+// ---- what to hide: text or a file ----------------------------------------------
+const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const RISKY_EXT = /\.(exe|msi|bat|cmd|com|scr|ps1|vbs|vbe|js|jse|jar|lnk|hta|dll|app|sh|apk|pif|reg)$/i;
+const fmt = (n: number) => (n < 1024 ? `${n} bytes` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
+const kindRadios = () => document.querySelectorAll<HTMLInputElement>('input[name=kind]');
+const currentKind = () => ([...kindRadios()].find((r) => r.checked)!.value as 'text' | 'file');
+
+/** Rough largest file each style can carry (before compression), for the hint under the form. */
+function fileLimit(): number {
+  const overhead = 70; // packet framing, tag, file name
+  const m = currentMode();
+  if (m === 'codeart') return MAX_PACKET - overhead;
+  if (m === 'qr') return Math.floor((byteCapacity(40, 'M') * 3) / 4) - overhead;
+  if (m === 'fakeqr') {
+    let lo = 0;
+    let hi = 5000;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (encodedLength(mid) <= fakeQrCapacity(40)) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo - overhead;
+  }
+  const cover = { width: 1280, height: 848, data: new Uint8ClampedArray(0) };
+  return (photoKind() === 'dct' ? dctCapacity(cover) : stegoCapacity(cover)) - overhead;
+}
+
+function syncKindUi() {
+  const file = currentKind() === 'file';
+  $('text-row').hidden = file;
+  $('file-row').hidden = !file;
+  const hint = $('limit-hint');
+  hint.hidden = !file;
+  if (file) {
+    const m = currentMode();
+    hint.textContent =
+      `Largest file for this style: about ${fmt(Math.max(0, fileLimit()))}` +
+      (m === 'photo' ? ' with the default cover (a larger cover photo holds more). ' : m === 'codeart' ? ' (images get large above about 8 KB). ' : '. ') +
+      'Files that compress well fit more.';
+  }
+}
+function syncFileInfo() {
+  const f = $<HTMLInputElement>('secret-file').files?.[0];
+  $('file-info').textContent = f ? `${f.name} · ${fmt(f.size)}` : '';
+  const w = $('file-warn');
+  w.hidden = !(f && RISKY_EXT.test(f.name));
+  w.textContent = 'This is an executable-type file. Your recipient should only open it if they trust you.';
+}
+kindRadios().forEach((r) => r.addEventListener('change', syncKindUi));
+$('secret-file').addEventListener('change', syncFileInfo);
+$('photo-kind').addEventListener('change', syncKindUi);
+
 function syncModeUi() {
   const m = currentMode();
   $('decoy-row').hidden = m !== 'fakeqr';
   $('photo-opts').hidden = m !== 'photo';
   $('cover-row').hidden = m !== 'photo';
+  syncKindUi();
 }
 modeRadios().forEach((r) => r.addEventListener('change', syncModeUi));
 
 let lastOut: HTMLCanvasElement | null = null;
 
 $('btn-create').onclick = async () => {
-  const text = $<HTMLTextAreaElement>('secret').value;
   const pass = $<HTMLInputElement>('pass').value;
   const status = $('hide-status');
-  if (!text) return setStatus(status, 'Enter some text to hide.', true);
+  let payload: Payload;
+  if (currentKind() === 'file') {
+    const f = $<HTMLInputElement>('secret-file').files?.[0];
+    if (!f) return setStatus(status, 'Choose the file to hide.', true);
+    if (f.size > MAX_FILE_BYTES) return setStatus(status, `That file is too large (${fmt(f.size)}). The limit is ${fmt(MAX_FILE_BYTES)}, and most image styles hold far less.`, true);
+    payload = { kind: 'file', name: f.name, data: new Uint8Array(await f.arrayBuffer()) };
+  } else {
+    const text = $<HTMLTextAreaElement>('secret').value;
+    if (!text) return setStatus(status, 'Enter some text to hide.', true);
+    payload = { kind: 'text', text };
+  }
   if (!pass) return setStatus(status, 'Enter a passphrase (or press Generate).', true);
 
   const btn = $<HTMLButtonElement>('btn-create');
@@ -95,16 +160,17 @@ $('btn-create').onclick = async () => {
     const mode = currentMode();
     const kind = photoKind();
     const packetMode = { codeart: MODE_CODEART, qr: MODE_QR, fakeqr: MODE_FAKEQR, photo: kind === 'dct' ? MODE_DCT : MODE_STEGO }[mode];
-    const packet = await sealText(text, pass, packetMode);
+    const packet = await sealPayload(payload, pass, packetMode);
     let img: Rgba;
     if (mode === 'codeart') {
-      if (packet.length > MAX_PACKET) throw new Error('That is too much text for one image.');
+      if (packet.length > MAX_PACKET) throw new Error(`That is too much data for one image (about ${fmt(Math.max(0, fileLimit()))} is the most for this style).`);
       img = encodeCodeArt(packet);
       if (packet.length > 8000) {
-        warn.textContent = 'This is a large image. Some apps shrink big images, which can make it unreadable. Consider splitting the text.';
+        warn.textContent = 'This is a large image. Some apps shrink big images, which can make it unreadable. Consider hiding less.';
         warn.hidden = false;
       }
     } else if (mode === 'qr') {
+      if (packet.length > Math.floor((byteCapacity(40, 'M') * 3) / 4)) throw new Error(`Too much data for one QR code (about ${fmt(Math.max(0, fileLimit()))} is the most). Try Code art or a photo style.`);
       img = encodePlainQr(packet);
       warn.textContent = 'Anyone can scan this QR code, but they will only see encrypted gibberish without the passphrase.';
       warn.hidden = false;
@@ -119,11 +185,11 @@ $('btn-create').onclick = async () => {
       let cover = file ? await blobToRgba(file, kind === 'dct' ? MAX_COVER_SIDE : 2400) : generateCover();
       if (kind === 'dct') {
         cover = cropTo8(cover);
-        if (packet.length > dctCapacity(cover)) throw new Error('The cover photo is too small for this much text. Pick a larger photo or use less text.');
+        if (packet.length > dctCapacity(cover)) throw new Error('The cover photo is too small for this much data. Pick a larger photo or hide less.');
         img = await embedDct(cover, packet, pass);
         warn.textContent = 'Survives normal JPEG recompression, but not cropping, rotating or heavy resizing. Photos are limited to 1280 px so most apps leave them alone.';
       } else {
-        if (packet.length > stegoCapacity(cover)) throw new Error('The cover photo is too small for this much text. Pick a larger photo.');
+        if (packet.length > stegoCapacity(cover)) throw new Error('The cover photo is too small for this much data. Pick a larger photo.');
         img = await embed(cover, packet, pass);
         warn.textContent = 'Send this as an original PNG file or attachment. Pasting it inline in Gmail, WhatsApp, iMessage and most social apps usually recompresses it and destroys the hidden data. If in doubt, use the JPEG-safe method.';
       }
@@ -203,7 +269,40 @@ drop.addEventListener('drop', (e) => {
   if (f) loadBlob(f);
 });
 
+let pendingFile: { name: string; data: Uint8Array } | null = null;
+
+function showResult(p: Payload) {
+  const isFile = p.kind === 'file';
+  $('text-result').hidden = isFile;
+  $('file-result').hidden = !isFile;
+  $('btn-copy-plain').hidden = isFile;
+  $('btn-save-file').hidden = !isFile;
+  if (p.kind === 'file') {
+    pendingFile = { name: p.name, data: p.data };
+    $('file-meta').textContent = `${p.name}  (${fmt(p.data.length)})`;
+    const w = $('file-warn2');
+    w.hidden = false;
+    w.textContent = RISKY_EXT.test(p.name)
+      ? 'Careful: this is an executable-type file. Only open it if you fully trust the sender.'
+      : 'Files are never opened automatically. Only open it if you trust the sender.';
+  } else {
+    pendingFile = null;
+    $<HTMLTextAreaElement>('plain').value = p.text;
+  }
+}
+
+$('btn-save-file').onclick = () => {
+  if (!pendingFile) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([pendingFile.data as unknown as BlobPart], { type: 'application/octet-stream' }));
+  a.download = pendingFile.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
 function clearResult() {
+  pendingFile = null;
+  $('file-meta').textContent = '';
   clearTimeout(clearTimer);
   clearInterval(clearTimer);
   $<HTMLTextAreaElement>('plain').value = '';
@@ -252,7 +351,8 @@ $('btn-reveal').onclick = async () => {
       }
     }
     if (!packet) throw new Error('No hidden secret found in this image. It may have been cropped, recompressed or resized by the app it travelled through.');
-    const text = await openPacket(packet, pass);
+    const payload = await openPayload(packet, pass);
+    const text = payload.kind === 'text' ? payload.text : `📄 ${payload.name}\n${fmt(payload.data.length)}`;
 
     setStatus(status, '');
     $('stage-wrap').hidden = false;
@@ -260,7 +360,7 @@ $('btn-reveal').onclick = async () => {
     const source = rgbaToCanvas(loaded);
     handle = playReveal({ canvas: $<HTMLCanvasElement>('stage'), source, text, mode, reduceMotion: reducedMotion() });
     await handle.done;
-    $<HTMLTextAreaElement>('plain').value = text;
+    showResult(payload);
     $('result').hidden = false;
 
     let left = 60;

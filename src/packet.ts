@@ -1,6 +1,6 @@
 // Binary framing:
 // 'S' 'T' | version(1) | mode(1) | salt(16) | iv(12) | ctLen(4, BE) | ciphertext+tag | crc32(4, BE)
-// mode: low nibble = image mode, 0x10 = payload was deflated before encryption.
+// mode: low nibble = image mode, 0x10 = payload was deflated before encryption, 0x20 = payload is a file.
 
 export const MODE_CODEART = 1;
 export const MODE_STEGO = 2;
@@ -8,6 +8,7 @@ export const MODE_DCT = 3;
 export const MODE_QR = 4;
 export const MODE_FAKEQR = 5;
 export const FLAG_COMPRESSED = 0x10;
+export const FLAG_FILE = 0x20;
 export const VERSION = 1;
 export const HEADER_LEN = 36;
 export const TAG_LEN = 16;
@@ -17,6 +18,7 @@ export class PacketError extends Error {}
 export interface Packet {
   mode: number;
   compressed: boolean;
+  isFile: boolean;
   salt: Uint8Array;
   iv: Uint8Array;
   header: Uint8Array; // authenticated as AES-GCM additional data
@@ -38,12 +40,12 @@ export function crc32(data: Uint8Array): number {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-export function buildHeader(mode: number, compressed: boolean, salt: Uint8Array, iv: Uint8Array, ctLen: number): Uint8Array {
+export function buildHeader(mode: number, compressed: boolean, salt: Uint8Array, iv: Uint8Array, ctLen: number, isFile = false): Uint8Array {
   const h = new Uint8Array(HEADER_LEN);
   h[0] = 0x53;
   h[1] = 0x54;
   h[2] = VERSION;
-  h[3] = mode | (compressed ? FLAG_COMPRESSED : 0);
+  h[3] = mode | (compressed ? FLAG_COMPRESSED : 0) | (isFile ? FLAG_FILE : 0);
   h.set(salt, 4);
   h.set(iv, 20);
   new DataView(h.buffer).setUint32(32, ctLen);
@@ -69,6 +71,7 @@ export function parsePacket(buf: Uint8Array): Packet {
   return {
     mode: buf[3] & 0x0f,
     compressed: (buf[3] & FLAG_COMPRESSED) !== 0,
+    isFile: (buf[3] & FLAG_FILE) !== 0,
     salt: buf.slice(4, 20),
     iv: buf.slice(20, 32),
     header: buf.slice(0, HEADER_LEN),

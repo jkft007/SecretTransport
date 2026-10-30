@@ -208,7 +208,7 @@ export async function encodeFakeQr(packet: Uint8Array, decoy: string, passphrase
       version = v;
       break;
     }
-  if (!version) throw new Error('Too much text for a fake QR code. Use a shorter secret or a shorter decoy.');
+  if (!version) throw new Error('Too much data for a fake QR code. Use a smaller secret or a shorter decoy.');
 
   const clean = encodeQrAt(decoyBytes, 'H', version);
   const plan = await hiddenPlan(version, passphrase);

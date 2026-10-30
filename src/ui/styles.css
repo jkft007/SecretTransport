@@ -134,3 +134,9 @@ footer { margin-top: 20px; color: var(--muted); font-size: 13px; }
 #cam-wrap { position: relative; margin-top: 14px; }
 #cam { display: block; width: 100%; max-height: 360px; object-fit: cover; border-radius: 10px; background: #000; }
 #cam-wrap button { position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.55); color: #fff; border-color: #555; }
+
+.seg { display: flex; gap: 16px; margin-bottom: 14px; }
+.seg label { margin: 0; font-weight: 500; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.filebox { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-family: ui-monospace, Consolas, monospace; word-break: break-all; }
+#limit-hint { margin-top: 8px; }
+#file-info { margin-top: 6px; }
