@@ -1,10 +1,11 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
-  'ticker', 'radar', 'film', 'parade',
+  'ticker', 'radar', 'film', 'parade', 'asteroids',
+  'hearts', 'flowers', 'bomb',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -118,6 +119,12 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const T_TYPE = typeAcc;
   const lineYs = [...new Set(visible.map((c) => c.y))]; // one entry per printed line, top to bottom
   const RADAR_REV = 1000; // one sweep of the radar
+  const wordCount = Math.max(1, visible.filter((c, i) => i === 0 || visible[i - 1].y !== c.y || c.x - visible[i - 1].x >= cw * 1.01).length);
+  const AST_DT = Math.min(350, Math.max(60, 2200 / wordCount)); // time between shots
+  const AST_FLIGHT = 260; // how long a bullet takes to reach its rock
+  const HEART_RISE = 1000; // how long a heart takes to carry its letter up
+  const BLOOM = 500; // how long a flower takes to open
+  const BOOM_T = 1000; // when the cartoon bomb goes off, measured from the end of the intro
   const FLIGHT = 500; // how long a letter takes to fall out of the can
   const FALL = 1100; // how long a parachuted word takes to float down
   const SWARM = 700; // how long a speck of dust takes to fly to its letter
@@ -125,7 +132,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const WIN = 1000; // the jackpot celebration after the last reel stops
   const INK = 500; // how long invisible ink takes to darken once the flame reaches it
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -146,6 +153,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'radar' ? RADAR_REV + 700
     : style === 'film' ? 1900
     : style === 'parade' ? Math.max(T_RESOLVE, 1400) + 300
+    : style === 'asteroids' ? (wordCount - 1) * AST_DT + AST_FLIGHT + 600
+    : style === 'hearts' ? Math.max(T_RESOLVE, 1400) + HEART_RISE + 300
+    : style === 'flowers' ? Math.max(T_RESOLVE, 1400) + BLOOM + 500
+    : style === 'bomb' ? BOOM_T + 1000
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
@@ -157,6 +168,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'jackpot' ? T_RES - WIN
     : style === 'ink' ? T_RES - INK - 100
     : style === 'parade' ? T_RES - 300
+    : style === 'hearts' ? T_RES - HEART_RISE - 300
+    : style === 'flowers' ? T_RES - BLOOM - 500
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -1212,6 +1225,315 @@ export function playReveal(o: RevealOptions): RevealHandle {
     }
   };
 
+  // Asteroids: a vector-graphics ship shoots a rock for every word; each rock blows up and the word appears.
+  const rocks = words.map(() => ({
+    pts: Array.from({ length: 10 }, (_, j) => ({ a: (j / 10) * Math.PI * 2, f: 0.75 + rnd() * 0.4 })),
+    spin: (rnd() - 0.5) * 0.002,
+    ph: rnd() * 6,
+    bits: Array.from({ length: 7 }, () => ({ a: rnd() * Math.PI * 2, v: 0.03 + rnd() * 0.05 })),
+  }));
+  const shipX = words.map((w) => W / 2 + (w.cx - W / 2) * 0.5);
+  const SHIP_Y = H - 20;
+  const rockPos = (i: number) => ({ x: words[i].cx, y: words[i].cells[0].y - fs * 0.3 });
+  const drawAsteroids = (r: number, t: number) => {
+    clear();
+    const n = words.length;
+    if (!n) return;
+    ctx.strokeStyle = '#e8fff4';
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(160,255,220,.8)';
+    ctx.shadowBlur = 4;
+    ctx.font = `${fs}px ${FONT}`;
+    for (let i = 0; i < n; i++) {
+      const hit = i * AST_DT + AST_FLIGHT;
+      const { x, y } = rockPos(i);
+      const rk = rocks[i];
+      if (r < hit) {
+        const rad = Math.min(38, Math.max(12, (words[i].x1 - words[i].x0) / 2));
+        const cx = x + Math.sin(t / 900 + rk.ph) * 4;
+        const cy = y + Math.cos(t / 1100 + rk.ph) * 3;
+        ctx.beginPath();
+        rk.pts.forEach((p, j) => {
+          const a = p.a + t * rk.spin;
+          const px = cx + Math.cos(a) * rad * p.f;
+          const py = cy + Math.sin(a) * rad * p.f;
+          if (j === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        });
+        ctx.closePath();
+        ctx.stroke();
+        continue;
+      }
+      const age = r - hit;
+      if (age < 500) {
+        ctx.globalAlpha = 1 - age / 500;
+        for (const b of rk.bits) {
+          const d = age * b.v;
+          const x0 = x + Math.cos(b.a) * d;
+          const y0 = y + Math.sin(b.a) * d;
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x0 + Math.cos(b.a + age / 120) * 9, y0 + Math.sin(b.a + age / 120) * 9);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = age < 200 ? '#ffffff' : '#e8fff4';
+      for (const c of words[i].cells) ctx.fillText(c.ch, c.x, c.y);
+    }
+    // the ship swings toward the next rock, fires, and moves on
+    const next = Math.min(n - 1, r < 0 ? 0 : Math.floor(r / AST_DT) + 1);
+    const mv = Math.min(250, AST_DT);
+    const k = clamp01(1 - (next * AST_DT - r) / mv);
+    const prevX = next > 0 ? shipX[next - 1] : W / 2;
+    const sx = r >= (n - 1) * AST_DT ? shipX[n - 1] : prevX + (shipX[next] - prevX) * ease(k);
+    const tg = rockPos(next);
+    const ang = Math.atan2(tg.x - sx, -(tg.y - SHIP_Y));
+    ctx.save();
+    ctx.translate(sx, SHIP_Y);
+    ctx.rotate(ang);
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.lineTo(8, 9);
+    ctx.lineTo(0, 5);
+    ctx.lineTo(-8, 9);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+    // bullets in flight
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < n; i++) {
+      const q = (r - i * AST_DT) / AST_FLIGHT;
+      if (q < 0 || q >= 1) continue;
+      const tp = rockPos(i);
+      const a = Math.atan2(tp.x - shipX[i], -(tp.y - SHIP_Y));
+      const ox = shipX[i] + Math.sin(a) * 12;
+      const oy = SHIP_Y - Math.cos(a) * 12;
+      ctx.fillRect(ox + (tp.x - ox) * q - 1.5, oy + (tp.y - oy) * q - 1.5, 3, 3);
+    }
+    ctx.shadowBlur = 0;
+  };
+
+  // Old cartoon bomb: a round black bomb with a sparking fuse; it goes KA-BOOM and blows the letters into place.
+  const bx = W / 2;
+  const by = H / 2 + 12;
+  const bR = Math.min(30, H * 0.14);
+  const fuse = (u: number) => {
+    const p0 = { x: bx + bR * 0.3, y: by - bR };
+    const p1 = { x: bx + bR * 0.3, y: by - bR - 26 };
+    const p2 = { x: bx + bR * 1.4, y: by - bR - 36 };
+    return { x: (1 - u) * (1 - u) * p0.x + 2 * (1 - u) * u * p1.x + u * u * p2.x, y: (1 - u) * (1 - u) * p0.y + 2 * (1 - u) * u * p1.y + u * u * p2.y };
+  };
+  const starburst = (x: number, y: number, ro: number, ri: number, n: number, rot: number) => {
+    ctx.beginPath();
+    for (let k = 0; k < n * 2; k++) {
+      const a = rot + (k / (n * 2)) * Math.PI * 2;
+      const rad = k % 2 ? ri : ro;
+      ctx.lineTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad);
+    }
+    ctx.closePath();
+  };
+  const smoke = Array.from({ length: 10 }, () => ({ a: rnd() * Math.PI * 2, v: 0.05 + rnd() * 0.07, s: 12 + rnd() * 16 }));
+  const drawBomb = (r: number, t: number) => {
+    clear();
+    const boomAt = BOOM_T;
+    const burn = clamp01(t / (T_INTRO + boomAt));
+    if (r < boomAt) {
+      const shake = Math.sin(t * 0.06) * burn * burn * burn * 3;
+      ctx.save();
+      ctx.translate(shake, 0);
+      ctx.fillStyle = '#34343d'; // dark grey, so the bomb still shows against the dark stage
+      ctx.strokeStyle = '#8a8a96';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(bx, by, bR * (1 + 0.04 * Math.sin(t / 60) * burn), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      ctx.beginPath();
+      ctx.ellipse(bx - bR * 0.4, by - bR * 0.4, bR * 0.22, bR * 0.13, -0.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#3a3a42'; // the cap the fuse comes out of
+      ctx.fillRect(bx - 5, by - bR - 5, 12, 8);
+      // the fuse burns down from its tip towards the bomb
+      const f = 1 - burn;
+      ctx.strokeStyle = '#c9a66b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let u = 0; u <= f + 1e-6; u += 0.05) {
+        const q = fuse(Math.min(u, f));
+        if (u === 0) ctx.moveTo(q.x, q.y);
+        else ctx.lineTo(q.x, q.y);
+      }
+      ctx.stroke();
+      const tip = fuse(f);
+      ctx.fillStyle = '#ffe14a';
+      starburst(tip.x, tip.y, 6 + rnd() * 5, 2.5, 6, rnd() * 6);
+      ctx.fill();
+      ctx.fillStyle = '#ff7a1a';
+      for (let k = 0; k < 5; k++) ctx.fillRect(tip.x + (rnd() - 0.5) * 18, tip.y + (rnd() - 0.5) * 18, 2, 2);
+      ctx.restore();
+      return;
+    }
+    const age = r - boomAt;
+    // smoke
+    for (const s of smoke) {
+      const k = clamp01(age / 800);
+      ctx.fillStyle = `rgba(150,150,155,${0.5 * (1 - k)})`;
+      ctx.beginPath();
+      ctx.arc(bx + Math.cos(s.a) * age * s.v * 1.4, by + Math.sin(s.a) * age * s.v - age * 0.02, s.s * (0.5 + k * 1.4), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // the letters are blown out from the bomb into place
+    ctx.font = `${fs}px ${FONT}`;
+    visible.forEach((c, i) => {
+      const q = clamp01((age - (i % 7) * 15) / 700);
+      if (q <= 0) return;
+      const e = ease(q);
+      ctx.save();
+      ctx.translate(bx + (c.x + cw / 2 - bx) * e, by + (c.y - fs * 0.3 - by) * e);
+      ctx.rotate((1 - q) * (i % 2 ? 6 : -6));
+      ctx.scale(0.5 + 0.5 * e, 0.5 + 0.5 * e);
+      ctx.fillStyle = q < 1 ? '#fff6c0' : '#e8fff4';
+      ctx.shadowColor = 'rgba(255,170,60,.9)';
+      ctx.shadowBlur = q < 1 ? 10 : 4;
+      ctx.fillText(c.ch, -cw / 2, fs * 0.3);
+      ctx.restore();
+    });
+    // the comic starburst
+    const sb = 1 - clamp01((age - 250) / 350);
+    if (sb > 0) {
+      const grow = 70 + age * 0.3;
+      ctx.globalAlpha = sb;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#222';
+      ctx.fillStyle = '#ff5a1f';
+      starburst(bx, by, grow, grow * 0.6, 12, 0.2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffe14a';
+      starburst(bx, by, grow * 0.75, grow * 0.45, 12, 0.2);
+      ctx.fill();
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(-0.14);
+      ctx.font = `italic bold ${Math.round(Math.min(26, grow * 0.3))}px serif`;
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#222';
+      ctx.strokeText('KA-BOOM!', 0, 8);
+      ctx.fillStyle = '#d4121a';
+      ctx.fillText('KA-BOOM!', 0, 8);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+    if (age < 220) {
+      ctx.fillStyle = `rgba(255,255,255,${0.9 * (1 - age / 220)})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+  };
+
+  // Hearts: lots of hearts drift up; each carries a letter into place and pops into little hearts.
+  const heartPath = (x: number, y: number, s: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x, y + s * 0.9);
+    ctx.bezierCurveTo(x - s * 1.6, y - s * 0.1, x - s * 0.7, y - s * 1.2, x, y - s * 0.4);
+    ctx.bezierCurveTo(x + s * 0.7, y - s * 1.2, x + s * 1.6, y - s * 0.1, x, y + s * 0.9);
+    ctx.closePath();
+  };
+  const bgHearts = Array.from({ length: 45 }, () => ({ x: rnd() * W, o: rnd() * (H + 60), vy: 0.03 + rnd() * 0.05, ph: rnd() * 6, s: 5 + rnd() * 9, h: 335 + Math.floor(rnd() * 25) }));
+  const drawHearts = (r: number, t: number) => {
+    clear();
+    for (const b of bgHearts) {
+      const y = H + 30 - ((t * b.vy + b.o) % (H + 60));
+      ctx.fillStyle = `hsla(${b.h},85%,60%,.28)`;
+      heartPath(b.x + Math.sin(t / 600 + b.ph) * 14, y, b.s);
+      ctx.fill();
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    const hs = cw * 0.75;
+    const settled: Cell[] = []; // arrived letters, drawn last so the popping hearts never cover them
+    visible.forEach((c, i) => {
+      const p = (r - c.lock) / HEART_RISE;
+      if (p < 0) return;
+      const k = Math.min(1, p);
+      const x = c.x + cw / 2 + Math.sin(p * 6 + i) * 10 * (1 - k);
+      const y = H + 20 + (c.y - fs * 0.3 - H - 20) * ease(k);
+      if (p < 1) {
+        ctx.fillStyle = `hsl(${340 + (i * 7) % 20},85%,58%)`;
+        heartPath(x, y, hs);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(c.ch, x - cw / 2, y + fs * 0.3);
+        return;
+      }
+      settled.push(c);
+      const pop = ((p - 1) * HEART_RISE) / 350; // the heart bursts into little ones
+      if (pop < 1) {
+        for (let j = 0; j < 4; j++) {
+          const a = (j / 4) * Math.PI * 2 + i;
+          ctx.fillStyle = `rgba(255,90,140,${1 - pop})`;
+          heartPath(c.x + cw / 2 + Math.cos(a) * pop * 14, c.y - fs * 0.3 + Math.sin(a) * pop * 14, 2.5);
+          ctx.fill();
+        }
+      }
+    });
+    ctx.fillStyle = '#ffe8f0';
+    ctx.shadowColor = 'rgba(255,90,140,.8)';
+    ctx.shadowBlur = 6;
+    for (const c of settled) ctx.fillText(c.ch, c.x, c.y);
+    ctx.shadowBlur = 0;
+    fadeToFinal(r);
+  };
+
+  // Flowers: a flower blooms around every letter until the whole stage is a garden.
+  const petal = (x: number, y: number, rad: number, rot: number, hue: number, centre: string) => {
+    ctx.fillStyle = `hsl(${hue},85%,78%)`;
+    for (let k = 0; k < 6; k++) {
+      const a = rot + (k / 6) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.ellipse(x + Math.cos(a) * rad * 0.55, y + Math.sin(a) * rad * 0.55, rad * 0.5, rad * 0.28, a, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = centre;
+    ctx.beginPath();
+    ctx.arc(x, y, rad * 0.38, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  const stems = Array.from({ length: 14 }, (_, i) => ({ x: ((i + 0.5) / 14) * W + (rnd() - 0.5) * 16, hgt: 30 + rnd() * 40, h: Math.floor(rnd() * 360), ph: rnd() * 6 }));
+  const drawFlowers = (r: number, t: number) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#16324a');
+    sky.addColorStop(1, '#1f4a2c');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    for (const s of stems) {
+      const sway = Math.sin(t / 700 + s.ph) * 5;
+      const grow = clamp01((t + 200) / 700);
+      ctx.strokeStyle = '#3f9c4f';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(s.x, H);
+      ctx.quadraticCurveTo(s.x + sway * 0.4, H - s.hgt * grow * 0.5, s.x + sway, H - s.hgt * grow);
+      ctx.stroke();
+      petal(s.x + sway, H - s.hgt * grow, 9 * grow, t / 2000 + s.ph, s.h, '#ffd23f');
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    const open: Cell[] = []; // letters are drawn after all the petals so no flower covers a neighbour
+    visible.forEach((c, i) => {
+      const p = (r - c.lock) / BLOOM;
+      if (p <= 0) return;
+      const k = Math.min(1, p);
+      const grow = 1 + 0.25 * Math.sin(k * Math.PI) * (k < 1 ? 1 : 0); // a little overshoot as it opens
+      petal(c.x + cw / 2, c.y - fs * 0.3, cw * 0.85 * ease(k) * grow, i * 0.7 + k * 0.8, (i * 47) % 360, '#fff4b0');
+      open.push(c);
+    });
+    ctx.fillStyle = '#3a1830';
+    for (const c of open) ctx.fillText(c.ch, c.x, c.y);
+    fadeToFinal(r);
+  };
+
   // Moon: the Earth climbs over the lunar horizon and pushes the text up into view.
   const stars = Array.from({ length: 70 }, () => ({ x: rnd() * W, y: rnd() * H, s: 0.6 + rnd() * 1.4, ph: rnd() * 6 }));
   const craters = Array.from({ length: 9 }, () => ({ x: rnd(), y: rnd(), rx: 8 + rnd() * 26, ry: 3 + rnd() * 7 }));
@@ -1387,7 +1709,15 @@ export function playReveal(o: RevealOptions): RevealHandle {
       }
     } else if (t < T_INTRO) {
       const p = t / T_INTRO;
-      if (style === 'ticker') {
+      if (style === 'bomb') {
+        drawBomb(r, t);
+      } else if (style === 'hearts') {
+        drawHearts(r, t);
+      } else if (style === 'flowers') {
+        drawFlowers(r, t);
+      } else if (style === 'asteroids') {
+        drawAsteroids(r, t);
+      } else if (style === 'ticker') {
         drawTicker(r);
       } else if (style === 'radar') {
         drawRadar(r);
@@ -1470,6 +1800,14 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (style === 'bomb') {
+      drawBomb(r, t);
+    } else if (style === 'hearts') {
+      drawHearts(r, t);
+    } else if (style === 'flowers') {
+      drawFlowers(r, t);
+    } else if (style === 'asteroids') {
+      drawAsteroids(r, t);
     } else if (style === 'ticker') {
       drawTicker(r);
     } else if (style === 'radar') {
