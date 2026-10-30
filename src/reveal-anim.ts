@@ -1,9 +1,9 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
-  'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe',
+  'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train',
 ];
 
 export interface RevealOptions {
@@ -106,7 +106,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const RISE = 900; // how long a bubble takes to float up to its place
   const WIN = 1000; // the jackpot celebration after the last reel stops
   const INK = 500; // how long invisible ink takes to darken once the flame reaches it
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe'].includes(style) ? 600 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train'].includes(style) ? 600 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -121,6 +122,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'jackpot' ? Math.max(T_RESOLVE, 1400) + WIN
     : style === 'ink' ? Math.max(T_RESOLVE, 1600) + INK + 100
     : style === 'safe' ? 2200
+    : style === 'train' ? Math.max(T_RESOLVE, 1400) + STEAM + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
@@ -278,6 +280,146 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.fillRect(s.x, s.y, 2.2, 2.2);
     }
     drawCells(r, (c) => r >= c.lock, false);
+  };
+
+  // Train: a night express rolls through the snow; the letters puff out of its chimney and drift up into place.
+  const FLYT = T_INTRO + Math.max(T_RESOLVE, 1400);
+  const TX0 = -20; // chimney x at t = 0 (the rest of the train is still off the left edge)
+  const TSPAN = W + 320; // chimney travel until the tail has left the right edge
+  const trainX = (t: number) => TX0 + TSPAN * (t / FLYT);
+  const BASE = H - 22;
+  const CHIM_Y = BASE - 46;
+  const flakes = Array.from({ length: 45 }, () => ({ x: rnd() * W, ph: rnd(), sp: 0.02 + rnd() * 0.03 }));
+  const drawTrain = (t: number) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#0e1b33');
+    sky.addColorStop(1, '#1d3555');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    for (const s of stars) {
+      ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.3 * Math.sin(t / 300 + s.ph)})`;
+      ctx.fillRect(s.x, s.y * 0.8, s.s, s.s);
+    }
+    // snowy ground and rails
+    ctx.fillStyle = '#dfe9f2';
+    ctx.fillRect(0, BASE, W, H - BASE);
+    ctx.fillStyle = '#6b7783';
+    ctx.fillRect(0, BASE + 1, W, 2);
+    // smoke: stateless puffs left in the air where the chimney was
+    const k1 = Math.floor(t / 70);
+    for (let k = k1; k > k1 - 14; k--) {
+      const tb = k * 70;
+      if (tb < 0) continue;
+      const age = t - tb;
+      const a = 0.4 * (1 - age / 980);
+      if (a <= 0) continue;
+      ctx.fillStyle = `rgba(235,240,247,${a})`;
+      ctx.beginPath();
+      ctx.arc(trainX(tb) - age * 0.02 + Math.sin(k) * 3, CHIM_Y - age * 0.05, 4 + age * 0.012, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // the letters, each one launched when the chimney is under its spot
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const tl = ((c.x - TX0) / TSPAN) * FLYT;
+      const q = (t - tl) / STEAM;
+      if (q < 0) continue;
+      const k = Math.min(1, q);
+      const e = ease(k);
+      const x = c.x + Math.sin(k * 6) * 10 * (1 - k);
+      const y = CHIM_Y + (c.y - CHIM_Y) * e;
+      if (k < 1) {
+        ctx.fillStyle = `rgba(240,244,250,${0.5 * (1 - k)})`;
+        ctx.beginPath();
+        ctx.arc(x + cw / 2, y - fs * 0.3, 9 + 12 * k, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = k < 1 ? '#ffffff' : '#e8fff4';
+      ctx.shadowColor = 'rgba(80,255,190,.6)';
+      ctx.shadowBlur = k < 1 ? 10 : 5;
+      ctx.fillText(c.ch, x, y);
+    }
+    ctx.shadowBlur = 0;
+    // the train, facing right; origin at the chimney
+    ctx.save();
+    ctx.translate(trainX(t), BASE);
+    for (let k = 0; k < 2; k++) {
+      const x0 = -170 - k * 106;
+      ctx.fillStyle = '#6d1f2a';
+      ctx.fillRect(x0, -38, 100, 34);
+      ctx.fillStyle = '#3a1218';
+      ctx.fillRect(x0 - 2, -40, 104, 4);
+      ctx.fillStyle = '#ffd77a';
+      for (let j = 0; j < 5; j++) ctx.fillRect(x0 + 8 + j * 18, -32, 12, 12);
+      ctx.fillStyle = '#222';
+      for (const wx of [14, 86]) {
+        ctx.beginPath();
+        ctx.arc(x0 + wx, -4, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillRect(x0 + 100, -14, 6, 3); // coupling
+    }
+    ctx.fillStyle = '#1d2329'; // boiler
+    ctx.fillRect(-60, -34, 96, 22);
+    ctx.fillStyle = '#6d1f2a'; // cab
+    ctx.fillRect(-62, -48, 34, 36);
+    ctx.fillStyle = '#3a1218';
+    ctx.fillRect(-65, -50, 40, 4);
+    ctx.fillStyle = '#ffd77a';
+    ctx.fillRect(-56, -42, 14, 12);
+    ctx.fillStyle = '#111'; // chimney with a flared top
+    ctx.fillRect(-5, -44, 10, 12);
+    ctx.beginPath();
+    ctx.moveTo(-9, -46);
+    ctx.lineTo(9, -46);
+    ctx.lineTo(5, -42);
+    ctx.lineTo(-5, -42);
+    ctx.fill();
+    ctx.fillStyle = '#c9a227'; // dome
+    ctx.beginPath();
+    ctx.ellipse(-26, -34, 8, 6, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = '#333'; // cowcatcher
+    ctx.beginPath();
+    ctx.moveTo(36, -12);
+    ctx.lineTo(54, -3);
+    ctx.lineTo(36, -3);
+    ctx.fill();
+    const beam = ctx.createLinearGradient(38, 0, 160, 0);
+    beam.addColorStop(0, 'rgba(255,246,176,.35)');
+    beam.addColorStop(1, 'rgba(255,246,176,0)');
+    ctx.fillStyle = beam;
+    ctx.beginPath();
+    ctx.moveTo(38, -25);
+    ctx.lineTo(160, -50);
+    ctx.lineTo(160, 0);
+    ctx.lineTo(38, -22);
+    ctx.fill();
+    ctx.fillStyle = '#fff6b0';
+    ctx.beginPath();
+    ctx.arc(36, -24, 4, 0, Math.PI * 2);
+    ctx.fill();
+    const spin = trainX(t) * 0.12;
+    for (const wx of [-40, -12, 16]) {
+      ctx.fillStyle = '#2a2f36';
+      ctx.strokeStyle = '#c9a227';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(wx, -9, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(wx + Math.cos(spin) * 8, -9 + Math.sin(spin) * 8);
+      ctx.lineTo(wx - Math.cos(spin) * 8, -9 - Math.sin(spin) * 8);
+      ctx.stroke();
+    }
+    ctx.restore();
+    // falling snow, in front of everything
+    ctx.fillStyle = 'rgba(255,255,255,.8)';
+    for (const f of flakes) {
+      const y = ((t * f.sp + f.ph * H) % H + H) % H;
+      ctx.fillRect(f.x + Math.sin(t / 700 + f.ph * 9) * 6, y, 2, 2);
+    }
   };
 
   // Safe: a vault door; the dial spins to the combination, the bolts slide back, the door swings open.
@@ -898,7 +1040,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
       }
     } else if (t < T_INTRO) {
       const p = t / T_INTRO;
-      if (style === 'safe') {
+      if (style === 'train') {
+        drawTrain(t);
+      } else if (style === 'safe') {
         drawSafe(0, t, true);
       } else if (style === 'ink') {
         drawInk(r, t);
@@ -967,6 +1111,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (style === 'train') {
+      drawTrain(t);
     } else if (style === 'safe') {
       drawSafe(Math.min(1, r / T_RES), t, false);
     } else if (style === 'ink') {
