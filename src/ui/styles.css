@@ -152,3 +152,10 @@ footer { margin-top: 20px; color: var(--muted); font-size: 13px; }
 #tray .thumb { position: relative; }
 #tray canvas { display: block; width: 84px; height: 84px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: #fff; }
 #tray .thumb button { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; padding: 0; line-height: 1; border-radius: 50%; font-size: 12px; background: var(--card); }
+
+.ocr-row { margin-top: 8px; }
+.btn-like { display: inline-block; margin: 0; padding: 4px 10px; font-size: 14px; font-weight: 400; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+#ocr-cam { margin-top: 10px; }
+#ocr-video { display: block; width: 100%; max-height: 360px; object-fit: cover; border-radius: 10px; background: #000; }
+#ocr-progress { margin-top: 8px; }
+#ocr-bar { background: var(--accent); }

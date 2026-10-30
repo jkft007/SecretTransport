@@ -27,6 +27,24 @@
         <div id="text-row">
           <label for="secret">Secret text</label>
           <textarea id="secret" rows="5" placeholder="Anything: a password, a phrase, a note…" spellcheck="false"></textarea>
+          <div class="row ocr-row">
+            <span class="hint">Or read the text from a picture:</span>
+            <button id="btn-ocr-cam" class="ghost small" type="button">Use camera</button>
+            <label class="btn-like" for="ocr-file">Choose image</label>
+            <input id="ocr-file" type="file" accept="image/*,.heic,.heif" hidden />
+            <button id="btn-ocr-paste" class="ghost small" type="button">Paste image</button>
+          </div>
+          <div id="ocr-cam" hidden>
+            <video id="ocr-video" playsinline muted></video>
+            <div class="row">
+              <button id="btn-ocr-snap" class="primary" type="button">Take photo and read text</button>
+              <button id="btn-ocr-cancel" class="ghost" type="button">Cancel</button>
+            </div>
+          </div>
+          <div id="ocr-progress" hidden>
+            <div class="meter"><i id="ocr-bar"></i></div>
+          </div>
+          <div id="ocr-status" class="status" role="status"></div>
         </div>
 
         <div id="file-row" hidden>

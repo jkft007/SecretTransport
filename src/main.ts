@@ -11,6 +11,8 @@ import { embed, extract, stegoCapacity } from './stego';
 import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
 import { playReveal, type RevealHandle } from './reveal-anim';
 import { startScanner, type Scanner } from './camera';
+import { startPreview, type Preview } from './capture';
+import { readText } from './ocr';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches || $<HTMLInputElement>('chk-motion').checked;
@@ -601,6 +603,105 @@ $('btn-reveal').onclick = async () => {
     btn.disabled = false;
   }
 };
+
+// ---- read the secret from a picture of text (OCR) ------------------------------
+let ocrPreview: Preview | null = null;
+
+function stopOcrCamera() {
+  ocrPreview?.stop();
+  ocrPreview = null;
+  $('ocr-cam').hidden = true;
+  $<HTMLButtonElement>('btn-ocr-cam').disabled = false;
+}
+
+async function runOcr(img: Rgba) {
+  const status = $('ocr-status');
+  const bar = $('ocr-bar');
+  $('ocr-progress').hidden = false;
+  bar.style.width = '0%';
+  setStatus(status, 'Loading the text reader (first use only)…');
+  try {
+    const r = await readText(img, (msg, f) => {
+      setStatus(status, msg);
+      bar.style.width = `${Math.round(f * 100)}%`;
+    });
+    if (!r.text) {
+      setStatus(status, 'No text found in that picture. Try better light, hold the camera steady, and fill the frame with the text.', true);
+      return;
+    }
+    const box = $<HTMLTextAreaElement>('secret');
+    box.value = box.value.trim() ? box.value.replace(/\s+$/, '') + '\n' + r.text : r.text;
+    box.focus();
+    setStatus(
+      status,
+      `Read ${r.text.length} characters (confidence ${r.confidence}%). ${r.confidence < 75 ? 'Low confidence: ' : ''}Check the text for misread characters before hiding it.`,
+      r.confidence < 60,
+    );
+  } catch (e) {
+    setStatus(status, `Could not read the picture: ${(e as Error).message || 'the text reader failed to load.'}`, true);
+  } finally {
+    $('ocr-progress').hidden = true;
+  }
+}
+
+$('ocr-file').addEventListener('change', async (e) => {
+  const input = e.target as HTMLInputElement;
+  const f = input.files?.[0];
+  input.value = '';
+  if (!f) return;
+  try {
+    await runOcr(await blobToRgba(f, 4000));
+  } catch {
+    setStatus($('ocr-status'), 'Could not read that image file.', true);
+  }
+});
+
+$('btn-ocr-paste').onclick = async () => {
+  const status = $('ocr-status');
+  try {
+    if (!navigator.clipboard?.read) throw new Error('unsupported');
+    for (const item of await navigator.clipboard.read()) {
+      const type = item.types.find((t) => t.startsWith('image/'));
+      if (type) return void (await runOcr(await blobToRgba(await item.getType(type), 4000)));
+    }
+    setStatus(status, 'No image found on the clipboard. Copy a picture of the text first.', true);
+  } catch (e) {
+    const denied = (e as Error).name === 'NotAllowedError';
+    setStatus(status, denied ? 'Clipboard access was blocked. Allow it in the browser, or use Choose image.' : 'This browser cannot read the clipboard here (needs https or localhost). Use Choose image.', true);
+  }
+};
+
+$('btn-ocr-cam').onclick = async () => {
+  const status = $('ocr-status');
+  stopOcrCamera();
+  try {
+    $<HTMLButtonElement>('btn-ocr-cam').disabled = true;
+    $('ocr-cam').hidden = false;
+    setStatus(status, 'Starting camera…');
+    ocrPreview = await startPreview($<HTMLVideoElement>('ocr-video'));
+    setStatus(status, 'Fill the frame with the text, hold steady, then press the button.');
+  } catch (e) {
+    stopOcrCamera();
+    const err = e as Error;
+    setStatus(
+      status,
+      err.name === 'NotAllowedError' ? 'Camera access was blocked. Allow it in the browser and try again.' : err.name === 'NotFoundError' ? 'No camera was found on this device.' : err.message || 'Could not start the camera.',
+      true,
+    );
+  }
+};
+$('btn-ocr-snap').onclick = async () => {
+  const frame = ocrPreview?.grab();
+  stopOcrCamera();
+  if (!frame) return setStatus($('ocr-status'), 'The camera has not produced a picture yet. Try again.', true);
+  await runOcr(frame);
+};
+$('btn-ocr-cancel').onclick = () => {
+  stopOcrCamera();
+  setStatus($('ocr-status'), '');
+};
+$('tab-reveal').addEventListener('click', stopOcrCamera);
+document.addEventListener('visibilitychange', () => document.hidden && stopOcrCamera());
 
 syncModeUi();
 

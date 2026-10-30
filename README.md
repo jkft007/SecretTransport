@@ -17,6 +17,9 @@ Encryption: AES-256-GCM, key from the passphrase via PBKDF2-SHA256 (600k rounds)
 ## Files and documents
 Choose **File or document** on the Hide tab to hide a PDF, spreadsheet, key file, zip or anything else instead of text. The file name and contents are both encrypted, and the recipient gets a **Save file** button (files are never opened automatically; executable-type files get an extra warning). Rough size limits per style: lossless photo ~400 KB, code art ~58 KB (images get big above 8 KB), JPEG-safe photo ~3 KB, QR ~1.6 KB, fake QR ~350 bytes. The app shows the limit for the chosen style and refuses oversize files.
 
+## Reading the secret from a picture of text
+On the Hide tab (text mode), **Use camera**, **Choose image** or **Paste image** reads the text out of a picture (a note, a printed password, a page) and puts it in the secret box for you to check and edit before hiding. It runs entirely in the browser with [Tesseract.js](https://github.com/naptha/tesseract.js) (Apache-2.0, English). The reader (about 7 MB) is served from this site's own files and downloaded only the first time you use it. Printed text works best; handwriting does not.
+
 ## Splitting across several images
 If a secret does not fit in one image, it is encrypted once and cut into numbered parts (up to 60), each in its own image of the chosen style. On the Reveal tab, add all the images in any order (paste, drop, choose, or scan QR codes one after another); the app says exactly which parts are missing. **Copy message** puts every image plus the link into one rich-text clipboard entry for email; chat apps that take one image at a time can use each part's own Copy button.
 
