@@ -1,10 +1,16 @@
-// Presentational only: scan the image, rain glyphs, then decode the text character by character.
+// Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
+// fireworks) turns the scanned image into the decoded text.
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks';
+export const STYLES: RevealStyle[] = ['matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks'];
+
 export interface RevealOptions {
   canvas: HTMLCanvasElement;
   source: CanvasImageSource & { width: number; height: number };
   text: string;
   mode: 'codeart' | 'stego';
   reduceMotion: boolean;
+  /** Force one style (default: pick one at random). */
+  style?: RevealStyle;
 }
 export interface RevealHandle {
   done: Promise<void>;
@@ -22,6 +28,15 @@ interface Cell {
   x: number;
   y: number;
   lock: number;
+}
+
+interface Spark {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  hue: number;
 }
 
 export function playReveal(o: RevealOptions): RevealHandle {
@@ -75,8 +90,12 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const T_SCAN = 1100;
   const T_RAIN = 700;
   const T_RESOLVE = Math.min(2600, Math.max(900, visible.length * 20));
-  visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_RESOLVE * 0.8 + rnd() * T_RESOLVE * 0.2));
-  const T_END = T_SCAN + T_RAIN + T_RESOLVE + 250;
+  const style: RevealStyle = o.style ?? STYLES[Math.floor(rnd() * STYLES.length)];
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : 1000;
+  const T_RES = style === 'iris' ? 1300 : style === 'fireworks' ? Math.max(T_RESOLVE, 2200) : T_RESOLVE;
+  const T_END = T_INTRO + T_RES + 250;
+  const spread = style === 'fireworks' ? 0.7 : 0.8;
+  visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_RES * spread + rnd() * T_RES * 0.15));
 
   const drawFinal = () => {
     ctx.fillStyle = `rgb(${BG})`;
@@ -108,6 +127,11 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const t0 = performance.now();
   let rainStarted = false;
 
+  const clear = () => {
+    ctx.fillStyle = `rgb(${BG})`;
+    ctx.fillRect(0, 0, W, H);
+  };
+
   const rain = (fade: number) => {
     if (fade) {
       ctx.fillStyle = `rgba(${BG},${fade})`;
@@ -121,6 +145,103 @@ export function playReveal(o: RevealOptions): RevealHandle {
     });
   };
 
+  /** The image with a sweeping scan line. */
+  const drawScan = (p: number, imgAlpha = 1) => {
+    clear();
+    ctx.globalAlpha = imgAlpha;
+    ctx.drawImage(o.source, ix, iy, iw, ih);
+    ctx.globalAlpha = 1;
+    const sx = ix + iw * p;
+    ctx.fillStyle = 'rgba(20,200,170,.22)';
+    ctx.fillRect(ix, iy, sx - ix, ih);
+    const n = o.mode === 'codeart' ? 90 : 160;
+    const sz = o.mode === 'codeart' ? 6 : 1.5;
+    for (let i = 0; i < n; i++) {
+      ctx.fillStyle = `rgba(190,255,235,${0.15 + rnd() * 0.5})`;
+      ctx.fillRect(ix + rnd() * (sx - ix), iy + rnd() * ih, sz, sz);
+    }
+    const g = ctx.createLinearGradient(sx - 40, 0, sx + 2, 0);
+    g.addColorStop(0, 'rgba(60,255,200,0)');
+    g.addColorStop(1, 'rgba(120,255,220,.9)');
+    ctx.fillStyle = g;
+    ctx.fillRect(sx - 40, iy, 42, ih);
+  };
+
+  const small = document.createElement('canvas');
+  /** The image as coarse blocks (block = source pixels per block). */
+  const drawPixels = (block: number, alpha: number) => {
+    small.width = Math.max(1, Math.round(iw / block));
+    small.height = Math.max(1, Math.round(ih / block));
+    small.getContext('2d')!.drawImage(o.source, 0, 0, small.width, small.height);
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(small, ix, iy, iw, ih);
+    ctx.globalAlpha = 1;
+    ctx.imageSmoothingEnabled = true;
+  };
+
+  /** Draws the text cells `on` accepts; the rest show cycling glyphs when `scramble` is set. */
+  const drawCells = (r: number, on: (c: Cell, i: number) => boolean, scramble: boolean, glow = true) => {
+    ctx.font = `${fs}px ${FONT}`;
+    const bucket = Math.floor(r / 70);
+    visible.forEach((c, i) => {
+      if (on(c, i)) {
+        const fresh = glow && r - c.lock < 160;
+        ctx.fillStyle = fresh ? '#7dffe0' : '#e8fff4';
+        ctx.shadowColor = 'rgba(80,255,190,.6)';
+        ctx.shadowBlur = fresh ? 12 : 5;
+        ctx.fillText(c.ch, c.x, c.y);
+      } else if (scramble) {
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(70,220,160,.75)';
+        ctx.fillText(glyph(bucket * 977 + i), c.x, c.y);
+      }
+    });
+    ctx.shadowBlur = 0;
+  };
+
+  // Fireworks: rockets climb, burst into sparks, and the text lights up as the bursts go off.
+  let sparks: Spark[] = [];
+  const bursts = Array.from({ length: 6 }, (_, i) => ({
+    at: 350 + (i / 6) * T_RES * 0.7 + rnd() * 120,
+    x: W * (0.15 + rnd() * 0.7),
+    y: H * (0.2 + rnd() * 0.35),
+    fired: false,
+  }));
+  const explode = (x: number, y: number) => {
+    const hue = Math.floor(rnd() * 360);
+    for (let i = 0; i < 70; i++) {
+      const a = rnd() * Math.PI * 2;
+      const v = 1 + rnd() * 3.2;
+      sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, hue: hue + rnd() * 40 });
+    }
+  };
+  const drawFireworks = (r: number) => {
+    ctx.fillStyle = `rgba(${BG},.28)`;
+    ctx.fillRect(0, 0, W, H);
+    for (const b of bursts) {
+      if (r >= b.at - 350 && r < b.at) {
+        const y = H + (b.y - H) * ((r - (b.at - 350)) / 350);
+        ctx.fillStyle = '#fff4c0';
+        ctx.fillRect(b.x - 1, y, 2, 8);
+      } else if (!b.fired && r >= b.at) {
+        b.fired = true;
+        explode(b.x, b.y);
+      }
+    }
+    sparks = sparks.filter((s) => s.life > 0);
+    for (const s of sparks) {
+      s.x += s.vx;
+      s.y += s.vy;
+      s.vy += 0.045;
+      s.vx *= 0.985;
+      s.life -= 0.014;
+      ctx.fillStyle = `hsla(${s.hue},100%,65%,${Math.max(0, s.life)})`;
+      ctx.fillRect(s.x, s.y, 2.2, 2.2);
+    }
+    drawCells(r, (c) => r >= c.lock, false);
+  };
+
   const frame = (now: number) => {
     const t = now - t0;
     if (skipped || t >= T_END) {
@@ -128,58 +249,75 @@ export function playReveal(o: RevealOptions): RevealHandle {
       resolveDone();
       return;
     }
-    if (t < T_SCAN) {
-      const p = t / T_SCAN;
-      ctx.fillStyle = `rgb(${BG})`;
-      ctx.fillRect(0, 0, W, H);
-      ctx.drawImage(o.source, ix, iy, iw, ih);
-      const sx = ix + iw * p;
-      ctx.fillStyle = 'rgba(20,200,170,.22)';
-      ctx.fillRect(ix, iy, sx - ix, ih);
-      const n = o.mode === 'codeart' ? 90 : 160;
-      const sz = o.mode === 'codeart' ? 6 : 1.5;
-      for (let i = 0; i < n; i++) {
-        ctx.fillStyle = `rgba(190,255,235,${0.15 + rnd() * 0.5})`;
-        ctx.fillRect(ix + rnd() * (sx - ix), iy + rnd() * ih, sz, sz);
-      }
-      const g = ctx.createLinearGradient(sx - 40, 0, sx + 2, 0);
-      g.addColorStop(0, 'rgba(60,255,200,0)');
-      g.addColorStop(1, 'rgba(120,255,220,.9)');
-      ctx.fillStyle = g;
-      ctx.fillRect(sx - 40, iy, 42, ih);
-    } else if (t < T_SCAN + T_RAIN) {
-      if (!rainStarted) {
-        rainStarted = true;
-        ctx.fillStyle = `rgb(${BG})`;
-        ctx.fillRect(0, 0, W, H);
-        ctx.globalAlpha = 0.5;
-        ctx.drawImage(o.source, ix, iy, iw, ih);
-        ctx.globalAlpha = 1;
-      }
-      rain(0.14);
-    } else {
-      const r = t - T_SCAN - T_RAIN;
-      ctx.fillStyle = `rgba(${BG},.35)`;
-      ctx.fillRect(0, 0, W, H);
-      rain(0);
-      ctx.fillStyle = `rgba(${BG},.88)`;
-      ctx.fillRect(pad / 2, pad / 2, W - pad, H - pad);
-      ctx.font = `${fs}px ${FONT}`;
-      const bucket = Math.floor(r / 70);
-      visible.forEach((c, i) => {
-        if (r >= c.lock) {
-          const fresh = r - c.lock < 160;
-          ctx.fillStyle = fresh ? '#7dffe0' : '#e8fff4';
-          ctx.shadowColor = 'rgba(80,255,190,.6)';
-          ctx.shadowBlur = fresh ? 12 : 5;
-          ctx.fillText(c.ch, c.x, c.y);
-        } else {
-          ctx.shadowBlur = 0;
-          ctx.fillStyle = 'rgba(70,220,160,.75)';
-          ctx.fillText(glyph(bucket * 977 + i), c.x, c.y);
+    const r = t - T_INTRO;
+    if (style === 'matrix') {
+      if (t < T_SCAN) {
+        drawScan(t / T_SCAN);
+      } else if (t < T_INTRO) {
+        if (!rainStarted) {
+          rainStarted = true;
+          clear();
+          ctx.globalAlpha = 0.5;
+          ctx.drawImage(o.source, ix, iy, iw, ih);
+          ctx.globalAlpha = 1;
         }
-      });
-      ctx.shadowBlur = 0;
+        rain(0.14);
+      } else {
+        ctx.fillStyle = `rgba(${BG},.35)`;
+        ctx.fillRect(0, 0, W, H);
+        rain(0);
+        ctx.fillStyle = `rgba(${BG},.88)`;
+        ctx.fillRect(pad / 2, pad / 2, W - pad, H - pad);
+        drawCells(r, (c) => r >= c.lock, true);
+      }
+    } else if (t < T_INTRO) {
+      const p = t / T_INTRO;
+      if (style === 'pixelate') {
+        clear();
+        drawPixels(1 + p * p * 30, 1);
+      } else if (style === 'fireworks') {
+        drawScan(p);
+      } else drawScan(p, style === 'typewriter' ? 1 - p * 0.75 : 1);
+    } else if (style === 'scramble') {
+      clear();
+      drawCells(r, (c) => r >= c.lock, true);
+    } else if (style === 'typewriter') {
+      clear();
+      const n = Math.floor(Math.min(1, r / T_RES) * visible.length + 0.5);
+      drawCells(r, (_c, i) => i < n, false, false);
+      const cur = visible[Math.min(n, visible.length - 1)];
+      if (cur && Math.floor(r / 260) % 2 === 0) {
+        ctx.fillStyle = '#7dffe0';
+        ctx.fillRect(cur.x, cur.y - fs + 2, cw * 0.7, fs);
+      }
+    } else if (style === 'pixelate') {
+      clear();
+      drawPixels(30, Math.max(0, 1 - (r / T_RES) * 1.3));
+      ctx.fillStyle = `rgba(${BG},.55)`;
+      ctx.fillRect(0, 0, W, H);
+      drawCells(r, (c) => r >= c.lock, false);
+    } else if (style === 'iris') {
+      clear();
+      ctx.globalAlpha = 0.45;
+      ctx.drawImage(o.source, ix, iy, iw, ih);
+      ctx.globalAlpha = 1;
+      const e = 1 - Math.pow(1 - Math.min(1, r / T_RES), 3);
+      const rad = (e * Math.hypot(W, H)) / 2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
+      ctx.clip();
+      clear();
+      drawCells(r, () => true, false, false);
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(120,255,220,.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, rad, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      if (r < 20) clear();
+      drawFireworks(r);
     }
     requestAnimationFrame(frame);
   };
