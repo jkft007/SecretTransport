@@ -84,7 +84,13 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const shown = lines.slice(0, maxLines);
   if (lines.length > maxLines) shown[maxLines - 1] = Array.from(shown[maxLines - 1]).slice(0, cols - 1).join('') + '…';
   const cells: Cell[] = [];
-  shown.forEach((ln, r) => Array.from(ln).forEach((ch, c) => cells.push({ ch, x: pad + c * cw, y: pad + (r + 1) * lh - 7, lock: 0 })));
+  // Centre the block on the stage, each line centred within it.
+  const top = Math.max(pad, (H - shown.length * lh) / 2);
+  shown.forEach((ln, r) => {
+    const chars = Array.from(ln);
+    const left = Math.max(pad, (W - chars.length * cw) / 2);
+    chars.forEach((ch, c) => cells.push({ ch, x: left + c * cw, y: top + (r + 1) * lh - 7, lock: 0 }));
+  });
   const visible = cells.filter((c) => c.ch !== ' ');
 
   const T_SCAN = 1100;
@@ -361,7 +367,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const stars = Array.from({ length: 70 }, () => ({ x: rnd() * W, y: rnd() * H, s: 0.6 + rnd() * 1.4, ph: rnd() * 6 }));
   const craters = Array.from({ length: 9 }, () => ({ x: rnd(), y: rnd(), rx: 8 + rnd() * 26, ry: 3 + rnd() * 7 }));
   const earthR = Math.max(40, Math.min(W, H) * 0.22);
-  const textBottom = pad + shown.length * lh;
+  const textBottom = top + shown.length * lh;
   const land = [[-0.35, -0.2, 0.32, 0.22], [0.25, 0.1, 0.3, 0.3], [-0.1, 0.5, 0.25, 0.16], [0.6, -0.4, 0.18, 0.14]];
   const drawMoon = (rise: number, pan: number, tt: number) => {
     clear();
