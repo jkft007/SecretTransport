@@ -1,6 +1,6 @@
 import { decodeCodeArt, encodeCodeArt, MAX_PACKET, type Rgba } from './codeart';
 import { cropTo8, dctCapacity, embedDct, extractDct, MAX_COVER_SIDE } from './dct';
-import { decodeFakeQr, decodePlainQr, encodeFakeQr, encodePlainQr } from './qrmodes';
+import { decodeFakeQr, decodePlainQr, encodeFakeQr, encodePlainQr, linkOverhead, packetFromQrText } from './qrmodes';
 import { ExpiredError, NEVER_CLEAR, openPayload, sealPayload, WrongPassphraseError, type Payload } from './crypto';
 import { encodedLength } from './ecc';
 import { byteCapacity } from './qr';
@@ -104,7 +104,7 @@ type Mode = 'codeart' | 'qr' | 'fakeqr' | 'photo';
 const currentMode = () => $<HTMLSelectElement>('mode').value as Mode;
 const MODE_HELP: Record<Mode, string> = {
   codeart: 'A colourful mosaic. Survives JPEG compression, resizing and screenshots, so it works in nearly every app. Obviously not a normal picture.',
-  qr: 'A standard QR code holding the encrypted data. Any phone can scan it, but sees gibberish.',
+  qr: 'A standard QR code holding a link to this page with the encrypted data inside it. Scanning it with any phone camera opens the page with the secret loaded, ready for the passphrase. Best for short secrets.',
   fakeqr: 'Scans as a harmless decoy of your choice (like a web link). The real secret is hidden inside the QR image itself.',
   photo: 'Looks like an ordinary picture.',
 };
@@ -116,11 +116,14 @@ const fmt = (n: number) => (n < 1024 ? `${n} bytes` : n < 1048576 ? `${(n / 1024
 const kindRadios = () => document.querySelectorAll<HTMLInputElement>('input[name=kind]');
 const currentKind = () => ([...kindRadios()].find((r) => r.checked)!.value as 'text' | 'file');
 
+/** This page's address without any fragment: what a plain QR's link points at. */
+const siteBase = () => location.origin + location.pathname;
+
 /** Largest frame (bytes) a single image of the chosen style can carry. */
 function frameCapacity(cover?: Rgba): number {
   const m = currentMode();
   if (m === 'codeart') return 3000; // keeps images a sensible size; larger secrets are split
-  if (m === 'qr') return Math.floor(byteCapacity(30, 'M') / 4) * 3; // base64 expands by 4/3
+  if (m === 'qr') return Math.floor((byteCapacity(30, 'M') - linkOverhead(siteBase())) / 4) * 3; // the link wraps base64, which expands by 4/3
   if (m === 'fakeqr') {
     let lo = 0;
     let hi = 5000;
@@ -259,7 +262,7 @@ const partName = (i: number, n: number) => (n > 1 ? `secret-part-${i + 1}-of-${n
 
 async function renderFrame(frame: Uint8Array, mode: Mode, kind: 'dct' | 'lsb', pass: string, cover: Rgba | null): Promise<Rgba> {
   if (mode === 'codeart') return encodeCodeArt(frame);
-  if (mode === 'qr') return encodePlainQr(frame);
+  if (mode === 'qr') return encodePlainQr(frame, siteBase());
   if (mode === 'fakeqr') {
     const decoy = $<HTMLInputElement>('decoy').value;
     if (!decoy) throw new Error('Enter the decoy text a scanner should show.');
@@ -873,9 +876,30 @@ document.addEventListener('visibilitychange', () => document.hidden && stopOcrCa
 
 syncModeUi();
 
-// The shared link ends in #reveal so recipients land on the Reveal tab.
-const openFromHash = () => showTab(location.hash === '#reveal' ? 'reveal' : 'hide');
-if (location.hash === '#reveal') openFromHash();
+// The shared link ends in #reveal so recipients land on the Reveal tab. A plain QR scanned with a phone camera
+// opens #q=<encrypted packet>: load it as the image to reveal, then tidy the address bar.
+function loadFromLink(): boolean {
+  const m = /^#q=[A-Za-z0-9_-]+$/.test(location.hash);
+  if (!m) return false;
+  try {
+    const frame = packetFromQrText(location.hash);
+    parseFrame(frame); // a whole packet or one part; checksum verified
+    images = [];
+    resetScan();
+    addImage(encodePlainQr(frame, siteBase())); // show the same QR image the sender made
+    setStatus($('reveal-status'), 'The secret from the QR code is loaded. Enter the passphrase to reveal it.');
+  } catch {
+    showTab('reveal');
+    setStatus($('reveal-status'), 'The data in that link is damaged or incomplete.', true);
+  }
+  history.replaceState(null, '', siteBase() + '#reveal'); // keep the packet out of the address bar
+  return true;
+}
+const openFromHash = () => {
+  if (loadFromLink()) return;
+  showTab(location.hash === '#reveal' ? 'reveal' : 'hide');
+};
+if (location.hash === '#reveal' || location.hash.startsWith('#q=')) openFromHash();
 window.addEventListener('hashchange', openFromHash);
 
 // Enter in the passphrase box does the same as pressing Reveal.

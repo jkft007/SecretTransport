@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import jpeg from 'jpeg-js';
 import jsQR from 'jsqr';
-import { decodePlainQr, decodeFakeQr, encodeFakeQr, encodePlainQr, fakeQrCapacity } from '../src/qrmodes';
+import { decodePlainQr, decodeFakeQr, encodeFakeQr, encodePlainQr, fakeQrCapacity, packetFromQrText, packetLink, qrToRgba } from '../src/qrmodes';
+import { encodeQr } from '../src/qr';
 import { cropTo8, dctCapacity, embedDct, extractDct } from '../src/dct';
 import { openPacket, sealText } from '../src/crypto';
 import type { Rgba } from '../src/codeart';
@@ -35,6 +36,29 @@ describe('plain QR', () => {
     const img = encodePlainQr(p);
     expect(await openPacket(decodePlainQr(img), 'pw')).toBe('qr secret');
     expect(await openPacket(decodePlainQr(jpegRoundtrip(img, 60)), 'pw')).toBe('qr secret');
+  });
+
+  it('holds a link that opens the app with the encrypted packet in the fragment', async () => {
+    const p = await sealText('open me from a camera', 'pw', MODE_QR);
+    const base = 'https://example.com/app/';
+    const link = packetLink(p, base);
+    expect(link.startsWith(`${base}#q=`)).toBe(true);
+    expect(link).toMatch(/^[\x21-\x7e]+$/); // plain printable text, with no '+', '/' or '=' that a URL could mangle
+    expect(link.slice(base.length + 3)).toMatch(/^[A-Za-z0-9_-]+$/);
+    const img = encodePlainQr(p, base);
+    // what a phone camera reads is that link
+    expect(jsQR(img.data, img.width, img.height)?.data).toBe(link);
+    // and the app turns it back into the same packet
+    expect([...packetFromQrText(link)]).toEqual([...p]);
+    expect(await openPacket(decodePlainQr(img), 'pw')).toBe('open me from a camera');
+  });
+
+  it('still reads QR codes made by earlier versions (raw base64)', async () => {
+    const p = await sealText('old qr', 'pw', MODE_QR);
+    let s = '';
+    for (const b of p) s += String.fromCharCode(b);
+    const legacy = qrToRgba(encodeQr(new TextEncoder().encode(btoa(s)), 'M'));
+    expect(await openPacket(decodePlainQr(legacy), 'pw')).toBe('old qr');
   });
 });
 

@@ -148,13 +148,35 @@ const toB64 = (u: Uint8Array) => {
   return btoa(s);
 };
 const fromB64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+const toB64Url = (u: Uint8Array) => toB64(u).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const fromB64Url = (s: string) => fromB64(s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '='));
 
-export function encodePlainQr(packet: Uint8Array): Rgba {
-  return qrToRgba(encodeQr(new TextEncoder().encode(toB64(packet)), 'M'));
+/** Where a scanned plain QR sends the phone: this site, with the encrypted packet in the part after '#'. */
+export const SITE_URL = 'https://jkft007.github.io/SecretTransport/';
+const QR_PARAM = '#q=';
+
+/** The text a plain QR holds: a link that opens the app with the encrypted packet ready to reveal. */
+export const packetLink = (packet: Uint8Array, baseUrl = SITE_URL): string => `${baseUrl}${QR_PARAM}${toB64Url(packet)}`;
+
+/** Characters the link adds around the packet, for capacity estimates. */
+export const linkOverhead = (baseUrl = SITE_URL): number => baseUrl.length + QR_PARAM.length;
+
+/** The packet in a scanned QR's text: the link form, or the raw base64 that earlier versions made. */
+export function packetFromQrText(text: string): Uint8Array {
+  const m = /#q=([A-Za-z0-9_-]+)\s*$/.exec(text);
+  return m ? fromB64Url(m[1]) : fromB64(text);
+}
+
+/**
+ * A plain QR code. It holds a link, so an ordinary phone camera opens the app with the secret already loaded
+ * (the packet sits in the URL fragment, which browsers never send to a server) and only the passphrase is missing.
+ */
+export function encodePlainQr(packet: Uint8Array, baseUrl = SITE_URL): Rgba {
+  return qrToRgba(encodeQr(new TextEncoder().encode(packetLink(packet, baseUrl)), 'M'));
 }
 
 export function decodePlainQr(img: Rgba): Uint8Array {
-  return fromB64(scan(img).data);
+  return packetFromQrText(scan(img).data);
 }
 
 // ---- fake QR -----------------------------------------------------------------
@@ -260,7 +282,7 @@ export async function tryDecodeQrFrame(frame: Rgba, passphrase: string): Promise
   const res = jsQR(frame.data, frame.width, frame.height, { inversionAttempts: 'dontInvert' });
   if (!res) return { kind: 'none' };
   try {
-    const p = fromB64(res.data);
+    const p = packetFromQrText(res.data);
     parseFrame(p);
     return { kind: 'packet', packet: p };
   } catch {

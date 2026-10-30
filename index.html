@@ -242,7 +242,7 @@
         <h3>How it works</h3>
         <ol>
           <li>Your browser encrypts the secret with your passphrase (AES-256-GCM; the key comes from Argon2id, which is deliberately slow and memory-hungry so that guessing is expensive).</li>
-          <li>The encrypted bytes, with error correction added, are drawn into an image: a code-art mosaic, a QR code, a fake QR code (it scans as a harmless decoy while the real data hides in the error-correction budget) or an ordinary-looking photo.</li>
+          <li>The encrypted bytes, with error correction added, are drawn into an image: a code-art mosaic, a QR code (a phone camera opens this page with the secret ready for the passphrase), a fake QR code (it scans as a harmless decoy while the real data hides in the error-correction budget) or an ordinary-looking photo.</li>
           <li>You send the image like any picture. The recipient pastes or drops it on the Reveal tab, types the passphrase, and the original comes back. Nothing is uploaded: there is no server.</li>
         </ol>
 

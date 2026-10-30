@@ -125,7 +125,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const HEART_RISE = 1000; // how long a heart takes to carry its letter up
   const BLOOM = 500; // how long a flower takes to open
   const BOOM_T = 1000; // when the cartoon bomb goes off, measured from the end of the intro
-  const WIZ_SPREAD = Math.max(2200, Math.min(4500, visible.length * 55)); // the magic ink takes its time
+  const WIZ_SPREAD = Math.max(4500, Math.min(9000, visible.length * 110)); // the magic ink takes its time
   const FLIGHT = 500; // how long a letter takes to fall out of the can
   const FALL = 1100; // how long a parachuted word takes to float down
   const SWARM = 700; // how long a speck of dust takes to fly to its letter
@@ -158,7 +158,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'hearts' ? Math.max(T_RESOLVE, 1400) + HEART_RISE + 300
     : style === 'flowers' ? Math.max(T_RESOLVE, 1400) + BLOOM + 500
     : style === 'bomb' ? BOOM_T + 1000
-    : style === 'wizard' ? WIZ_SPREAD + 1100
+    : style === 'wizard' ? WIZ_SPREAD + 2300
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
@@ -1332,7 +1332,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     }
     runs.forEach((run, k) => {
       const start = (k / runs.length) * WIZ_SPREAD * 0.95 + rnd() * 120;
-      run.forEach((idx, j) => (wizAt[idx] = start + j * 80));
+      run.forEach((idx, j) => (wizAt[idx] = start + j * 160));
     });
   }
   const stains = Array.from({ length: 9 }, () => ({ x: rnd() * W, y: rnd() * H, rx: 20 + rnd() * 50, ry: 10 + rnd() * 30 }));
@@ -1353,8 +1353,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     visible.forEach((c, i) => {
       const age = r - wizAt[i];
       if (age <= 0) return;
-      const k = clamp01(age / 700);
-      if (age < 500 && (focus < 0 || wizAt[i] > wizAt[focus])) focus = i;
+      const k = clamp01(age / 1400); // each letter seeps in slowly
+      if (age < 900 && (focus < 0 || wizAt[i] > wizAt[focus])) focus = i;
       const bx = c.x + cw / 2;
       const by = c.y - fs * 0.3;
       const blot = ctx.createRadialGradient(bx, by, 0, bx, by, cw * (0.4 + 0.8 * ease(k)));

@@ -4,7 +4,7 @@ Turn any text into an image you can paste into a message or email. Only someone 
 
 ## Image styles
 - **Code art**: a colourful mosaic that survives JPEG compression, resizing and screenshots.
-- **QR code**: a standard QR holding the encrypted data (any phone scans it, but sees gibberish).
+- **QR code**: a standard QR holding a link to this page with the encrypted data in the part after `#` (which browsers never send to a server). Scan it with an ordinary phone camera and the page opens on the Reveal tab with the secret already loaded; the recipient only types the passphrase, and the address bar is tidied so the data does not stay in it. Best for short secrets (one QR holds roughly 1.6 KB of encrypted data). With several parts each QR opens its own page, so use **Scan QR with camera** inside the app for those. QR codes made by earlier versions (raw base64) still read. The link points at whichever site made the code, so codes made on a local test copy only work on that copy.
 - **Fake QR code**: scans as a decoy you choose (e.g. a web link). The real secret is hidden in the QR's error-correction budget and is only recovered with the passphrase.
 - **Hidden in a photo**:
   - *JPEG-safe* (default): bits stored in DCT coefficients with heavy redundancy and error correction. Survives normal JPEG recompression (about quality 50+), not cropping, rotation or resizing.
