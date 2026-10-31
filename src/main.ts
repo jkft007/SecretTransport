@@ -11,7 +11,8 @@ import { MAX_PARTS, MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, PA
 import { assemble, splitPacket } from './split';
 import { extract } from './stego';
 import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
-import { idToStyle, playReveal, styleToId, STYLES, type RevealHandle } from './reveal-anim';
+import { idToStyle, styleToId, STYLES } from './reveal-styles';
+import type { RevealHandle } from './reveal-anim';
 import { startScanner, type Scanner } from './camera';
 import { startPreview, type Preview } from './capture';
 import { readText } from './ocr';
@@ -851,6 +852,9 @@ $('btn-reveal').onclick = async () => {
     }
     if (asm.state === 'corrupt') throw new Error('The parts do not fit together (damaged, or from different secrets). Remove all images and add them again.');
 
+    // The animation code is loaded now, while the key is derived, so it is ready by the time the secret opens. If it
+    // cannot be fetched (offline), the secret is simply shown without the animation.
+    const animModule = import('./reveal-anim').catch(() => null);
     const payload = await openPayload(asm.packet, openPass);
     recordSuccess(attemptStore, fp);
     const text = payload.kind === 'text' ? payload.text : `📄 ${payload.name}\n${fmt(payload.data.length)}`;
@@ -862,8 +866,11 @@ $('btn-reveal').onclick = async () => {
     // A manual choice wins; on Auto use the sender's stored choice, else playReveal picks at random.
     const pick = $<HTMLSelectElement>('anim-style').value;
     const style = STYLES.find((s) => s === pick) ?? idToStyle(payload.anim);
-    handle = playReveal({ canvas: $<HTMLCanvasElement>('stage'), source, text, mode, reduceMotion: reducedMotion(), style });
-    await handle.done;
+    const anim = await animModule;
+    if (anim) {
+      handle = anim.playReveal({ canvas: $<HTMLCanvasElement>('stage'), source, text, mode, reduceMotion: reducedMotion(), style });
+      await handle.done;
+    }
     showResult(payload);
     $('result').hidden = false;
     if (payload.expires) setStatus(status, `Note: the sender set this secret to expire on ${new Date(payload.expires * 1000).toLocaleString()}.`);
