@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,7 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
-  'seance', 'poltergeist', 'haunted', 'dragon',
+  'seance', 'poltergeist', 'haunted', 'dragon', 'panther',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -145,8 +145,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const PP_T = 1000; // a paper plane's whole trip: glide in, land, unfold
   const GHOST_T = 1100; // how long a letter takes to materialise out of the mist
   const DR_FLY = 650; // how long a letter takes to fly out of the dragon's mouth to its place
+  const PNK_LT = Math.min(1300, Math.max(500, 4200 / Math.max(1, lineYs.length))); // its tiptoe along one line
+  const PNK_GAP = PNK_LT + 80; // one panther at a time: the next line starts when it is done
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -187,6 +189,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'poltergeist' ? Math.max(T_RESOLVE, 1800) + 520 + 200
     : style === 'haunted' ? Math.max(T_RESOLVE, 1400) + 1100 + 450
     : style === 'dragon' ? Math.max(T_RESOLVE, 1800) + DR_FLY + 400
+    : style === 'panther' ? PNK_GAP * (lineYs.length - 1) + PNK_LT + 700
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
@@ -3141,6 +3144,126 @@ export function playReveal(o: RevealOptions): RevealHandle {
     }
     fadeToFinal(r);
   };
+  // Pink panther: a sleek pink cat tiptoes along each line under a spotlight, and the words light up as it passes.
+  const pnkSpan = lineYs.map((y) => {
+    const xs = visible.filter((c) => c.y === y).map((c) => c.x);
+    return { y, x0: Math.min(...xs), x1: Math.max(...xs) };
+  });
+  const pnkTime = (c: Cell) => {
+    const k = lineYs.indexOf(c.y);
+    const ln = pnkSpan[k];
+    const f = (c.x - ln.x0) / Math.max(1, ln.x1 - ln.x0);
+    return k * PNK_GAP + (k % 2 ? 1 - f : f) * PNK_LT;
+  };
+  const pink = (x: number, y: number, dir: number, ph: number, sz: number) => {
+    ctx.save();
+    ctx.translate(x, y + Math.abs(Math.sin(ph)) * -1.5 * sz);
+    ctx.scale(dir * sz, sz);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#ee6aa1';
+    ctx.lineWidth = 6;
+    ctx.beginPath(); // tail
+    ctx.moveTo(-24, -24);
+    ctx.bezierCurveTo(-50, -26, -52 + Math.sin(ph) * 3, -50, -42, -66);
+    ctx.stroke();
+    ctx.strokeStyle = '#d9568d'; // far legs
+    for (const lx of [-14, 14]) {
+      ctx.beginPath();
+      ctx.moveTo(lx, -16);
+      ctx.lineTo(lx - Math.sin(ph + 2) * 7, -1);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#ff86b6'; // body
+    ctx.beginPath();
+    ctx.ellipse(0, -25, 27, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffa6c9';
+    ctx.beginPath();
+    ctx.ellipse(2, -20, 20, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ee6aa1'; // near legs
+    for (const lx of [-8, 20]) {
+      ctx.beginPath();
+      ctx.moveTo(lx, -16);
+      ctx.lineTo(lx + Math.sin(ph + (lx > 0 ? 0 : Math.PI)) * 7, -1);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#ff86b6'; // head
+    ctx.beginPath();
+    ctx.arc(30, -37, 11, 0, Math.PI * 2);
+    ctx.arc(26, -47, 4, 0, Math.PI * 2);
+    ctx.arc(35, -48, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffc2d9';
+    ctx.beginPath();
+    ctx.ellipse(40, -34, 7, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#5a1d3a';
+    ctx.beginPath();
+    ctx.ellipse(46, -36, 2.4, 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff'; // a half-lidded, unimpressed eye
+    ctx.beginPath();
+    ctx.ellipse(36, -40, 4.2, 3.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#16101a';
+    circ(37.4, -39.2, 1.7);
+    ctx.fillStyle = '#ff86b6';
+    ctx.beginPath();
+    ctx.ellipse(36, -41.4, 4.8, 2.4, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+  const drawPink = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#2a1030');
+    g.addColorStop(1, `rgb(${BG})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    const sz = Math.min(1.3, Math.max(0.8, fs / 16));
+    let spot: { x: number; y: number } | null = null;
+    pnkSpan.forEach((ln, k) => {
+      const rr = r - k * PNK_GAP;
+      if (rr < -200 || rr > PNK_LT + 300) return;
+      const f = clamp1(rr / PNK_LT);
+      const dir = k % 2 ? -1 : 1;
+      const run = ln.x1 - ln.x0;
+      const px = (dir > 0 ? ln.x0 - 40 + f * (run + 80) : ln.x1 + 40 - f * (run + 80));
+      const py = ln.y + fs * 0.75 * sz + 4;
+      spot = { x: px, y: py - 30 };
+      pink(px, py, dir, r / 140, sz);
+    });
+    if (spot) {
+      const s = spot as { x: number; y: number };
+      const lg = ctx.createRadialGradient(s.x, s.y, 8, s.x, s.y, 130);
+      lg.addColorStop(0, 'rgba(255,170,210,.22)');
+      lg.addColorStop(1, 'rgba(255,170,210,0)');
+      ctx.fillStyle = lg;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const rr = r - pnkTime(c);
+      if (rr < 0) continue;
+      const p = clamp1(rr / 500);
+      textLit(c, p < 1 ? '#ffd1e6' : '#ffe8f2', 'rgba(255,110,180,.8)', 12 - 6 * p, c.x, c.y, clamp1(rr / 180));
+      if (rr < 260) { // a little sparkle
+        const a = 1 - rr / 260;
+        ctx.strokeStyle = `rgba(255,255,255,${a})`;
+        ctx.lineWidth = 1.2;
+        const sx = c.x + cw / 2;
+        const sy = c.y - fs * 0.4;
+        const rad = 3 + 5 * (1 - a);
+        ctx.beginPath();
+        ctx.moveTo(sx - rad, sy);
+        ctx.lineTo(sx + rad, sy);
+        ctx.moveTo(sx, sy - rad);
+        ctx.lineTo(sx, sy + rad);
+        ctx.stroke();
+      }
+    }
+    fadeToFinal(r);
+  };
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -3158,6 +3281,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     poltergeist: drawPolter,
     haunted: drawHaunted,
     dragon: drawDragon,
+    panther: drawPink,
   };
 
   const frame = (now: number) => {
