@@ -11,7 +11,7 @@
       <header>
         <h1>Secret<span>Transport</span></h1>
         <p>Turn any text into an image you can paste into a message or email. Only someone with the passphrase can turn it back. Everything happens in your browser: nothing is uploaded.</p>
-        <p class="hint" id="outlook-note">Using Outlook? <a href="outlook/manifest.xml">Outlook add-in manifest</a> · <button id="outlook-how" class="link" type="button">how to install it</button></p>
+        <p class="hint" id="outlook-note">Using Outlook? <a href="outlook/manifest.xml" download="manifest.xml">Download the Outlook add-in manifest</a> · <button id="outlook-how" class="link" type="button">how to install it</button></p>
       </header>
 
       <div class="tabs" role="tablist">
@@ -326,11 +326,11 @@
         <div class="row">
           <input id="manifest-url" type="text" readonly value="https://jkft007.github.io/SecretTransport/outlook/manifest.xml" spellcheck="false" />
           <button id="btn-copy-manifest" class="ghost small" type="button">Copy</button>
-          <a href="outlook/manifest.xml">Open</a>
+          <a id="btn-dl-manifest" class="btn-like" href="outlook/manifest.xml" download="manifest.xml">Download file</a>
         </div>
         <ol>
           <li>In Outlook choose <b>Get Add-ins</b> (or <b>Manage add-ins</b>), then <b>My add-ins</b>, then <b>Add a custom add-in</b>, then <b>Add from URL</b>.</li>
-          <li>Paste the manifest link above and confirm.</li>
+          <li>Paste the manifest link above and confirm. If your Outlook does not accept a link, press <b>Download file</b> instead and choose <b>Add from file</b> (browse to the downloaded <code>manifest.xml</code>).</li>
           <li>Open an email that holds a secret image or link and click <b>Reveal secret</b> on its toolbar. Type the passphrase in the pane.</li>
         </ol>
         <p class="hint">A Microsoft 365 admin can add the same manifest under <b>Integrated apps</b> for a whole team. The pane loads Microsoft's office.js (Outlook needs it); this page loads nothing from third parties. The add-in has been tested with a stand-in for Outlook, not yet inside every real Outlook, and some organisations block custom add-ins.</p>
