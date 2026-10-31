@@ -144,8 +144,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const COIN_T = 650; // how long a coin takes to fly out of the chest to its letter
   const PP_T = 1000; // a paper plane's whole trip: glide in, land, unfold
   const GHOST_T = 1100; // how long a letter takes to materialise out of the mist
-  const DR_GAP = Math.min(750, Math.max(250, 3200 / Math.max(1, lineYs.length))); // the dragon starts a new line this often
-  const DR_LT = 1100; // the dragon's sweep along one line
+  const DR_FLY = 650; // how long a letter takes to fly out of the dragon's mouth to its place
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
   const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
@@ -187,7 +186,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'seance' ? Math.max(T_RESOLVE, 1600) + 500
     : style === 'poltergeist' ? Math.max(T_RESOLVE, 1800) + 520 + 200
     : style === 'haunted' ? Math.max(T_RESOLVE, 1400) + 1100 + 450
-    : style === 'dragon' ? DR_GAP * (lineYs.length - 1) + DR_LT + 700
+    : style === 'dragon' ? Math.max(T_RESOLVE, 1800) + DR_FLY + 400
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
@@ -211,6 +210,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'seance' ? T_RES - 500
     : style === 'poltergeist' ? T_RES - 520 - 200
     : style === 'haunted' ? T_RES - 1100 - 450
+    : style === 'dragon' ? T_RES - DR_FLY - 400
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -2964,83 +2964,181 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
-  // Dragon: a dragon sweeps along each line breathing fire; every letter flares white-hot, then cools into place.
-  const lineSpan = lineYs.map((y) => {
-    const xs = visible.filter((c) => c.y === y).map((c) => c.x);
-    return { y, x0: Math.min(...xs), x1: Math.max(...xs) };
-  });
-  const lineFrac = (c: Cell) => {
-    const k = lineYs.indexOf(c.y);
-    const ln = lineSpan[k];
-    const f = (c.x - ln.x0) / Math.max(1, ln.x1 - ln.x0);
-    return { k, f: k % 2 ? 1 - f : f };
-  };
-  const dragonAt = (r: number, k: number, y: number, flap: number, dx: number, dir: number, tx: number) => {
-    const dy = Math.max(38, y - fs * 2.2);
+  // Dragon: a scaly dragon sits in the bottom-left corner and breathes the words out in a stream of fire;
+  // each letter flies from its mouth to its place, white-hot, and cools there.
+  const du = Math.min(1.3, Math.max(0.6, H / 300)); // the dragon is drawn in a 300-unit-high space and scaled
+  const drMouth = { x: 172 * du, y: H - 102 * du };
+  const scaled = (path: () => void, base0: string, base1: string, y0: number, y1: number) => {
     ctx.save();
-    ctx.translate(dx, dy);
-    ctx.scale(dir, 1);
-    const lx = (tx - dx) * dir;
-    const ly = y - dy;
-    for (let j = 0; j < 14; j++) {
-      const p = j / 13;
-      const jit = (Math.sin(r / 40 + j * 3 + k) + 1) * 2.5;
-      ctx.fillStyle = `rgba(255,${Math.round(210 - 130 * p)},40,${0.5 - 0.25 * p})`;
-      circ(50 + (lx - 50) * p + jit, -2 + (ly + 2) * p, 4 + 12 * p);
+    path();
+    ctx.clip();
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, base0);
+    g.addColorStop(1, base1);
+    ctx.fillStyle = g;
+    ctx.fillRect(-20, y0 - 10, 320, y1 - y0 + 20);
+    ctx.strokeStyle = 'rgba(190,255,200,.32)';
+    ctx.lineWidth = 1.2;
+    for (let row = 0, y = y0; y < y1 + 10; row++, y += 8) {
+      for (let x = -20 + (row % 2) * 5; x < 300; x += 10) {
+        ctx.beginPath();
+        ctx.arc(x, y, 5.5, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+      }
     }
-    ctx.fillStyle = '#2f7d4f';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 34, 12, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(-30, 2);
-    ctx.quadraticCurveTo(-60, 14 + flap * 4, -78, -4);
-    ctx.lineTo(-30, -4);
-    ctx.fill();
-    circ(38, -5, 10);
-    ctx.beginPath();
-    ctx.moveTo(40, -9);
-    ctx.lineTo(54, -3);
-    ctx.lineTo(40, 2);
-    ctx.fill();
-    ctx.fillStyle = '#7a1f2b';
-    ctx.beginPath();
-    ctx.moveTo(-4, -8);
-    ctx.lineTo(-26, -8 - 36 * Math.abs(flap));
-    ctx.lineTo(14, -10);
-    ctx.fill();
-    ctx.fillStyle = '#ffd24a';
-    circ(41, -8, 2.4);
     ctx.restore();
   };
+  const drawDragonBody = (open: number, r: number) => {
+    ctx.save();
+    ctx.translate(0, H);
+    ctx.scale(du, du);
+    ctx.fillStyle = '#5a1a2c'; // folded wing
+    ctx.beginPath();
+    ctx.moveTo(-5, -70);
+    ctx.lineTo(-22, -160);
+    ctx.lineTo(70, -98);
+    ctx.closePath();
+    ctx.fill();
+    scaled(() => { // tail along the floor
+      ctx.beginPath();
+      ctx.moveTo(90, 0);
+      ctx.lineTo(110, -16);
+      ctx.quadraticCurveTo(190, -26, 245, -3);
+      ctx.lineTo(245, 0);
+      ctx.closePath();
+    }, '#2f7a4c', '#1c4a31', -26, 0);
+    scaled(() => { // body
+      ctx.beginPath();
+      ctx.ellipse(50, -45, 78, 52, 0, 0, Math.PI * 2);
+    }, '#3f9a5f', '#1f5a3a', -97, 7);
+    scaled(() => { // neck
+      ctx.beginPath();
+      ctx.moveTo(40, -60);
+      ctx.quadraticCurveTo(50, -120, 85, -135);
+      ctx.lineTo(125, -110);
+      ctx.quadraticCurveTo(105, -95, 105, -50);
+      ctx.closePath();
+    }, '#4aa86b', '#2a6e48', -135, -50);
+    ctx.fillStyle = '#d8c9a0'; // horns
+    ctx.beginPath();
+    ctx.moveTo(92, -135);
+    ctx.lineTo(70, -168);
+    ctx.lineTo(114, -131);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(110, -131);
+    ctx.lineTo(100, -158);
+    ctx.lineTo(126, -127);
+    ctx.fill();
+    if (open > 0.03) { // the glowing throat
+      ctx.fillStyle = `rgba(255,${Math.round(110 + 80 * Math.sin(r / 60) ** 2)},30,.95)`;
+      ctx.beginPath();
+      ctx.moveTo(100, -104);
+      ctx.lineTo(168, -104);
+      ctx.lineTo(150, -104 + 22 * open);
+      ctx.lineTo(100, -96 + 8 * open);
+      ctx.fill();
+    }
+    scaled(() => { // upper head
+      ctx.beginPath();
+      ctx.moveTo(80, -135);
+      ctx.lineTo(150, -129);
+      ctx.quadraticCurveTo(178, -120, 174, -106);
+      ctx.lineTo(100, -104);
+      ctx.quadraticCurveTo(78, -100, 74, -118);
+      ctx.closePath();
+    }, '#55b877', '#2f7a4c', -135, -104);
+    ctx.save(); // lower jaw swings down from its hinge
+    ctx.translate(100, -104);
+    ctx.rotate(open * 0.55);
+    ctx.translate(-100, 104);
+    scaled(() => {
+      ctx.beginPath();
+      ctx.moveTo(100, -104);
+      ctx.lineTo(168, -104);
+      ctx.quadraticCurveTo(164, -92, 132, -89);
+      ctx.lineTo(96, -92);
+      ctx.closePath();
+    }, '#3f9a5f', '#2a6e48', -104, -89);
+    ctx.fillStyle = '#f2ecd6'; // teeth
+    for (let k = 0; k < 4; k++) {
+      ctx.beginPath();
+      ctx.moveTo(122 + k * 12, -104);
+      ctx.lineTo(126 + k * 12, -96);
+      ctx.lineTo(130 + k * 12, -104);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.fillStyle = '#ffd24a'; // eye with a slit pupil, and a nostril
+    ctx.beginPath();
+    ctx.ellipse(128, -121, 5, 3.6, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#16100a';
+    ctx.fillRect(127, -125, 1.8, 7);
+    ctx.beginPath();
+    ctx.ellipse(160, -120, 2.6, 1.6, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+  const drPath = (c: Cell, q: number) => {
+    const cx = (drMouth.x + c.x) / 2;
+    const cy = Math.min(drMouth.y, c.y) - 50 * du;
+    const a = (1 - q) * (1 - q);
+    const b = 2 * q * (1 - q);
+    return { x: a * drMouth.x + b * cx + q * q * c.x, y: a * drMouth.y + b * cy + q * q * c.y };
+  };
+  const drFirst = Math.min(...visible.map((c) => c.lock));
+  const drLast = Math.max(...visible.map((c) => c.lock));
   const drawDragon = (r: number) => {
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, '#2a0f1c');
     g.addColorStop(1, `rgb(${BG})`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
+    const active = r >= drFirst - 150 && r <= drLast + DR_FLY * 0.5;
+    const open = active ? 0.6 + 0.4 * Math.sin(r / 110) ** 2 : 0;
+    const glow = ctx.createRadialGradient(drMouth.x, drMouth.y, 5, drMouth.x, drMouth.y, W * 0.5);
+    glow.addColorStop(0, `rgba(255,140,40,${active ? 0.22 : 0.04})`);
+    glow.addColorStop(1, 'rgba(255,140,40,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+    drawDragonBody(open, r);
+    if (active) { // the fire stream, aimed at the middle of the text
+      const aim = Math.atan2(H * 0.4 - drMouth.y, W * 0.55 - drMouth.x);
+      const len = Math.min(W * 0.3, 240);
+      for (let j = 0; j < 18; j++) {
+        const p = j / 17;
+        const wob = Math.sin(r / 45 + j * 1.7) * 6 * p * du;
+        const x = drMouth.x + Math.cos(aim) * len * p - Math.sin(aim) * wob;
+        const y = drMouth.y + Math.sin(aim) * len * p + Math.cos(aim) * wob;
+        ctx.fillStyle = p < 0.35 ? `rgba(255,230,130,${0.6 - p})` : `rgba(255,${Math.round(150 - 90 * p)},40,${0.55 - 0.3 * p})`;
+        circ(x, y, (4 + 16 * p) * du);
+      }
+    }
     ctx.font = `${fs}px ${FONT}`;
     for (const c of visible) {
-      const { k, f } = lineFrac(c);
-      const rr = r - (k * DR_GAP + f * DR_LT);
+      const rr = r - c.lock;
       if (rr < 0) continue;
-      const p = clamp1(rr / 700);
+      if (rr < DR_FLY) {
+        const q = rr / DR_FLY;
+        for (let k = 4; k >= 1; k--) {
+          const pq = q - k * 0.06;
+          if (pq < 0) continue;
+          const tp = drPath(c, pq);
+          ctx.fillStyle = `rgba(255,${Math.round(190 - 25 * k)},50,${0.5 - k * 0.1})`;
+          circ(tp.x, tp.y, 3.4 - k * 0.5);
+        }
+        const p = drPath(c, q);
+        textLit(c, '#fff6c0', 'rgba(255,150,40,.95)', 14, p.x, p.y, 0.4 + 0.6 * q);
+        continue;
+      }
+      const p = clamp1((rr - DR_FLY) / 500);
       ctx.fillStyle = `rgb(${Math.round(255 - 23 * p)},${Math.round(246 + 9 * p)},${Math.round(192 + 52 * p)})`;
       ctx.shadowColor = `rgba(255,${Math.round(140 + 70 * p)},40,${0.95 - 0.35 * p})`;
-      ctx.shadowBlur = 16 - 9 * p;
+      ctx.shadowBlur = 14 - 8 * p;
       ctx.fillText(c.ch, c.x, c.y);
       ctx.shadowBlur = 0;
     }
-    lineSpan.forEach((ln, k) => {
-      const rr = r - k * DR_GAP;
-      if (rr < -100 || rr > DR_LT + 200) return;
-      const f = clamp1(rr / DR_LT);
-      const dir = k % 2 ? -1 : 1;
-      const run = ln.x1 - ln.x0;
-      const dx = dir > 0 ? ln.x0 - 50 + f * (run + 100) : ln.x1 + 50 - f * (run + 100);
-      const tx = dir > 0 ? ln.x0 + f * run : ln.x1 - f * run;
-      dragonAt(r, k, ln.y, Math.sin(r / 75), dx, dir, tx);
-    });
     fadeToFinal(r);
   };
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
