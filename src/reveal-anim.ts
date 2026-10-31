@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,7 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
-  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows',
+  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -154,7 +154,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const GEN_IN = 700; // the genie is out and ready this long after the intro starts; the words begin after that
   const GEN_FLY = 600; // a letter's flight from the genie's hand to its place
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -199,6 +199,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'genie' ? GEN_IN + Math.max(T_RESOLVE, 1800) + GEN_FLY + 300
     : style === 'fartgun' ? Math.max(T_RESOLVE, 1600) + 380 + 450 + 200
     : style === 'arrows' ? Math.max(T_RESOLVE, 1500) + 420 + 1200
+    : style === 'tiles' ? Math.max(T_RESOLVE, 1500) + 450 + 250
     : style === 'roadrunner' ? RR_GAP * (lineYs.length - 1) + RR_LT + RR_LAG + 350 + RR_BANG + 200
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
@@ -227,6 +228,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'genie' ? T_RES - GEN_IN - GEN_FLY - 300
     : style === 'fartgun' ? T_RES - 380 - 450 - 200
     : style === 'arrows' ? T_RES - 420 - 1200
+    : style === 'tiles' ? T_RES - 450 - 250
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -3820,6 +3822,103 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Word tiles: letters are wooden tiles that fly in from a rack and land on a board, each with its score.
+  const TILE_T = 450; // a tile's flight from the rack
+  const TILE_SETTLE = 250; // its bounce on landing
+  const tw = cw * 0.96;
+  const th = fs * 1.15;
+  const tilePts = (ch: string) => {
+    const u = ch.toUpperCase();
+    return 'AEIOULNSTR'.includes(u) ? 1 : 'DG'.includes(u) ? 2 : 'BCMP'.includes(u) ? 3 : 'FHVWY'.includes(u) ? 4 : u === 'K' ? 5 : 'JX'.includes(u) ? 8 : 'QZ'.includes(u) ? 10 : 0;
+  };
+  const tileAt = (cx: number, cy: number, ch: string, rot: number, lift: number, alpha = 1) => {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx, cy);
+    ctx.rotate(rot);
+    ctx.shadowColor = 'rgba(0,0,0,.5)';
+    ctx.shadowBlur = 3 + lift * 10;
+    ctx.shadowOffsetY = 2 + lift * 8;
+    ctx.fillStyle = '#f0d9a4';
+    ctx.fillRect(-tw / 2, -th / 2, tw, th);
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = '#c4a063';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-tw / 2 + 0.5, -th / 2 + 0.5, tw - 1, th - 1);
+    ctx.fillStyle = '#3a2a12';
+    ctx.font = `bold ${Math.round(fs * 0.85)}px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ch.toUpperCase(), 0, -fs * 0.04);
+    const pts = tilePts(ch);
+    if (pts) {
+      ctx.font = `${Math.max(6, Math.round(fs * 0.3))}px ${FONT}`;
+      ctx.textAlign = 'right';
+      ctx.fillText(String(pts), tw / 2 - 1, th / 2 - fs * 0.2);
+    }
+    ctx.restore();
+  };
+  const rackSlots = 7;
+  const rackX = (k: number) => W / 2 + (k - (rackSlots - 1) / 2) * (tw + 6);
+  const rackY = H - th / 2 - 10;
+  const tileStart = visible.map(() => ({ k: Math.floor(rnd() * rackSlots), rot: (rnd() - 0.5) * 1.2 }));
+  const drawTiles = (r: number) => {
+    ctx.fillStyle = '#1d4b36';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(255,255,255,.07)'; // the board's grid, with a few premium squares
+    ctx.lineWidth = 1;
+    const gx = tw + 1;
+    const gyy = th + 1;
+    for (let x = (W / 2) % gx; x < W; x += gx) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+    for (let y = (H / 2) % gyy; y < H; y += gyy) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+    const prem = ['rgba(200,60,60,.22)', 'rgba(240,150,170,.2)', 'rgba(90,150,220,.2)'];
+    for (let n = 0; n < 24; n++) {
+      const px = Math.floor(((n * 37) % 97) / 97 * (W / gx)) * gx + ((W / 2) % gx);
+      const py = Math.floor(((n * 61) % 89) / 89 * (H / gyy)) * gyy + ((H / 2) % gyy);
+      ctx.fillStyle = prem[n % 3];
+      ctx.fillRect(px - gx, py - gyy, gx, gyy);
+    }
+    ctx.fillStyle = '#7a5230'; // the rack, still holding a few tiles
+    ctx.fillRect(rackX(0) - tw, rackY - th / 2 - 6, rackX(rackSlots - 1) - rackX(0) + tw * 2, th + 12);
+    ctx.fillStyle = '#5c3a1e';
+    ctx.fillRect(rackX(0) - tw, rackY + th / 2 + 2, rackX(rackSlots - 1) - rackX(0) + tw * 2, 4);
+    'SECRET!'.split('').forEach((ch, k) => tileAt(rackX(k), rackY, ch, 0, 0));
+    const landed: Cell[] = [];
+    const flying: { c: Cell; i: number; q: number }[] = [];
+    visible.forEach((c, i) => {
+      const rr = r - c.lock;
+      if (rr < 0) return;
+      if (rr < TILE_T) flying.push({ c, i, q: rr / TILE_T });
+      else landed.push(c);
+    });
+    for (const c of landed) {
+      const e = r - c.lock - TILE_T;
+      const bounce = e < TILE_SETTLE ? Math.sin((e / TILE_SETTLE) * Math.PI) * -4 * (1 - e / TILE_SETTLE) : 0;
+      tileAt(c.x + cw / 2, c.y - fs * 0.4 + bounce, c.ch, 0, e < TILE_SETTLE ? 0.5 * (1 - e / TILE_SETTLE) : 0);
+    }
+    for (const f of flying) {
+      const s = tileStart[f.i];
+      const sx = rackX(s.k);
+      const ex = f.c.x + cw / 2;
+      const ey = f.c.y - fs * 0.4;
+      const q = ease(f.q);
+      const x = sx + (ex - sx) * q;
+      const y = rackY + (ey - rackY) * q - Math.sin(f.q * Math.PI) * 40;
+      tileAt(x, y, f.c.ch, s.rot * (1 - q), Math.sin(f.q * Math.PI));
+    }
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -3842,6 +3941,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     genie: drawGenie,
     fartgun: drawFartGun,
     arrows: drawArrows,
+    tiles: drawTiles,
   };
 
   const frame = (now: number) => {
