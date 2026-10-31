@@ -101,6 +101,13 @@
           </div>
         </div>
 
+        <details class="more" id="multi" hidden>
+          <summary>More messages in this photo <span class="hint" id="multi-summary">(optional)</span></summary>
+          <p class="hint">Hide up to 4 messages in one photo, each with its own passphrase (and optional pass code). Whoever has a passphrase or pass code sees only that message and cannot tell the others exist. Each message gets a share of the photo's room, so a bigger cover photo holds more. Not combined with splitting. The animation, reading time and expiry settings apply to every message.</p>
+          <div id="extra-msgs"></div>
+          <button id="btn-add-msg" class="ghost small" type="button">Add another message</button>
+        </details>
+
         <details class="more" id="more-opts">
           <summary>More options <span class="hint" id="opt-summary">(defaults)</span></summary>
           <div class="opt-grid">
@@ -130,7 +137,7 @@
               </select>
             </div>
           </div>
-          <label for="passcode" title="A second way in: the image key is also stored inside the image, locked by this pass code. Code art and QR code only.">Recipient pass code <span class="hint">(optional)</span></label>
+          <label for="passcode" title="A second way in: the image key is also stored inside the image, locked by this pass code. Not available for fake QR codes.">Recipient pass code <span class="hint">(optional)</span></label>
           <input id="passcode" type="password" autocomplete="off" spellcheck="false" />
           <div id="code-note" class="hint"></div>
           <label class="check" id="weak-code-row" hidden><input id="chk-weak-code" type="checkbox" /> Use this weak pass code anyway</label>

@@ -1,5 +1,7 @@
 import { decodeCodeArt, encodeCodeArt, MAX_PACKET, type Rgba } from './codeart';
-import { cropTo8, dctCapacity, embedDct, extractDct, MAX_COVER_SIDE } from './dct';
+import { cropTo8, extractDct, MAX_COVER_SIDE } from './dct';
+import { MAX_MESSAGES } from './lanes';
+import { findPhoto, hidePhoto, photoCapacity, photoLayout, type PhotoMessage } from './photo';
 import { decodeFakeQr, decodePlainQr, encodeFakeQr, encodePlainQr, linkOverhead, packetFromQrText } from './qrmodes';
 import { ExpiredError, NEVER_CLEAR, openPayload, sealPayload, WrongPassphraseError, type Payload } from './crypto';
 import { encodedLength } from './ecc';
@@ -7,7 +9,7 @@ import { byteCapacity } from './qr';
 import { fakeQrCapacity } from './qrmodes';
 import { MAX_PARTS, MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, PART_OVERHEAD, parseFrame } from './packet';
 import { assemble, splitPacket } from './split';
-import { embed, extract, stegoCapacity } from './stego';
+import { extract } from './stego';
 import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
 import { idToStyle, playReveal, styleToId, STYLES, type RevealHandle } from './reveal-anim';
 import { startScanner, type Scanner } from './camera';
@@ -150,7 +152,7 @@ function frameCapacity(cover?: Rgba): number {
     return lo;
   }
   const c = cover ?? { width: 1280, height: 848, data: new Uint8ClampedArray(0) };
-  return photoKind() === 'dct' ? dctCapacity(c) : stegoCapacity(c);
+  return photoCapacity(photoKind(), c, currentPhotoLayout());
 }
 
 const FRAMING = 70; // packet header, tag and file name
@@ -218,8 +220,58 @@ $('secret-file').addEventListener('change', () => {
 });
 $('photo-kind').addEventListener('change', syncKindUi);
 
+// ---- extra messages in one photo, each with its own passphrase and optional pass code -------
+type ExtraRow = { text: string; pass: string; passcode: string };
+
+function readExtras(): ExtraRow[] {
+  return [...$('extra-msgs').children].map((r) => ({
+    text: r.querySelector('textarea')!.value,
+    pass: r.querySelector<HTMLInputElement>('.x-pass')!.value,
+    passcode: r.querySelector<HTMLInputElement>('.x-code')!.value,
+  }));
+}
+
+function currentPhotoLayout() {
+  if (currentMode() !== 'photo') return { nMsg: 1, nLoc: 0 };
+  return photoLayout([{ passcode: $<HTMLInputElement>('passcode').value }, ...readExtras()]);
+}
+
+function syncExtras() {
+  const n = $('extra-msgs').children.length;
+  $('multi-summary').textContent = n ? `(${n} extra)` : '(optional)';
+  $<HTMLButtonElement>('btn-add-msg').hidden = n >= MAX_MESSAGES - 1;
+  syncKindUi();
+}
+
+$('btn-add-msg').onclick = () => {
+  const row = document.createElement('div');
+  row.className = 'extra';
+  row.innerHTML =
+    '<textarea rows="2" spellcheck="false" placeholder="Another secret message"></textarea>' +
+    '<div class="row"><input class="x-pass" type="password" autocomplete="off" spellcheck="false" placeholder="Its own passphrase" />' +
+    '<input class="x-code" type="password" autocomplete="off" spellcheck="false" placeholder="Pass code (optional)" />' +
+    '<button type="button" class="ghost small x-gen">Generate</button><button type="button" class="ghost small x-del">Remove</button></div>';
+  row.querySelector<HTMLButtonElement>('.x-gen')!.onclick = () => {
+    const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+    const chars = Array.from(crypto.getRandomValues(new Uint8Array(20)), (b) => alphabet[b % alphabet.length]).join('');
+    const i = row.querySelector<HTMLInputElement>('.x-pass')!;
+    i.value = chars.match(/.{4}/g)!.join('-');
+    i.type = 'text'; // shown once so it can be copied and passed on
+  };
+  row.querySelector<HTMLButtonElement>('.x-del')!.onclick = () => {
+    row.remove();
+    syncExtras();
+  };
+  row.addEventListener('input', syncKindUi);
+  $('extra-msgs').append(row);
+  syncExtras();
+  row.querySelector('textarea')!.focus();
+};
+$('passcode').addEventListener('input', syncKindUi);
+
 function syncModeUi() {
   const m = currentMode();
+  $('multi').hidden = m !== 'photo';
   $('decoy-row').hidden = m !== 'fakeqr';
   $('photo-opts').hidden = m !== 'photo';
   $('cover-row').hidden = m !== 'photo';
@@ -275,7 +327,7 @@ let outs: HTMLCanvasElement[] = [];
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const partName = (i: number, n: number) => (n > 1 ? `secret-part-${i + 1}-of-${n}.png` : 'secret.png');
 
-async function renderFrame(frame: Uint8Array, mode: Mode, kind: 'dct' | 'lsb', pass: string, cover: Rgba | null): Promise<Rgba> {
+async function renderFrame(frame: Uint8Array, mode: Mode, kind: 'dct' | 'lsb', pass: string, cover: Rgba | null, passcode = '', extras: PhotoMessage[] = []): Promise<Rgba> {
   if (mode === 'codeart') return encodeCodeArt(frame);
   if (mode === 'qr') return encodePlainQr(frame, siteBase());
   if (mode === 'fakeqr') {
@@ -284,7 +336,7 @@ async function renderFrame(frame: Uint8Array, mode: Mode, kind: 'dct' | 'lsb', p
     return encodeFakeQr(frame, decoy, pass);
   }
   const c = cover ?? generateCover(); // a fresh cover per part unless you chose one
-  return kind === 'dct' ? embedDct(cropTo8(c), frame, pass) : embed(c, frame, pass);
+  return hidePhoto(kind, c, [{ pass, passcode, packet: frame }, ...extras]);
 }
 
 function showOutputs(imgs: Rgba[], packetLen: number) {
@@ -356,10 +408,26 @@ $('btn-create').onclick = async () => {
     return setStatus(status, 'That pass code is too easy to guess. Make it longer, or tick "Use this weak pass code anyway".', true);
   }
 
-  // Photo and fake-QR images hide their data at positions derived from the passphrase, so a pass code could not even find it.
-  if (passcode && (currentMode() === 'photo' || currentMode() === 'fakeqr')) {
+  // A fake QR hides its data at positions derived from the passphrase, so a pass code could not even find it.
+  if (passcode && currentMode() === 'fakeqr') {
     $<HTMLDetailsElement>('more-opts').open = true;
-    return setStatus(status, 'A recipient pass code works with Code art and QR code only. Photo and fake QR images can only be found with the main passphrase, so clear the pass code or choose another style.', true);
+    return setStatus(status, 'A recipient pass code does not work with fake QR codes, whose data can only be found with the main passphrase. Clear the pass code or choose another style.', true);
+  }
+
+  // Extra messages in the same photo, each with its own passphrase and optional pass code.
+  const extraRows = currentMode() === 'photo' ? readExtras() : [];
+  for (const [i, x] of extraRows.entries()) {
+    const label = `Extra message ${i + 1}`;
+    if (!x.text || !x.pass) {
+      $<HTMLDetailsElement>('multi').open = true;
+      return setStatus(status, `${label} needs both its text and its own passphrase (or remove it).`, true);
+    }
+    for (const [what, v] of [['passphrase', x.pass], ['pass code', x.passcode]] as const) {
+      if (v && strength(v).level === 'weak') {
+        $<HTMLDetailsElement>('multi').open = true;
+        return setStatus(status, `${label}: that ${what} is too easy to guess. Make it longer or press Generate.`, true);
+      }
+    }
   }
 
   const btn = $<HTMLButtonElement>('btn-create');
@@ -378,7 +446,13 @@ $('btn-create').onclick = async () => {
     const readSecs = readTime === 60 ? 0 : readTime;
     const ttl = Number($<HTMLSelectElement>('expiry').value); // seconds, 0 = never
     const expiresAt = ttl > 0 ? Math.floor(Date.now() / 1000) + ttl : 0;
-    const packet = await sealPayload(payload, pass, packetMode, undefined, chosen ? styleToId(chosen) : 0, expiresAt, passcode, readSecs);
+    const anim = chosen ? styleToId(chosen) : 0;
+    // Photo images find a pass code through a locator record, so their packets carry no key slot.
+    const packet = await sealPayload(payload, pass, packetMode, undefined, anim, expiresAt, mode === 'photo' ? '' : passcode, readSecs);
+    const extras: PhotoMessage[] = [];
+    for (const x of extraRows) {
+      extras.push({ pass: x.pass, passcode: x.passcode, packet: await sealPayload({ kind: 'text', text: x.text }, x.pass, packetMode, undefined, anim, expiresAt, '', readSecs) });
+    }
 
     let cover: Rgba | null = null;
     if (mode === 'photo') {
@@ -389,8 +463,8 @@ $('btn-create').onclick = async () => {
       }
     }
     const maxFrame = frameCapacity(cover ?? undefined);
-    const split = $<HTMLInputElement>('chk-split').checked;
-    if (!split && packet.length > maxFrame) {
+    const split = $<HTMLInputElement>('chk-split').checked && extras.length === 0;
+    if (!split && [packet, ...extras.map((x) => x.packet)].some((p) => p.length > maxFrame)) {
       throw new Error(`Too much data for one image (about ${fmt(Math.max(0, maxFrame - FRAMING))} is the most for this style). Turn on splitting, pick a roomier style, or hide less.`);
     }
     const frames = split ? splitPacket(packet, maxFrame) : [packet];
@@ -399,7 +473,7 @@ $('btn-create').onclick = async () => {
     for (let i = 0; i < frames.length; i++) {
       setStatus(status, frames.length > 1 ? `Creating image ${i + 1} of ${frames.length}…` : 'Creating image…');
       await sleep(0); // let the status paint
-      imgs.push(await renderFrame(frames[i], mode, kind, pass, cover));
+      imgs.push(await renderFrame(frames[i], mode, kind, pass, cover, passcode, i === 0 ? extras : []));
     }
 
     const notes: string[] = [];
@@ -682,13 +756,14 @@ function showLockout(ms: number) {
   lockTimer = window.setInterval(tick, 1000);
 }
 
-async function decodeImage(img: Rgba, pass: string): Promise<{ frame: Uint8Array; mode: 'codeart' | 'stego' } | null> {
-  const attempts: [() => Promise<Uint8Array> | Uint8Array, 'codeart' | 'stego'][] = [
+/** `pass` in the result is the passphrase that opens the packet: a photo's pass code resolves to the passphrase behind it. */
+async function decodeImage(img: Rgba, pass: string): Promise<{ frame: Uint8Array; mode: 'codeart' | 'stego'; pass: string } | null> {
+  const attempts: [() => Promise<Uint8Array | { frame: Uint8Array; pass: string }> | Uint8Array, 'codeart' | 'stego'][] = [
     [() => decodePlainQr(img), 'codeart'],
     [() => decodeCodeArt(img), 'codeart'],
     [() => decodeFakeQr(img, pass), 'codeart'],
-    [() => extractDct(img, pass), 'stego'],
-    [() => extract(img, pass), 'stego'],
+    [() => findPhoto('dct', img, pass, (f) => void parseFrame(f)), 'stego'],
+    [() => findPhoto('lsb', img, pass, (f) => void parseFrame(f)), 'stego'],
     // images made before the memory-hard layout key
     [() => decodeFakeQr(img, pass, undefined, true), 'codeart'],
     [() => extractDct(img, pass, true), 'stego'],
@@ -696,9 +771,10 @@ async function decodeImage(img: Rgba, pass: string): Promise<{ frame: Uint8Array
   ];
   for (const [fn, mode] of attempts) {
     try {
-      const frame = await fn();
+      const found = await fn();
+      const frame = found instanceof Uint8Array ? found : found.frame;
       parseFrame(frame); // a whole packet or one part; checksum verified
-      return { frame, mode };
+      return { frame, mode, pass: found instanceof Uint8Array ? pass : found.pass };
     } catch {
       /* try the next method */
     }
@@ -723,11 +799,13 @@ $('btn-reveal').onclick = async () => {
     const frames: Uint8Array[] = [];
     let mode: 'codeart' | 'stego' = 'codeart';
     let unreadable = 0;
+    let openPass = pass;
     for (const im of images) {
       const r = await decodeImage(im.rgba, pass);
       if (r) {
         frames.push(r.frame);
         mode = r.mode;
+        if (r.pass !== pass) openPass = r.pass;
       } else unreadable++;
     }
     const asm = assemble(frames);
@@ -746,7 +824,7 @@ $('btn-reveal').onclick = async () => {
     }
     if (asm.state === 'corrupt') throw new Error('The parts do not fit together (damaged, or from different secrets). Remove all images and add them again.');
 
-    const payload = await openPayload(asm.packet, pass);
+    const payload = await openPayload(asm.packet, openPass);
     recordSuccess(attemptStore, fp);
     const text = payload.kind === 'text' ? payload.text : `📄 ${payload.name}\n${fmt(payload.data.length)}`;
 

@@ -6,6 +6,7 @@
 import { decodeBuffer, encodeBuffer, encodedLength } from './ecc';
 import type { Rgba } from './codeart';
 import { layoutKey, legacyLayoutKey } from './kdf';
+import { laneOf, msgLaneSize, type Lane, type Layout, type Role } from './lanes';
 
 const COEFS: [number, number][] = [[1, 2], [2, 1], [2, 2], [0, 3], [3, 0], [1, 3]];
 const STEP = 44;
@@ -33,39 +34,38 @@ export function cropTo8(img: Rgba): Rgba {
 
 const slotCount = (img: Rgba) => (img.width >> 3) * (img.height >> 3) * COEFS.length;
 
+/** Slots reserved for each pass-code locator record (see photo.ts). */
+export const LOC_DCT = 5000;
+const SINGLE: Layout = { nMsg: 1, nLoc: 0 };
+
 function repsFor(slots: number, payloadBits: number): number {
   return Math.min(MAX_REPS, Math.floor((slots - HEADER_SLOTS) / payloadBits));
 }
 
-/** Largest packet (bytes) that fits with at least MIN_REPS copies per bit. */
-export function dctCapacity(img: Rgba): number {
+/** Largest record (bytes) one message lane can carry with at least MIN_REPS copies per bit. */
+export function dctCapacity(img: Rgba, layout: Layout = SINGLE): number {
+  const size = msgLaneSize(slotCount(cropTo8(img)), layout, LOC_DCT);
   let lo = 0;
   let hi = 60000;
   while (lo < hi) {
     const mid = (lo + hi + 1) >> 1;
-    if (repsFor(slotCount(img), encodedLength(mid) * 8) >= MIN_REPS) lo = mid;
+    if (repsFor(size, encodedLength(mid) * 8) >= MIN_REPS) lo = mid;
     else hi = mid - 1;
   }
   return lo;
 }
 
-function gcd(a: number, b: number): number {
-  while (b) [a, b] = [b, a % b];
-  return a;
-}
+/** Whether a locator lane can carry a record of this many bytes. */
+export const dctLocatorFits = (bytes: number) => repsFor(LOC_DCT, encodedLength(bytes) * 8) >= MIN_REPS;
 
-async function slotPermutation(S: number, passphrase: string, legacy: boolean): Promise<(k: number) => number> {
-  const h = legacy ? await legacyLayoutKey('ST-dct', passphrase) : await layoutKey(passphrase, 'dct');
-  const dv = new DataView(h.buffer);
-  let a = (dv.getUint32(0) % S) | 1;
-  while (gcd(a, S) !== 1) a = (a + 2) % S || 1;
-  const b = dv.getUint32(4) % S;
-  return (k) => (a * k + b) % S;
+async function laneFor(img: Rgba, key: string, layout: Layout, role: Role, index: number, legacy: boolean): Promise<Lane> {
+  const h = legacy ? await legacyLayoutKey('ST-dct', key) : await layoutKey(key, role === 'msg' ? 'dct' : 'dct-loc');
+  return laneOf(slotCount(img), layout, LOC_DCT, role, index, h);
 }
 
 /** Slot indices for header bit i, copy r; payload bit j, copy r. */
-function slotOf(perm: (k: number) => number, kind: 'h' | 'p', bit: number, rep: number, reps: number): number {
-  return perm(kind === 'h' ? bit * HEADER_REPS + rep : HEADER_SLOTS + bit * reps + rep);
+function slotOf(lane: Lane, kind: 'h' | 'p', bit: number, rep: number, reps: number): number {
+  return lane.at(kind === 'h' ? bit * HEADER_REPS + rep : HEADER_SLOTS + bit * reps + rep);
 }
 
 const luma = (d: Uint8ClampedArray, o: number) => 0.299 * d[o] + 0.587 * d[o + 1] + 0.114 * d[o + 2];
@@ -83,20 +83,28 @@ function coefficient(img: Rgba, bx: number, by: number, u: number, v: number): n
   return s;
 }
 
+export type DctEntry = { role: Role; index: number; key: string; data: Uint8Array };
+
 export async function embedDct(cover: Rgba, packet: Uint8Array, passphrase: string, legacy = false): Promise<Rgba> {
+  return embedDctEntries(cover, [{ role: 'msg', index: 0, key: passphrase, data: packet }], SINGLE, legacy);
+}
+
+/** Hides every entry in its own lane of one photo. */
+export async function embedDctEntries(cover: Rgba, entries: DctEntry[], layout: Layout, legacy = false): Promise<Rgba> {
   const img = cropTo8(cover);
   const S = slotCount(img);
-  const enc = encodeBuffer(packet);
-  const reps = repsFor(S, enc.length * 8);
-  if (reps < MIN_REPS) throw new Error('Cover photo is too small for this message. Use a larger photo or less text.');
-  const perm = await slotPermutation(S, passphrase, legacy);
-
   const want = new Int8Array(S).fill(-1);
-  for (let i = 0; i < HEADER_BITS; i++)
-    for (let r = 0; r < HEADER_REPS; r++) want[slotOf(perm, 'h', i, r, reps)] = (packet.length >> (HEADER_BITS - 1 - i)) & 1;
-  for (let j = 0; j < enc.length * 8; j++) {
-    const bit = (enc[j >> 3] >> (7 - (j & 7))) & 1;
-    for (let r = 0; r < reps; r++) want[slotOf(perm, 'p', j, r, reps)] = bit;
+  for (const e of entries) {
+    const lane = await laneFor(img, e.key, layout, e.role, e.index, legacy);
+    const enc = encodeBuffer(e.data);
+    const reps = repsFor(lane.size, enc.length * 8);
+    if (reps < MIN_REPS) throw new Error('Cover photo is too small for this message. Use a larger photo or less text.');
+    for (let i = 0; i < HEADER_BITS; i++)
+      for (let r = 0; r < HEADER_REPS; r++) want[slotOf(lane, 'h', i, r, reps)] = (e.data.length >> (HEADER_BITS - 1 - i)) & 1;
+    for (let j = 0; j < enc.length * 8; j++) {
+      const bit = (enc[j >> 3] >> (7 - (j & 7))) & 1;
+      for (let r = 0; r < reps; r++) want[slotOf(lane, 'p', j, r, reps)] = bit;
+    }
   }
 
   const out: Rgba = { width: img.width, height: img.height, data: new Uint8ClampedArray(img.data) };
@@ -131,9 +139,13 @@ export async function embedDct(cover: Rgba, packet: Uint8Array, passphrase: stri
 }
 
 export async function extractDct(img: Rgba, passphrase: string, legacy = false): Promise<Uint8Array> {
-  const S = slotCount(img);
-  if (S < HEADER_SLOTS + 8) throw new Error('No hidden data');
-  const perm = await slotPermutation(S, passphrase, legacy);
+  return extractDctLane(img, passphrase, SINGLE, 'msg', 0, legacy);
+}
+
+/** Reads the record in one lane, or throws when the key finds nothing there. */
+export async function extractDctLane(img: Rgba, key: string, layout: Layout, role: Role, index: number, legacy = false): Promise<Uint8Array> {
+  const lane = await laneFor(img, key, layout, role, index, legacy);
+  if (lane.size < HEADER_SLOTS + 8) throw new Error('No hidden data');
   const cache = new Map<number, number>();
   // Positive soft value => bit 0, negative => bit 1.
   const soft = (slot: number): number => {
@@ -153,17 +165,17 @@ export async function extractDct(img: Rgba, passphrase: string, legacy = false):
   let len = 0;
   for (let i = 0; i < HEADER_BITS; i++) {
     let sum = 0;
-    for (let r = 0; r < HEADER_REPS; r++) sum += soft(slotOf(perm, 'h', i, r, 0));
+    for (let r = 0; r < HEADER_REPS; r++) sum += soft(slotOf(lane, 'h', i, r, 0));
     len = (len << 1) | (sum > 0 ? 0 : 1);
   }
   const bits = encodedLength(len) * 8;
   if (len < 1) throw new Error('No hidden data');
-  const reps = repsFor(S, bits);
+  const reps = repsFor(lane.size, bits);
   if (reps < MIN_REPS) throw new Error('No hidden data');
   const enc = new Uint8Array(bits / 8);
   for (let j = 0; j < bits; j++) {
     let sum = 0;
-    for (let r = 0; r < reps; r++) sum += soft(slotOf(perm, 'p', j, r, reps));
+    for (let r = 0; r < reps; r++) sum += soft(slotOf(lane, 'p', j, r, reps));
     if (sum <= 0) enc[j >> 3] |= 1 << (7 - (j & 7));
   }
   return decodeBuffer(enc, len);
