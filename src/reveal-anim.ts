@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine' | 'bomber' | 'kraken';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine' | 'bomber' | 'kraken' | 'thor';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,7 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
-  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken',
+  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -158,7 +158,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const GW_LT = Math.min(1800, Math.max(700, 5200 / Math.max(1, lineYs.length))); // the ghostly finger's slow write along one line
   const GW_GAP = GW_LT + 160; // plus its lift to the next line
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -212,6 +212,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'submarine' ? Math.max(T_RESOLVE, 1600) + 450 + 450 + 200
     : style === 'bomber' ? Math.max(T_RESOLVE, 1700) + 650 + 400
     : style === 'kraken' ? Math.max(T_RESOLVE, 1800) + 700 + 700 + 200
+    : style === 'thor' ? Math.max(T_RESOLVE, 1700) + 880 + 200
     : style === 'roadrunner' ? RR_GAP * (lineYs.length - 1) + RR_LT + RR_LAG + 350 + RR_BANG + 200
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
@@ -247,6 +248,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'submarine' ? T_RES - 450 - 450 - 200
     : style === 'bomber' ? T_RES - 650 - 400
     : style === 'kraken' ? T_RES - 700 - 700 - 200
+    : style === 'thor' ? T_RES - 880 - 200
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -4908,6 +4910,137 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Thor's hammer: a mighty hammer spins out of the storm to strike each word, lightning cracks down on it, and
+  // the hammer flies back to its owner's hand.
+  const THOR_OUT = 380; // the hammer's throw
+  const THOR_END = 880; // when it is back in hand
+  const thorHome = { x: W * 0.07, y: H * 0.16 };
+  const thorBolt = wt.map(() => Array.from({ length: 9 }, () => (rnd() - 0.5) * 34));
+  const thorRain = Array.from({ length: 70 }, () => ({ x: rnd() * W, y: rnd() * H, v: 0.5 + rnd() * 0.6 }));
+  const hammer = (x: number, y: number, rot: number, sz: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.scale(sz, sz);
+    ctx.fillStyle = '#6b4a2e'; // handle
+    ctx.fillRect(-2.6, 8, 5.2, 28);
+    ctx.strokeStyle = '#c9b27a';
+    ctx.lineWidth = 1.5;
+    for (let k = 0; k < 4; k++) {
+      ctx.beginPath();
+      ctx.moveTo(-2.6, 14 + k * 5);
+      ctx.lineTo(2.6, 16 + k * 5);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(0, 38, 3.2, 0, Math.PI * 2);
+    ctx.stroke();
+    const head = ctx.createLinearGradient(0, -10, 0, 10);
+    head.addColorStop(0, '#c5ced8');
+    head.addColorStop(1, '#6f7a86');
+    ctx.fillStyle = head; // the head
+    ctx.fillRect(-14, -9, 28, 18);
+    ctx.fillStyle = '#58626d';
+    ctx.fillRect(-17, -10, 4, 20);
+    ctx.fillRect(13, -10, 4, 20);
+    ctx.strokeStyle = 'rgba(40,50,60,.7)'; // engraved knotwork
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-9, -3);
+    ctx.lineTo(-3, 3);
+    ctx.lineTo(3, -3);
+    ctx.lineTo(9, 3);
+    ctx.stroke();
+    ctx.restore();
+  };
+  const drawThor = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0c1224');
+    g.addColorStop(1, '#1d2740');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(70,80,110,.45)'; // storm clouds
+    for (let k = 0; k < 7; k++) circ(W * (k / 6) + Math.sin(r / 900 + k) * 10, 8 + (k % 2) * 8, 38 + (k % 3) * 8);
+    ctx.strokeStyle = 'rgba(170,190,230,.28)'; // rain
+    ctx.lineWidth = 1;
+    for (const d of thorRain) {
+      const y = (((d.y + r * d.v * 0.9) % H) + H) % H;
+      ctx.beginPath();
+      ctx.moveTo(d.x, y);
+      ctx.lineTo(d.x - 3, y + 10);
+      ctx.stroke();
+    }
+    const sz = Math.min(1.5, Math.max(0.9, fs / 14));
+    let shake = 0;
+    let flash = 0;
+    for (const { t0 } of wt) {
+      const e = r - t0 - THOR_OUT;
+      if (e >= 0 && e < 150) {
+        flash = Math.max(flash, 0.28 * (1 - e / 150));
+        shake = Math.max(shake, 3 * (1 - e / 150));
+      }
+    }
+    ctx.save();
+    ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+    ctx.font = `${fs}px ${FONT}`;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const tx = w.cx;
+      const ty = w.cells[0].y - fs * 0.3;
+      if (rr < THOR_END) {
+        let hx: number;
+        let hy: number;
+        let rot: number;
+        if (rr < THOR_OUT) {
+          const q = rr / THOR_OUT;
+          const e = q * q;
+          hx = thorHome.x + (tx - thorHome.x) * e;
+          hy = thorHome.y + (ty - thorHome.y) * e;
+          rot = rr * 0.03;
+        } else if (rr < THOR_OUT + 120) {
+          hx = tx;
+          hy = ty;
+          rot = THOR_OUT * 0.03;
+        } else {
+          const q = ease((rr - THOR_OUT - 120) / (THOR_END - THOR_OUT - 120));
+          hx = tx + (thorHome.x - tx) * q;
+          hy = ty + (thorHome.y - ty) * q;
+          rot = THOR_OUT * 0.03 - q * 6;
+        }
+        hammer(hx, hy, rot, sz);
+      }
+      if (rr < THOR_OUT) continue;
+      const e = rr - THOR_OUT;
+      if (e < 240) { // the lightning
+        const a = 1 - e / 240;
+        ctx.lineJoin = 'round';
+        for (const [lw, col] of [[7, `rgba(110,160,255,${0.45 * a})`], [2.4, `rgba(255,255,255,${a})`]] as [number, string][]) {
+          ctx.strokeStyle = col;
+          ctx.lineWidth = lw;
+          ctx.beginPath();
+          ctx.moveTo(tx + thorBolt[i][0], 0);
+          for (let k = 1; k <= 8; k++) ctx.lineTo(tx + thorBolt[i][k] * (1 - k / 9), (ty * k) / 8);
+          ctx.stroke();
+        }
+      }
+      if (e < 350) {
+        ctx.strokeStyle = `rgba(150,200,255,${0.8 * (1 - e / 350)})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(tx, ty, 8 + 70 * (e / 350), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      for (const c of w.cells) textLit(c, '#e8f4ff', 'rgba(110,170,255,.95)', 12 - 6 * clamp1(e / 600), c.x, c.y, clamp1(e / 80));
+    }
+    ctx.restore();
+    if (flash) {
+      ctx.fillStyle = `rgba(210,225,255,${flash})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -4939,6 +5072,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     submarine: drawSubmarine,
     bomber: drawBomber,
     kraken: drawKraken,
+    thor: drawThor,
   };
 
   const frame = (now: number) => {
