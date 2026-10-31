@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,7 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
-  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner',
+  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -145,14 +145,16 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const PP_T = 1000; // a paper plane's whole trip: glide in, land, unfold
   const GHOST_T = 1100; // how long a letter takes to materialise out of the mist
   const DR_FLY = 650; // how long a letter takes to fly out of the dragon's mouth to its place
-  const PNK_LT = Math.min(1300, Math.max(500, 4200 / Math.max(1, lineYs.length))); // its tiptoe along one line
+  const PNK_LT = Math.min(1700, Math.max(700, 5200 / Math.max(1, lineYs.length))); // its creep along one line
   const PNK_GAP = PNK_LT + 80; // one panther at a time: the next line starts when it is done
   const RR_LT = Math.min(900, Math.max(400, 3000 / Math.max(1, lineYs.length))); // the bird's dash along one line
   const RR_GAP = RR_LT + 60; // one chase at a time
   const RR_LAG = 320; // how far behind the bird the coyote runs
   const RR_BANG = 700; // how long the bang lasts
+  const GEN_IN = 700; // the genie is out and ready this long after the intro starts; the words begin after that
+  const GEN_FLY = 600; // a letter's flight from the genie's hand to its place
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -194,6 +196,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'haunted' ? Math.max(T_RESOLVE, 1400) + 1100 + 450
     : style === 'dragon' ? Math.max(T_RESOLVE, 1800) + DR_FLY + 400
     : style === 'panther' ? PNK_GAP * (lineYs.length - 1) + PNK_LT + 700
+    : style === 'genie' ? GEN_IN + Math.max(T_RESOLVE, 1800) + GEN_FLY + 300
+    : style === 'fartgun' ? Math.max(T_RESOLVE, 1600) + 380 + 450 + 200
+    : style === 'arrows' ? Math.max(T_RESOLVE, 1500) + 420 + 1200
     : style === 'roadrunner' ? RR_GAP * (lineYs.length - 1) + RR_LT + RR_LAG + 350 + RR_BANG + 200
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
@@ -219,6 +224,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'poltergeist' ? T_RES - 520 - 200
     : style === 'haunted' ? T_RES - 1100 - 450
     : style === 'dragon' ? T_RES - DR_FLY - 400
+    : style === 'genie' ? T_RES - GEN_IN - GEN_FLY - 300
+    : style === 'fartgun' ? T_RES - 380 - 450 - 200
+    : style === 'arrows' ? T_RES - 420 - 1200
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -3149,18 +3157,18 @@ export function playReveal(o: RevealOptions): RevealHandle {
     }
     fadeToFinal(r);
   };
-  // Pink panther: a sleek pink cat tiptoes along each line under a spotlight, and the words light up as it passes.
+  // Pink panther: a sleek pink cat sneaks along each line in creeping bursts, glancing about, and writes the words with a big pen.
   const pnkSpan = lineYs.map((y) => {
     const xs = visible.filter((c) => c.y === y).map((c) => c.x);
     return { y, x0: Math.min(...xs), x1: Math.max(...xs) };
   });
-  const pnkTime = (c: Cell) => {
-    const k = lineYs.indexOf(c.y);
+  const stopGo = (f: number) => f - (0.9 * Math.sin(2 * Math.PI * 5 * f)) / (2 * Math.PI * 5); // 5 creeps with a pause between
+  const pnkPen = (k: number, f: number) => {
     const ln = pnkSpan[k];
-    const f = (c.x - ln.x0) / Math.max(1, ln.x1 - ln.x0);
-    return k * PNK_GAP + (k % 2 ? 1 - f : f) * PNK_LT;
+    const run = ln.x1 - ln.x0;
+    return k % 2 ? ln.x1 + 30 - f * (run + 60) : ln.x0 - 30 + f * (run + 60);
   };
-  const pink = (x: number, y: number, dir: number, ph: number, sz: number) => {
+  const pink = (x: number, y: number, dir: number, ph: number, sz: number, tipUp: number, glance: boolean, writing: boolean, t: number) => {
     ctx.save();
     ctx.translate(x, y + Math.abs(Math.sin(ph)) * -1.5 * sz);
     ctx.scale(dir * sz, sz);
@@ -3186,13 +3194,15 @@ export function playReveal(o: RevealOptions): RevealHandle {
     ctx.beginPath();
     ctx.ellipse(2, -20, 20, 6, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#ee6aa1'; // near legs
-    for (const lx of [-8, 20]) {
-      ctx.beginPath();
-      ctx.moveTo(lx, -16);
-      ctx.lineTo(lx + Math.sin(ph + (lx > 0 ? 0 : Math.PI)) * 7, -1);
-      ctx.stroke();
-    }
+    ctx.strokeStyle = '#ee6aa1'; // near back leg
+    ctx.beginPath();
+    ctx.moveTo(-8, -16);
+    ctx.lineTo(-8 + Math.sin(ph + Math.PI) * 7, -1);
+    ctx.stroke();
+    ctx.beginPath(); // near front leg
+    ctx.moveTo(20, -16);
+    ctx.lineTo(20 + Math.sin(ph) * 7, -1);
+    ctx.stroke();
     ctx.fillStyle = '#ff86b6'; // head
     ctx.beginPath();
     ctx.arc(30, -37, 11, 0, Math.PI * 2);
@@ -3207,16 +3217,46 @@ export function playReveal(o: RevealOptions): RevealHandle {
     ctx.beginPath();
     ctx.ellipse(46, -36, 2.4, 1.8, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#fff'; // a half-lidded, unimpressed eye
+    ctx.fillStyle = '#fff'; // a half-lidded eye that glances back while it checks nobody is watching
     ctx.beginPath();
     ctx.ellipse(36, -40, 4.2, 3.2, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#16101a';
-    circ(37.4, -39.2, 1.7);
+    circ(glance ? 34.4 : 37.4, -39.2, 1.7);
     ctx.fillStyle = '#ff86b6';
     ctx.beginPath();
-    ctx.ellipse(36, -41.4, 4.8, 2.4, 0, Math.PI, Math.PI * 2);
+    ctx.ellipse(36, -41.4, 4.8, glance ? 1.4 : 2.4, 0, Math.PI, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = '#ee6aa1'; // the arm, holding the pen out in front
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(16, -26);
+    ctx.lineTo(50, -24);
+    ctx.stroke();
+    ctx.strokeStyle = '#2a2a45'; // the pen: a big fountain pen
+    ctx.lineWidth = 5.4;
+    ctx.beginPath();
+    ctx.moveTo(40, -58);
+    ctx.lineTo(58, -tipUp - 3);
+    ctx.stroke();
+    ctx.strokeStyle = '#f2c44a';
+    ctx.lineWidth = 4.6;
+    ctx.beginPath();
+    ctx.moveTo(54, -tipUp - 12);
+    ctx.lineTo(55.5, -tipUp - 8);
+    ctx.stroke();
+    ctx.fillStyle = '#ff86b6'; // paw over the pen
+    circ(50, -24, 3.6);
+    ctx.fillStyle = '#d8d8e8'; // nib
+    ctx.beginPath();
+    ctx.moveTo(56, -tipUp - 4);
+    ctx.lineTo(61, -tipUp - 4);
+    ctx.lineTo(60, -tipUp);
+    ctx.fill();
+    if (writing) {
+      ctx.fillStyle = '#ff5aa5';
+      circ(60, -tipUp + 1, 1.8 + Math.sin(t / 40) * 0.5);
+    }
     ctx.restore();
   };
   const drawPink = (r: number) => {
@@ -3228,15 +3268,16 @@ export function playReveal(o: RevealOptions): RevealHandle {
     const sz = Math.min(1.3, Math.max(0.8, fs / 16));
     let spot: { x: number; y: number } | null = null;
     pnkSpan.forEach((ln, k) => {
-      const rr = r - k * PNK_GAP;
-      if (rr < -200 || rr > PNK_LT + 300) return;
-      const f = clamp1(rr / PNK_LT);
+      const rb = r - k * PNK_GAP;
+      if (rb < -200 || rb > PNK_LT + 300) return;
+      const f = clamp1(rb / PNK_LT);
+      const gf = stopGo(f);
       const dir = k % 2 ? -1 : 1;
-      const run = ln.x1 - ln.x0;
-      const px = (dir > 0 ? ln.x0 - 40 + f * (run + 80) : ln.x1 + 40 - f * (run + 80));
+      const pen = pnkPen(k, gf);
       const py = ln.y + fs * 0.75 * sz + 4;
-      spot = { x: px, y: py - 30 };
-      pink(px, py, dir, r / 140, sz);
+      const slow = 1 - 0.9 * Math.cos(2 * Math.PI * 5 * f) < 0.4;
+      spot = { x: pen, y: py - 30 };
+      pink(pen - dir * 60 * sz, py, dir, gf * 60, sz, (py - (ln.y - fs * 0.3)) / sz, slow && f > 0.02 && f < 0.98, f > 0.02 && f < 0.98 && !slow, r);
     });
     if (spot) {
       const s = spot as { x: number; y: number };
@@ -3248,17 +3289,20 @@ export function playReveal(o: RevealOptions): RevealHandle {
     }
     ctx.font = `${fs}px ${FONT}`;
     for (const c of visible) {
-      const rr = r - pnkTime(c);
-      if (rr < 0) continue;
-      const p = clamp1(rr / 500);
-      textLit(c, p < 1 ? '#ffd1e6' : '#ffe8f2', 'rgba(255,110,180,.8)', 12 - 6 * p, c.x, c.y, clamp1(rr / 180));
-      if (rr < 260) { // a little sparkle
-        const a = 1 - rr / 260;
+      const k = lineYs.indexOf(c.y);
+      const rb = r - k * PNK_GAP;
+      if (rb < 0) continue;
+      const dist = (k % 2 ? -1 : 1) * (pnkPen(k, stopGo(clamp1(rb / PNK_LT))) - c.x);
+      if (dist < 0) continue;
+      const p = clamp1(dist / (fs * 2));
+      textLit(c, p < 1 ? '#ffd1e6' : '#ffe8f2', 'rgba(255,110,180,.8)', 12 - 6 * p, c.x, c.y, clamp1(dist / (fs * 0.8)));
+      if (dist < fs * 1.1) {
+        const a = 1 - dist / (fs * 1.1);
         ctx.strokeStyle = `rgba(255,255,255,${a})`;
         ctx.lineWidth = 1.2;
         const sx = c.x + cw / 2;
         const sy = c.y - fs * 0.4;
-        const rad = 3 + 5 * (1 - a);
+        const rad = 3 + 4 * (1 - a);
         ctx.beginPath();
         ctx.moveTo(sx - rad, sy);
         ctx.lineTo(sx + rad, sy);
@@ -3269,6 +3313,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     }
     fadeToFinal(r);
   };
+
   // Road chase: a fast blue bird races along each line leaving the words behind it, with a coyote on a rocket
   // always a step behind. After the last line the coyote's rocket flies on, off the edge, and ends with a bang.
   const rrTime = (c: Cell) => {
@@ -3477,6 +3522,304 @@ export function playReveal(o: RevealOptions): RevealHandle {
     }
     fadeToFinal(r);
   };
+  // Genie: the cork pops, blue smoke pours out of the bottle and becomes a genie, who sweeps the words into place with a wave.
+  const gu = Math.min(1.3, Math.max(0.6, H / 300));
+  const gBottle = { x: 62 * gu, neck: H - 92 * gu };
+  const gHome = { x: gBottle.x + 8 * gu, y: gBottle.neck - 112 * gu };
+  const genieAt = (x: number, y: number, s: number, r: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(s * gu, s * gu);
+    const arm = Math.sin(r / 260) * 5;
+    ctx.fillStyle = '#4aa3ff'; // torso
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22, 28, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f2c44a'; // gold sash
+    ctx.beginPath();
+    ctx.moveTo(-20, -8);
+    ctx.lineTo(20, 8);
+    ctx.lineTo(20, 14);
+    ctx.lineTo(-20, -2);
+    ctx.fill();
+    ctx.strokeStyle = '#4aa3ff'; // arms
+    ctx.lineWidth = 9;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-18, -8);
+    ctx.quadraticCurveTo(-34, 4, -14, 12); // left hand on the hip
+    ctx.moveTo(18, -10);
+    ctx.quadraticCurveTo(40, -16 + arm, 56, -10 + arm * 1.4); // right arm, sweeping
+    ctx.stroke();
+    ctx.fillStyle = '#4aa3ff';
+    circ(57, -10 + arm * 1.4, 6);
+    ctx.strokeStyle = '#f2c44a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(44, -13 + arm * 1.2, 5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#4aa3ff'; // head
+    circ(0, -38, 14);
+    ctx.fillStyle = '#8a3fd0'; // turban
+    ctx.beginPath();
+    ctx.ellipse(0, -48, 15, 8, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(-15, -49, 30, 5);
+    ctx.fillStyle = '#f2c44a';
+    circ(0, -52, 3);
+    ctx.fillStyle = '#fff';
+    circ(-5, -39, 3.4);
+    circ(5, -39, 3.4);
+    ctx.fillStyle = '#111';
+    circ(-4, -39, 1.5);
+    circ(6, -39, 1.5);
+    ctx.fillStyle = '#16233a'; // goatee and a grin
+    ctx.beginPath();
+    ctx.moveTo(-4, -28);
+    ctx.lineTo(4, -28);
+    ctx.lineTo(0, -21);
+    ctx.fill();
+    ctx.strokeStyle = '#16233a';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(0, -33, 5, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.stroke();
+    ctx.restore();
+  };
+  const drawGenie = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1b1038');
+    g.addColorStop(1, '#0d0b22');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    for (let k = 0; k < 24; k++) { // faint stars
+      ctx.fillStyle = `rgba(255,240,200,${0.25 + 0.2 * Math.sin(r / 300 + k)})`;
+      circ(((k * 97) % 100) * 0.01 * W, ((k * 53) % 70) * 0.01 * H, 1.2);
+    }
+    const q = clamp1((r + T_INTRO) / (GEN_IN + T_INTRO - 100));
+    const e = ease(q);
+    const gx = gBottle.x + (gHome.x - gBottle.x) * e + Math.sin(r / 500) * 4;
+    const gy = gBottle.neck + (gHome.y - gBottle.neck) * e + Math.sin(r / 380) * 5;
+    const s = 0.35 + 0.65 * e;
+    const tailTop = gy + 26 * s * gu;
+    for (let j = 10; j >= 0; j--) { // smoke tail down into the bottle
+      const p = j / 10;
+      const x = gBottle.x + (gx - gBottle.x) * p + Math.sin(r / 150 + j * 0.9) * 9 * gu * p;
+      const y = gBottle.neck + (tailTop - gBottle.neck) * p;
+      ctx.fillStyle = `rgba(${90 + 60 * p},${160 + 50 * p},255,${0.85 - 0.25 * (1 - p)})`;
+      circ(x, y, (5 + 16 * p * s) * gu);
+    }
+    ctx.fillStyle = 'rgba(160,220,235,.5)'; // the bottle
+    ctx.strokeStyle = 'rgba(210,245,255,.8)';
+    ctx.lineWidth = 2;
+    const bx = gBottle.x;
+    const by = H - 6 * gu;
+    ctx.beginPath();
+    ctx.moveTo(bx - 9 * gu, gBottle.neck);
+    ctx.lineTo(bx - 9 * gu, by - 52 * gu);
+    ctx.quadraticCurveTo(bx - 30 * gu, by - 46 * gu, bx - 30 * gu, by - 24 * gu);
+    ctx.quadraticCurveTo(bx - 30 * gu, by, bx, by);
+    ctx.quadraticCurveTo(bx + 30 * gu, by, bx + 30 * gu, by - 24 * gu);
+    ctx.quadraticCurveTo(bx + 30 * gu, by - 46 * gu, bx + 9 * gu, by - 52 * gu);
+    ctx.lineTo(bx + 9 * gu, gBottle.neck);
+    ctx.stroke();
+    ctx.fill();
+    const cp = (r + T_INTRO - 100) / 450; // the cork pops out
+    if (cp < 1) {
+      const cy = cp < 0 ? gBottle.neck - 4 : gBottle.neck - 4 - 150 * cp + 120 * cp * cp * 0.3;
+      ctx.save();
+      ctx.translate(bx + (cp > 0 ? 30 * cp : 0), cy);
+      ctx.rotate(cp * 6);
+      ctx.fillStyle = '#c89050';
+      ctx.fillRect(-7 * gu, -6 * gu, 14 * gu, 12 * gu);
+      ctx.restore();
+      if (cp > 0 && cp < 0.5) {
+        ctx.strokeStyle = `rgba(255,240,180,${1 - cp * 2})`;
+        ctx.lineWidth = 2;
+        for (let j = 0; j < 8; j++) {
+          const a = (j / 8) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(bx + Math.cos(a) * 12 * gu, gBottle.neck + Math.sin(a) * 12 * gu);
+          ctx.lineTo(bx + Math.cos(a) * (22 + 30 * cp) * gu, gBottle.neck + Math.sin(a) * (22 + 30 * cp) * gu);
+          ctx.stroke();
+        }
+      }
+    }
+    genieAt(gx, gy, s, r);
+    const hand = { x: gx + 57 * s * gu, y: gy - 10 * s * gu };
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const rr = r - GEN_IN - c.lock;
+      if (rr < 0) continue;
+      if (rr < GEN_FLY) {
+        const p = rr / GEN_FLY;
+        const cx = (hand.x + c.x) / 2;
+        const cy = Math.min(hand.y, c.y) - 40 * gu;
+        const a = (1 - p) * (1 - p);
+        const b = 2 * p * (1 - p);
+        const x = a * hand.x + b * cx + p * p * c.x;
+        const y = a * hand.y + b * cy + p * p * c.y;
+        ctx.fillStyle = `rgba(255,225,120,${0.7 * (1 - p)})`;
+        for (let k = 1; k <= 3; k++) circ(x - k * 6 * (1 - p), y + k * 3, 2.6 - k * 0.5);
+        textLit(c, '#fff0b0', 'rgba(255,215,90,.95)', 12, x, y, 0.5 + 0.5 * p);
+        continue;
+      }
+      const p = clamp1((rr - GEN_FLY) / 500);
+      textLit(c, '#fff6d8', 'rgba(255,215,100,.8)', 10 - 5 * p, c.x, c.y);
+    }
+    fadeToFinal(r);
+  };
+
+  // Minion fart gun: a minion fires green puffs at the words; each puff bursts into a cloud and the word appears in it.
+  const FART_T = 380; // a puff's flight to its word
+  const FART_CLOUD = 450; // how long the burst takes to clear
+  const drawFartGun = (r: number) => {
+    const gy = H - 12;
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#173b2d');
+    bg.addColorStop(1, '#1b2b1f');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,.06)';
+    ctx.fillRect(0, gy + 2, W, H - gy);
+    const mx = Math.min(W * 0.18, 110);
+    let cur = -1;
+    for (const x of wt) if (x.t0 <= r) cur = x.i;
+    const aimW = cur < 0 ? wt[0] : wt[cur];
+    const tx = aimW ? aimW.w.cx : W / 2;
+    const ty = aimW ? aimW.w.cells[0].y - fs * 0.3 : H / 2;
+    const dir = tx >= mx ? 1 : -1;
+    const kick = cur < 0 ? 0 : Math.max(0, 1 - (r - wt[cur].t0) / 160);
+    minion(mx - dir * kick * 4, gy, dir, 0, cur % 3 === 0 ? 1 : 2, 0.15, kick * 4);
+    const hx = mx + dir * 14;
+    const hy = gy - 26;
+    const ang = Math.atan2(ty - hy, tx - hx);
+    ctx.save();
+    ctx.translate(hx - dir * kick * 4, hy);
+    ctx.rotate(dir > 0 ? ang : ang - Math.PI);
+    ctx.scale(dir, 1);
+    ctx.fillStyle = '#3d6f4a'; // the gun: a chunky gas gun with a tank
+    ctx.fillRect(-4, -5, 30, 9);
+    ctx.fillStyle = '#9bd36b';
+    circ(4, 8, 8);
+    ctx.fillStyle = '#c8cfd4';
+    ctx.fillRect(24, -6, 8, 11);
+    ctx.restore();
+    const muzzle = { x: hx + Math.cos(dir > 0 ? ang : ang - Math.PI) * 32 * dir, y: hy + Math.sin(dir > 0 ? ang : ang - Math.PI) * 32 * dir };
+    ctx.font = `${fs}px ${FONT}`;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const wy = w.cells[0].y - fs * 0.3;
+      if (rr < FART_T) {
+        const p = rr / FART_T;
+        const x = muzzle.x + (w.cx - muzzle.x) * p;
+        const y = muzzle.y + (wy - muzzle.y) * p - Math.sin(p * Math.PI) * 14;
+        ctx.fillStyle = 'rgba(150,210,80,.75)';
+        circ(x, y, 5 + 6 * p);
+        ctx.fillStyle = 'rgba(150,210,80,.35)';
+        circ(x - (w.cx - muzzle.x) * 0.06, y, 4 + 4 * p);
+        if (rr < 220) {
+          ctx.font = `bold ${Math.round(fs * 0.9)}px ${FONT}`;
+          ctx.fillStyle = `rgba(210,255,150,${1 - rr / 220})`;
+          ctx.fillText('pfft!', muzzle.x + dir * 8, muzzle.y - 14 - rr / 20);
+          ctx.font = `${fs}px ${FONT}`;
+        }
+        continue;
+      }
+      const e = rr - FART_T;
+      const span = (w.x1 - w.x0) / 2 + 14;
+      if (e < FART_CLOUD) {
+        const q = e / FART_CLOUD;
+        for (let k = 0; k < 7; k++) {
+          const a = (k / 7) * Math.PI * 2 + i;
+          ctx.fillStyle = `rgba(150,210,80,${0.55 * (1 - q)})`;
+          circ(w.cx + Math.cos(a) * span * 0.6 * q, wy + Math.sin(a) * 14 * q - q * 6, (10 + 14 * q) * (0.7 + (k % 3) * 0.2));
+        }
+      }
+      for (const c of w.cells) textLit(c, '#efffc4', 'rgba(150,230,90,.85)', 9 - 4 * clamp1(e / 500), c.x, c.y, clamp1(e / 200));
+    }
+    fadeToFinal(r);
+  };
+
+  // Red arrows: arrows whistle in from the sides and thunk in beside each word; the word jolts into view on impact.
+  const AR_T = 420; // an arrow's flight
+  const AR_STAY = 900; // how long it stays quivering before it fades
+  const arAng = wt.map((x) => (x.i % 2 ? Math.PI - 0.2 - rnd() * 0.25 : 0.2 + rnd() * 0.25));
+  const arrow = (px: number, py: number, a: number, alpha: number, wobble: number) => {
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(a + wobble);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#b8b8c0'; // shaft
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-52, 0);
+    ctx.lineTo(-6, 0);
+    ctx.stroke();
+    ctx.fillStyle = '#e63232'; // head
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-13, -6);
+    ctx.lineTo(-10, 0);
+    ctx.lineTo(-13, 6);
+    ctx.fill();
+    ctx.fillStyle = '#c42020'; // fletching
+    ctx.beginPath();
+    ctx.moveTo(-52, 0);
+    ctx.lineTo(-62, -7);
+    ctx.lineTo(-44, 0);
+    ctx.lineTo(-62, 7);
+    ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  };
+  const drawArrows = (r: number) => {
+    const g = ctx.createRadialGradient(W / 2, H / 2, 10, W / 2, H / 2, W * 0.7);
+    g.addColorStop(0, '#2a1216');
+    g.addColorStop(1, `rgb(${BG})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(230,50,50,.07)'; // a faint target behind everything
+    ctx.lineWidth = 6;
+    for (let k = 1; k <= 3; k++) {
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, k * Math.min(W, H) * 0.16, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const a = arAng[i];
+      const fromRight = i % 2 === 1;
+      const p = { x: fromRight ? w.x1 + cw * 0.9 : w.x0 - cw * 0.9, y: w.cells[0].y - fs * 0.3 };
+      if (rr < AR_T) {
+        const q = rr / AR_T;
+        const L = W * 0.75;
+        const sx = p.x - Math.cos(a) * L;
+        const sy = p.y - Math.sin(a) * L;
+        const e = q * q;
+        arrow(sx + (p.x - sx) * e, sy + (p.y - sy) * e, a, 1, 0);
+        continue;
+      }
+      const e = rr - AR_T;
+      const hit = clamp1(e / 150);
+      const jolt = (1 - clamp1(e / 260)) * 3;
+      for (const c of w.cells) textLit(c, '#ffe6e6', 'rgba(255,90,90,.85)', 9 - 4 * hit, c.x + (Math.random() - 0.5) * jolt, c.y + (Math.random() - 0.5) * jolt, hit);
+      if (e < 300) { // impact ring
+        ctx.strokeStyle = `rgba(255,110,110,${0.8 * (1 - e / 300)})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6 + 26 * (e / 300), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (e < AR_STAY + 300) arrow(p.x, p.y, a, e < AR_STAY ? 1 : 1 - (e - AR_STAY) / 300, Math.sin(e / 28) * 0.09 * (1 - clamp1(e / 400)));
+    }
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -3496,6 +3839,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     dragon: drawDragon,
     panther: drawPink,
     roadrunner: drawRoad,
+    genie: drawGenie,
+    fartgun: drawFartGun,
+    arrows: drawArrows,
   };
 
   const frame = (now: number) => {
