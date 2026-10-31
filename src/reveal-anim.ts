@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine' | 'bomber' | 'kraken' | 'thor' | 'spiders' | 'hatdance' | 'lasers';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine' | 'bomber' | 'kraken' | 'thor' | 'spiders' | 'hatdance' | 'lasers' | 'earthquake' | 'volcano';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,7 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
-  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers',
+  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -156,7 +156,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const RA_LT = Math.min(1900, Math.max(900, 7000 / Math.max(1, lineYs.length))); // the formation's pass along one line (a stately pace)
   const RA_GAP = RA_LT + 60; // one pass at a time
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -214,6 +214,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'spiders' ? Math.max(T_RESOLVE, 1700) + 900 + 800 + 150
     : style === 'hatdance' ? Math.max(T_RESOLVE, 1800) + 700 + 300
     : style === 'lasers' ? Math.max(T_RESOLVE, 2200) + 900 + 300
+    : style === 'earthquake' ? Math.max(T_RESOLVE, 1700) + 1100
+    : style === 'volcano' ? Math.max(T_RESOLVE, 1800) + 900 + 300
     : style === 'roadrunner' ? RR_GAP * (lineYs.length - 1) + RR_LT + RR_LAG + 350 + RR_BANG + 200
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
@@ -254,6 +256,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'spiders' ? T_RES - 900 - 800 - 150
     : style === 'hatdance' ? T_RES - 700 - 300
     : style === 'lasers' ? T_RES - 900 - 300
+    : style === 'earthquake' ? T_RES - 1100
+    : style === 'volcano' ? T_RES - 900 - 300
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -5387,6 +5391,207 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Earthquake: the ground shakes and the city's buildings topple one by one in clouds of dust; each word is
+  // uncovered as the building behind it comes down.
+  const QK_COL = 700; // a building's fall
+  const QK_DUST = 1300; // how long its dust hangs
+  const qkN = Math.max(6, Math.round(W / 62));
+  const qkW = W / qkN;
+  const qkGround = H - 24;
+  const qkB = Array.from({ length: qkN }, (_, k) => ({
+    x: k * qkW,
+    h: H * (0.36 + rnd() * 0.4),
+    dir: rnd() < 0.5 ? -1 : 1,
+    shade: 36 + Math.floor(rnd() * 26),
+    ct: -1,
+    rub: Array.from({ length: 6 }, () => rnd()),
+  }));
+  for (const { w, t0 } of wt) {
+    const b = qkB[Math.min(qkN - 1, Math.max(0, Math.floor(w.cx / qkW)))];
+    b.ct = b.ct < 0 ? t0 : Math.min(b.ct, t0);
+  }
+  for (const b of qkB) if (b.ct < 0) b.ct = rnd() * Math.max(600, T_RES - 1800); // buildings with no word still fall
+  const qkEnd = Math.max(...qkB.map((b) => b.ct));
+  const qkCrack = Array.from({ length: 40 }, () => rnd());
+  const drawQuake = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#2b2348');
+    g.addColorStop(1, '#c47a5a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    const rampUp = clamp1((r + T_INTRO) / 800);
+    const ease2 = r > qkEnd + QK_COL ? Math.max(0, 1 - (r - qkEnd - QK_COL) / 500) : 1;
+    const amp = (1.5 + 4.5 * rampUp) * ease2;
+    ctx.save();
+    ctx.translate((Math.random() - 0.5) * amp * 2, (Math.random() - 0.5) * amp);
+    ctx.fillStyle = '#26202c';
+    ctx.fillRect(-10, qkGround, W + 20, H - qkGround + 10);
+    for (const b of qkB) {
+      const bw2 = qkW * 0.9;
+      const e = r - b.ct;
+      const px = b.dir > 0 ? b.x + bw2 : b.x;
+      ctx.save();
+      if (e < 0) { // standing, shuddering harder as its turn nears
+        const sh = e > -500 ? (1 + e / 500) * 0.012 : 0.003;
+        ctx.translate(px, qkGround);
+        ctx.rotate(Math.sin(r / 35 + b.x) * sh);
+        ctx.translate(-px, -qkGround);
+      } else if (e < QK_COL) {
+        const q = e / QK_COL;
+        ctx.translate(px, qkGround);
+        ctx.rotate(b.dir * q * q * 1.25);
+        ctx.translate(-px, -qkGround + q * q * b.h * 0.5);
+        ctx.globalAlpha = 1 - q * q * 0.6;
+      }
+      if (e < QK_COL) {
+        ctx.fillStyle = `rgb(${b.shade},${b.shade - 4},${b.shade + 14})`;
+        ctx.fillRect(b.x, qkGround - b.h, bw2, b.h);
+        for (let wy = qkGround - b.h + 8; wy < qkGround - 12; wy += 14) {
+          for (let wx = b.x + 5; wx < b.x + bw2 - 6; wx += 11) {
+            const on = Math.sin(wx * 12.9 + wy * 7.1) > -0.1;
+            ctx.fillStyle = on ? 'rgba(255,215,120,.75)' : 'rgba(10,10,20,.5)';
+            ctx.fillRect(wx, wy, 5, 7);
+          }
+        }
+      }
+      ctx.restore();
+      if (e >= QK_COL * 0.8) { // the rubble heap
+        const hh = b.h * 0.16;
+        ctx.fillStyle = `rgb(${b.shade + 10},${b.shade + 4},${b.shade + 14})`;
+        ctx.beginPath();
+        ctx.moveTo(b.x - 6, qkGround);
+        ctx.lineTo(b.x + 4, qkGround - hh * b.rub[0]);
+        for (let j = 1; j <= 5; j++) ctx.lineTo(b.x + (bw2 * j) / 5, qkGround - hh * (0.3 + 0.7 * b.rub[j]));
+        ctx.lineTo(b.x + bw2 + 6, qkGround);
+        ctx.fill();
+      }
+    }
+    ctx.strokeStyle = '#0c0a10'; // cracks opening across the ground
+    ctx.lineWidth = 2;
+    const reach = clamp1((r + T_INTRO) / Math.max(1, qkEnd + QK_COL));
+    ctx.beginPath();
+    ctx.moveTo(0, qkGround + 6);
+    for (let j = 1; j <= 40; j++) {
+      if (j / 40 > reach) break;
+      ctx.lineTo((W * j) / 40, qkGround + 4 + qkCrack[j - 1] * 14);
+    }
+    ctx.stroke();
+    for (const b of qkB) { // dust clouds
+      const e = r - b.ct;
+      if (e < 0 || e > QK_DUST) continue;
+      for (let j = 0; j < 9; j++) {
+        const sp = 0.5 + (j % 3) * 0.3;
+        ctx.fillStyle = `rgba(190,170,150,${0.5 * (1 - e / QK_DUST)})`;
+        circ(b.x + qkW / 2 + Math.cos(j * 0.9 + b.x) * (qkW * 0.5 + e * 0.05), qkGround - 8 - e * 0.045 * sp - j * 4, 10 + e * 0.025 + (j % 3) * 3);
+      }
+    }
+    ctx.restore();
+    ctx.font = `${fs}px ${FONT}`;
+    for (const { w, t0 } of wt) {
+      const rr = r - t0 - 250;
+      if (rr < 0) continue;
+      for (const c of w.cells) textLit(c, '#fff1d8', 'rgba(255,200,120,.85)', 9 - 4 * clamp1(rr / 500), c.x, c.y, clamp1(rr / 350));
+    }
+    fadeToFinal(r);
+  };
+
+  // Volcano: a mountain erupts; lava bombs carrying the letters are flung out of the crater, arc through the
+  // ash and land in place, glowing, and cool.
+  const VOLC_T = 900; // a lava bomb's flight
+  const vuH = H;
+  const vApex = { x: W / 2, y: vuH * 0.56 };
+  const volcAsh = Array.from({ length: 14 }, () => ({ ph: rnd() * 6, sp: 0.4 + rnd() * 0.5, sd: (rnd() - 0.5) * 60 }));
+  const drawVolcano = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#190b16');
+    g.addColorStop(1, '#4a1a14');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    const first = Math.min(...visible.map((c) => c.lock));
+    const last = Math.max(...visible.map((c) => c.lock));
+    const active = r > first - 300 && r < last + VOLC_T * 0.6;
+    const rumble = r < last ? Math.sin(r / 30) * 1.5 : 0;
+    const glowA = (active ? 0.4 : 0.15) + 0.1 * Math.sin(r / 120);
+    const gl = ctx.createRadialGradient(vApex.x, vApex.y, 4, vApex.x, vApex.y, W * 0.5);
+    gl.addColorStop(0, `rgba(255,120,30,${glowA})`);
+    gl.addColorStop(1, 'rgba(255,120,30,0)');
+    ctx.fillStyle = gl;
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(rumble, 0);
+    ctx.fillStyle = '#241216'; // the mountain
+    ctx.beginPath();
+    ctx.moveTo(W * 0.1, H);
+    ctx.lineTo(vApex.x - W * 0.07, vApex.y);
+    ctx.lineTo(vApex.x - W * 0.025, vApex.y + 8);
+    ctx.lineTo(vApex.x + W * 0.025, vApex.y + 8);
+    ctx.lineTo(vApex.x + W * 0.07, vApex.y);
+    ctx.lineTo(W * 0.9, H);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,110,30,.9)'; // lava running down the sides
+    ctx.lineWidth = 3;
+    ctx.shadowColor = 'rgba(255,120,30,.9)';
+    ctx.shadowBlur = 10;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(vApex.x + s * W * 0.02, vApex.y + 8);
+      ctx.bezierCurveTo(vApex.x + s * W * 0.06, vApex.y + (H - vApex.y) * 0.35, vApex.x + s * W * 0.16 + Math.sin(r / 400) * 4, vApex.y + (H - vApex.y) * 0.6, vApex.x + s * W * 0.2, H);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ff8a2a'; // the glowing crater
+    ctx.beginPath();
+    ctx.ellipse(vApex.x, vApex.y + 5, W * 0.03, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    if (active) { // ash and embers boiling out of the crater
+      for (let j = 0; j < volcAsh.length; j++) {
+        const a = volcAsh[j];
+        const p = ((r / 1500) * a.sp + a.ph) % 1;
+        ctx.fillStyle = `rgba(60,50,52,${0.5 * (1 - p)})`;
+        circ(vApex.x + a.sd * p * 2, vApex.y - p * H * 0.5, 10 + p * 30);
+      }
+      for (let j = 0; j < 16; j++) {
+        const p = ((r / 700) * (0.6 + (j % 5) * 0.15) + j * 0.37) % 1;
+        ctx.fillStyle = `rgba(255,${Math.round(180 - 90 * p)},40,${1 - p})`;
+        circ(vApex.x + Math.sin(j * 4.1) * 40 * p, vApex.y - p * H * 0.38 + p * p * H * 0.2, 2);
+      }
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const rr = r - c.lock;
+      if (rr < 0) continue;
+      const ex = c.x + cw / 2;
+      const ey = c.y - fs * 0.3;
+      if (rr < VOLC_T) {
+        const q = rr / VOLC_T;
+        const cx = (vApex.x + ex) / 2;
+        const cy = Math.min(vApex.y, ey) - H * 0.55;
+        const pos = (p: number) => ({ x: (1 - p) * (1 - p) * vApex.x + 2 * p * (1 - p) * cx + p * p * ex, y: (1 - p) * (1 - p) * vApex.y + 2 * p * (1 - p) * cy + p * p * ey });
+        for (let k = 5; k >= 1; k--) { // the fiery trail
+          const tp = pos(Math.max(0, q - k * 0.04));
+          ctx.fillStyle = `rgba(255,${Math.round(190 - 25 * k)},40,${0.55 - k * 0.09})`;
+          circ(tp.x, tp.y, 3.8 - k * 0.5);
+        }
+        const p = pos(q);
+        ctx.fillStyle = 'rgba(255,120,30,.6)';
+        circ(p.x, p.y, fs * 0.65);
+        textLit(c, '#fff3c0', 'rgba(255,150,40,.95)', 12, p.x - cw / 2, p.y + fs * 0.3, 1);
+        continue;
+      }
+      const e = rr - VOLC_T;
+      if (e < 300) { // ember burst where the bomb lands
+        for (let k = 0; k < 5; k++) {
+          ctx.fillStyle = `rgba(255,${Math.round(200 - 80 * (e / 300))},50,${1 - e / 300})`;
+          circ(ex + (k - 2) * 5 * (e / 300 + 0.3), ey - Math.sin((e / 300) * Math.PI) * (6 + k * 2), 1.8);
+        }
+      }
+      const cool = clamp1(e / 900);
+      textLit(c, `rgb(255,${Math.round(190 + 60 * cool)},${Math.round(90 + 150 * cool)})`, 'rgba(255,130,40,.9)', 12 - 6 * cool, c.x, c.y, clamp1(e / 100));
+    }
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -5422,6 +5627,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     spiders: drawSpiders,
     hatdance: drawHatDance,
     lasers: drawLasers,
+    earthquake: drawQuake,
+    volcano: drawVolcano,
   };
 
   const frame = (now: number) => {
