@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,7 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
-  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches',
+  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -153,8 +153,12 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const RR_BANG = 700; // how long the bang lasts
   const GEN_IN = 700; // the genie is out and ready this long after the intro starts; the words begin after that
   const GEN_FLY = 600; // a letter's flight from the genie's hand to its place
+  const RA_LT = Math.min(1000, Math.max(500, 4200 / Math.max(1, lineYs.length))); // the formation's pass along one line
+  const RA_GAP = RA_LT + 60; // one pass at a time
+  const GW_LT = Math.min(1800, Math.max(700, 5200 / Math.max(1, lineYs.length))); // the ghostly finger's slow write along one line
+  const GW_GAP = GW_LT + 160; // plus its lift to the next line
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -201,6 +205,11 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'arrows' ? Math.max(T_RESOLVE, 1500) + 420 + 1200
     : style === 'tiles' ? Math.max(T_RESOLVE, 1500) + 450 + 250
     : style === 'witches' ? Math.max(T_RESOLVE, 1500) + 700 + 400 + 200
+    : style === 'redarrows' ? RA_GAP * (lineYs.length - 1) + RA_LT + 150 + 900 + 200
+    : style === 'pirate' ? Math.max(T_RESOLVE, 1600) + 400 + 450 + 200
+    : style === 'fogwriter' ? GW_GAP * (lineYs.length - 1) + GW_LT + 500 + 200
+    : style === 'whale' ? Math.max(T_RESOLVE, 1800) + 750 + 300
+    : style === 'submarine' ? Math.max(T_RESOLVE, 1600) + 450 + 450 + 200
     : style === 'roadrunner' ? RR_GAP * (lineYs.length - 1) + RR_LT + RR_LAG + 350 + RR_BANG + 200
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
@@ -231,6 +240,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'arrows' ? T_RES - 420 - 1200
     : style === 'tiles' ? T_RES - 450 - 250
     : style === 'witches' ? T_RES - 700 - 400 - 200
+    : style === 'pirate' ? T_RES - 400 - 450 - 200
+    : style === 'whale' ? T_RES - 750 - 300
+    : style === 'submarine' ? T_RES - 450 - 450 - 200
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -4065,6 +4077,601 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Red Arrows: a formation of red display jets sweeps along each line trailing red, white and blue smoke that
+  // writes the words, then the team breaks in a bomb burst.
+  const RA_FORM = [[0, 0, 0], [-16, -13, 1], [-16, 13, 2], [-32, -26, 1], [-32, 26, 2]]; // offset back, offset sideways, smoke colour
+  const RA_COL = ['230,50,50', '244,244,255', '58,98,216'];
+  const raEnd = (lineYs.length - 1) * RA_GAP + RA_LT + 150; // the last pass is done; the burst starts
+  const raX = (k: number, f: number) => {
+    const ln = pnkSpan[k];
+    const run = ln.x1 - ln.x0;
+    return k % 2 ? ln.x1 + 60 - f * (run + 120) : ln.x0 - 60 + f * (run + 120);
+  };
+  const raJet = (x: number, y: number, ang: number, sz: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+    ctx.scale(sz, sz);
+    ctx.fillStyle = '#d92b2b';
+    ctx.beginPath();
+    ctx.moveTo(-6, 0);
+    ctx.lineTo(-12, -13);
+    ctx.lineTo(-15, -13);
+    ctx.lineTo(-11, 0);
+    ctx.lineTo(-15, 13);
+    ctx.lineTo(-12, 13);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath(); // tail planes
+    ctx.moveTo(-18, 0);
+    ctx.lineTo(-24, -6);
+    ctx.lineTo(-24, 6);
+    ctx.fill();
+    ctx.beginPath(); // fuselage
+    ctx.ellipse(0, 0, 15, 3.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f4f4ff';
+    ctx.fillRect(-4, -1, 8, 2);
+    ctx.fillStyle = '#3a62d8';
+    ctx.fillRect(-14, -13, 2.4, 3);
+    ctx.fillRect(-14, 10, 2.4, 3);
+    ctx.fillStyle = '#9fd0ff';
+    ctx.beginPath();
+    ctx.ellipse(6, 0, 3.6, 1.7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+  const drawRedArrows = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#5aa2e8');
+    g.addColorStop(1, '#bfe0f6');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; // a few clouds
+    for (const [cx2, cy2, cr] of [[0.15, 0.2, 26], [0.6, 0.12, 32], [0.85, 0.7, 24], [0.3, 0.8, 30]]) {
+      circ(W * cx2, H * cy2, cr);
+      circ(W * cx2 + cr * 0.9, H * cy2 + 4, cr * 0.75);
+      circ(W * cx2 - cr * 0.9, H * cy2 + 6, cr * 0.7);
+    }
+    const sz = Math.min(1.2, Math.max(0.7, fs / 18));
+    pnkSpan.forEach((ln, k) => {
+      const rb = r - k * RA_GAP;
+      if (rb < -30 || rb > RA_LT + 30) return;
+      const dir = k % 2 ? -1 : 1;
+      const fr = rb / RA_LT;
+      const ly = ln.y - fs * 0.3;
+      for (const [ox, oy, ci] of RA_FORM) {
+        for (let t = 14; t >= 1; t--) { // smoke trail
+          ctx.fillStyle = `rgba(${RA_COL[ci]},${0.55 - t * 0.035})`;
+          circ(raX(k, fr - t * 0.025) + ox * dir * sz, ly + oy * sz, (2 + t * 0.45) * sz);
+        }
+      }
+      for (const [ox, oy] of RA_FORM) raJet(raX(k, fr) + ox * dir * sz, ly + oy * sz, dir > 0 ? 0 : Math.PI, sz);
+    });
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const k = lineYs.indexOf(c.y);
+      const rb = r - k * RA_GAP;
+      if (rb < 0) continue;
+      const dir = k % 2 ? -1 : 1;
+      const dist = dir * (raX(k, rb / RA_LT) - c.x);
+      if (dist < 0) continue;
+      const p = clamp1(dist / (fs * 3));
+      textLit(c, `rgb(255,${Math.round(150 + 105 * p)},${Math.round(150 + 105 * p)})`, 'rgba(210,40,40,.85)', 9 - 4 * p, c.x, c.y, clamp1(dist / (fs * 1.2)));
+    }
+    const bb = r - raEnd; // the bomb burst
+    if (bb > -60 && bb < 900) {
+      const q = Math.max(0, bb) / 900;
+      const sx = W / 2;
+      const sy = H * 0.92;
+      for (let j = 0; j < 7; j++) {
+        const a = -Math.PI / 2 + (j - 3) * 0.4;
+        const at = (qq: number) => ({ x: sx + Math.cos(a) * H * 1.15 * ease(qq), y: sy + Math.sin(a) * H * 1.15 * ease(qq) });
+        for (let t = 16; t >= 1; t--) {
+          const tp = at(q - t * 0.03);
+          ctx.fillStyle = `rgba(${RA_COL[j % 3]},${0.55 - t * 0.03})`;
+          circ(tp.x, tp.y, (2 + t * 0.4) * sz);
+        }
+        const p = at(q);
+        raJet(p.x, p.y, a, sz);
+      }
+      if (bb < 200 && bb > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${0.8 * (1 - bb / 200)})`;
+        circ(sx, sy, 14 + bb * 0.2);
+      }
+    }
+    fadeToFinal(r);
+  };
+
+  // Skeleton pirate ship: a ghostly galleon rocks on a dark sea and its skeleton gunner shoots each word into place.
+  const PIR_T = 400; // a cannonball's flight
+  const PIR_CLOUD = 450; // the burst of ghost-smoke
+  const drawPirate = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0b1a26');
+    g.addColorStop(1, '#0f2a32');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(230,240,220,.85)'; // moon
+    circ(W * 0.86, H * 0.16, Math.min(W, H) * 0.07);
+    const su = Math.min(1.25, Math.max(0.6, H / 300));
+    const shipX = Math.min(W * 0.2, 130) + clamp1(r / T_RES) * 30;
+    const wave = (a: number, ph: number) => Math.sin(r / 700 + ph) * a;
+    const sy = H - 36 * su + wave(3, 0);
+    const tilt = wave(0.03, 1);
+    ctx.fillStyle = 'rgba(80,255,170,.08)'; // eerie glow around the ship
+    circ(shipX, sy - 60 * su, 90 * su);
+    ctx.save();
+    ctx.translate(shipX, sy);
+    ctx.rotate(tilt);
+    ctx.scale(su, su);
+    ctx.fillStyle = '#2a1c14'; // hull
+    ctx.beginPath();
+    ctx.moveTo(-70, -22);
+    ctx.lineTo(74, -26);
+    ctx.quadraticCurveTo(66, 0, 40, 6);
+    ctx.lineTo(-52, 6);
+    ctx.quadraticCurveTo(-72, -4, -70, -22);
+    ctx.fill();
+    ctx.strokeStyle = '#d8d2b8'; // exposed ribs
+    ctx.lineWidth = 2;
+    for (let j = -3; j <= 3; j++) {
+      ctx.beginPath();
+      ctx.moveTo(j * 18 + 4, -22);
+      ctx.quadraticCurveTo(j * 18 + 12, -10, j * 18 + 2, 5);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#3a2a1e'; // mast and crow's nest
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(4, -22);
+    ctx.lineTo(4, -128);
+    ctx.stroke();
+    ctx.fillStyle = '#3a2a1e';
+    ctx.fillRect(-4, -134, 16, 7);
+    ctx.fillStyle = '#7d8a8c'; // tattered sail with a skull
+    ctx.beginPath();
+    ctx.moveTo(-34, -118);
+    ctx.lineTo(44, -118);
+    ctx.lineTo(40, -62);
+    for (let j = 0; j < 6; j++) ctx.lineTo(40 - (j + 1) * 12.5, -62 + (j % 2 ? 0 : 9) + Math.sin(r / 200 + j) * 1.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#f0ecda';
+    circ(5, -94, 8);
+    ctx.fillRect(1, -88, 8, 5);
+    ctx.fillStyle = '#7d8a8c';
+    circ(2, -95, 2);
+    circ(8, -95, 2);
+    ctx.strokeStyle = '#f0ecda';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(-8, -80);
+    ctx.lineTo(18, -68);
+    ctx.moveTo(18, -80);
+    ctx.lineTo(-8, -68);
+    ctx.stroke();
+    ctx.fillStyle = '#f0ecda'; // the skeleton gunner at the stern
+    circ(-48, -42, 6);
+    ctx.fillStyle = '#16120e';
+    ctx.beginPath();
+    ctx.moveTo(-56, -45);
+    ctx.lineTo(-48, -56);
+    ctx.lineTo(-40, -45);
+    ctx.fill();
+    ctx.strokeStyle = '#f0ecda';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(-48, -36);
+    ctx.lineTo(-48, -24);
+    for (let j = 0; j < 3; j++) {
+      ctx.moveTo(-55, -34 + j * 4);
+      ctx.lineTo(-41, -34 + j * 4);
+    }
+    ctx.moveTo(-48, -32);
+    ctx.lineTo(-30, -34);
+    ctx.stroke();
+    ctx.restore();
+    const pivot = { x: shipX + 44 * su, y: sy - 30 * su };
+    let cur = -1;
+    for (const x of wt) if (x.t0 <= r) cur = x.i;
+    const aimW = cur < 0 ? wt[0] : wt[cur];
+    const tx = aimW ? aimW.w.cx : W / 2;
+    const ty = aimW ? aimW.w.cells[0].y - fs * 0.3 : H / 2;
+    const ang = Math.atan2(ty - pivot.y, tx - pivot.x);
+    const recoil = cur < 0 ? 0 : Math.max(0, 1 - (r - wt[cur].t0) / 180);
+    ctx.save();
+    ctx.translate(pivot.x - Math.cos(ang) * recoil * 6, pivot.y - Math.sin(ang) * recoil * 6);
+    ctx.rotate(ang);
+    ctx.fillStyle = '#23272b';
+    ctx.fillRect(-6, -5, 30 * su, 10);
+    ctx.fillStyle = '#3b4248';
+    ctx.fillRect(22 * su, -6.5, 6, 13);
+    ctx.restore();
+    const muzzle = { x: pivot.x + Math.cos(ang) * 30 * su, y: pivot.y + Math.sin(ang) * 30 * su };
+    ctx.fillStyle = 'rgba(8,30,40,.9)'; // dark sea in front of the hull
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 12) ctx.lineTo(x, sy + 8 * su + Math.sin(x / 26 + r / 400) * 3.5);
+    ctx.lineTo(W, H);
+    ctx.fill();
+    ctx.font = `${fs}px ${FONT}`;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const wy = w.cells[0].y - fs * 0.3;
+      if (rr < PIR_T) {
+        const p = rr / PIR_T;
+        ctx.fillStyle = '#1b1e22';
+        circ(muzzle.x + (w.cx - muzzle.x) * p, muzzle.y + (wy - muzzle.y) * p - Math.sin(p * Math.PI) * 16, 5);
+        if (rr < 200) {
+          ctx.fillStyle = `rgba(200,210,200,${0.6 * (1 - rr / 200)})`;
+          circ(muzzle.x + Math.cos(ang) * 6, muzzle.y + Math.sin(ang) * 6 - rr * 0.04, 8 + rr * 0.06);
+        }
+        continue;
+      }
+      const e = rr - PIR_T;
+      if (e < PIR_CLOUD) {
+        const q = e / PIR_CLOUD;
+        ctx.fillStyle = `rgba(120,255,180,${0.5 * (1 - q)})`;
+        circ(w.cx, wy, 12 + 40 * q);
+        for (let k = 0; k < 6; k++) {
+          const a = (k / 6) * Math.PI * 2 + i;
+          ctx.fillStyle = `rgba(190,200,195,${0.5 * (1 - q)})`;
+          circ(w.cx + Math.cos(a) * (w.x1 - w.x0) * 0.3 * q, wy + Math.sin(a) * 12 * q - q * 8, 10 + 12 * q);
+        }
+      }
+      for (const c of w.cells) textLit(c, '#f4f1e0', 'rgba(120,255,170,.85)', 9 - 4 * clamp1(e / 500), c.x, c.y, clamp1(e / 220));
+    }
+    fadeToFinal(r);
+  };
+
+  // Creepy fog: a pale, see-through hand reaches out of the mist and writes the words with one long finger,
+  // wiping a clear trail through the fog as it goes.
+  const gwFog = Array.from({ length: 16 }, () => ({ x: rnd() * W, y: rnd() * H, rad: Math.max(W, H) * (0.18 + rnd() * 0.2), sp: 0.01 + rnd() * 0.02, ph: rnd() * 6 }));
+  const gwPen = (k: number, f: number) => {
+    const ln = pnkSpan[k];
+    return ln.x0 - 24 + f * (ln.x1 - ln.x0 + 48);
+  };
+  const gwTip = (r: number) => {
+    const L = lineYs.length;
+    const k = Math.min(L - 1, Math.max(0, Math.floor(r / GW_GAP)));
+    const rb = r - k * GW_GAP;
+    const ln = pnkSpan[k];
+    const y0 = ln.y - fs * 0.25;
+    if (rb <= GW_LT) {
+      const f = clamp1(rb / GW_LT);
+      return { x: gwPen(k, f), y: y0 + Math.sin(r / 50) * 1.2, a: 1, writing: true };
+    }
+    if (k < L - 1) { // lift and move to the start of the next line
+      const q = ease((rb - GW_LT) / (GW_GAP - GW_LT));
+      const nx = gwPen(k + 1, 0);
+      const ny = pnkSpan[k + 1].y - fs * 0.25;
+      return { x: gwPen(k, 1) + (nx - gwPen(k, 1)) * q, y: y0 + (ny - y0) * q - Math.sin(q * Math.PI) * 14, a: 1, writing: false };
+    }
+    const q = clamp1((rb - GW_LT) / 500); // the last line is done: the hand draws back into the mist
+    return { x: gwPen(k, 1) + q * 90, y: y0 - q * 50, a: 1 - q, writing: false };
+  };
+  const ghostHand = (x: number, y: number, a: number, r: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1.6, 1.6);
+    ctx.globalAlpha = a * 0.62;
+    ctx.shadowColor = 'rgba(150,255,220,.9)';
+    ctx.shadowBlur = 16;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const tre = Math.sin(r / 70) * 0.8;
+    const arm = ctx.createLinearGradient(60, -34, 220, -120);
+    arm.addColorStop(0, 'rgba(215,240,235,.9)');
+    arm.addColorStop(1, 'rgba(215,240,235,0)');
+    ctx.strokeStyle = arm; // the long arm trailing off into the fog
+    ctx.lineWidth = 15;
+    ctx.beginPath();
+    ctx.moveTo(60, -34);
+    ctx.quadraticCurveTo(110, -52 + tre * 3, 220, -120);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(215,240,235,.92)';
+    ctx.fillStyle = 'rgba(215,240,235,.92)';
+    ctx.beginPath(); // palm
+    ctx.ellipse(54, -30, 17, 11, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 4.6;
+    ctx.beginPath(); // the pointing finger, long and bony
+    ctx.moveTo(0, 0);
+    ctx.lineTo(16, -9 + tre);
+    ctx.lineTo(32, -17);
+    ctx.lineTo(46, -24);
+    ctx.stroke();
+    ctx.lineWidth = 3.4;
+    for (const [fx, fy, ex, ey] of [[60, -38, 72, -28], [57, -41, 70, -34], [53, -42, 65, -39]]) { // curled fingers
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+    }
+    ctx.beginPath(); // thumb
+    ctx.moveTo(44, -24);
+    ctx.lineTo(34, -10);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(240,255,250,.95)'; // knuckles
+    for (const [kx, ky] of [[16, -9 + tre], [32, -17]]) circ(kx, ky, 3);
+    ctx.fillStyle = 'rgba(230,255,245,.95)'; // a long pointed nail
+    ctx.beginPath();
+    ctx.moveTo(-1, 0);
+    ctx.lineTo(5, -4);
+    ctx.lineTo(5, 0);
+    ctx.fill();
+    ctx.restore();
+  };
+  const drawFogWriter = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0e161b');
+    g.addColorStop(1, '#17262a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    for (const f of gwFog) {
+      const x = f.x + Math.sin(r * f.sp * 0.1 + f.ph) * W * 0.12;
+      const y = f.y + Math.cos(r * f.sp * 0.08 + f.ph) * H * 0.08;
+      const fg = ctx.createRadialGradient(x, y, 0, x, y, f.rad);
+      fg.addColorStop(0, 'rgba(185,205,205,.16)');
+      fg.addColorStop(1, 'rgba(185,205,205,0)');
+      ctx.fillStyle = fg;
+      ctx.fillRect(0, 0, W, H);
+    }
+    const tip = gwTip(r);
+    ctx.font = `${fs}px ${FONT}`;
+    pnkSpan.forEach((ln, k) => { // the wiped trail
+      const rb = r - k * GW_GAP;
+      if (rb < 0) return;
+      const end = gwPen(k, clamp1(rb / GW_LT));
+      const wg = ctx.createLinearGradient(ln.x0 - 24, 0, end, 0);
+      wg.addColorStop(0, 'rgba(4,10,14,.45)');
+      wg.addColorStop(1, 'rgba(4,10,14,.2)');
+      ctx.fillStyle = wg;
+      ctx.fillRect(ln.x0 - 24, ln.y - fs * 1.05, Math.max(0, end - ln.x0 + 24), fs * 1.4);
+    });
+    for (const c of visible) {
+      const k = lineYs.indexOf(c.y);
+      const rb = r - k * GW_GAP;
+      if (rb < 0) continue;
+      const dist = gwPen(k, clamp1(rb / GW_LT)) - c.x;
+      if (dist < 0) continue;
+      const p = clamp1(dist / (fs * 3));
+      textLit(c, '#dcfff2', 'rgba(130,255,200,.85)', 11 - 5 * p, c.x, c.y + (1 - p) * Math.sin(r / 90 + c.x) * 1.2, clamp1(dist / (fs * 0.9)) * (0.85 + 0.15 * Math.sin(r / 120 + c.x)));
+    }
+    ghostHand(tip.x, tip.y, tip.a, r);
+    fadeToFinal(r);
+  };
+
+  // Underwater: shared backdrop of light rays, drifting bubbles and a sandy floor.
+  const seaBubbles = Array.from({ length: 28 }, () => ({ x: rnd() * W, y: rnd() * H, s: 1 + rnd() * 3, v: 0.02 + rnd() * 0.05, ph: rnd() * 6 }));
+  const drawSea = (r: number, top: string, bottom: string) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, top);
+    g.addColorStop(1, bottom);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(190,240,255,.05)'; // sun rays
+    for (let k = 0; k < 5; k++) {
+      const x = W * (0.1 + 0.2 * k) + Math.sin(r / 1500 + k) * 20;
+      ctx.beginPath();
+      ctx.moveTo(x - 14, 0);
+      ctx.lineTo(x + 14, 0);
+      ctx.lineTo(x + 70, H);
+      ctx.lineTo(x - 40, H);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(200,240,255,.35)';
+    for (const b of seaBubbles) circ(b.x + Math.sin(r / 500 + b.ph) * 6, (((b.y - r * b.v) % H) + H) % H, b.s);
+    ctx.fillStyle = 'rgba(60,70,50,.55)';
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 20) ctx.lineTo(x, H - 8 - Math.sin(x / 40) * 4);
+    ctx.lineTo(W, H);
+    ctx.fill();
+  };
+  const bubbleLetter = (c: Cell, x: number, y: number, a: number) => {
+    ctx.strokeStyle = `rgba(210,245,255,${0.75 * a})`;
+    ctx.fillStyle = `rgba(150,220,255,${0.18 * a})`;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(x, y, fs * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    textLit(c, '#eefcff', 'rgba(120,220,255,.9)', 8, x - cw / 2, y + fs * 0.3, a);
+  };
+
+  // Whale: a big blue whale cruises along the sea floor and sings the letters out of its blowhole in bubbles,
+  // which float up and pop into place.
+  const WHALE_T = 750; // a bubble's float from the blowhole to its place
+  const wu = Math.min(1.2, Math.max(0.6, H / 300));
+  const drawWhale = (r: number) => {
+    drawSea(r, '#1a6c9a', '#0a2e4a');
+    const bob = Math.sin(r / 600) * 4;
+    const wx = 130 * wu;
+    const wy = H - 36 * wu + bob;
+    const blow = { x: wx + 62 * wu, y: wy - 47 * wu };
+    ctx.save();
+    ctx.translate(wx, wy);
+    ctx.scale(wu, wu);
+    const fl = Math.sin(r / 380) * 10; // the tail fluke beats
+    const body = () => {
+      ctx.beginPath();
+      ctx.moveTo(-90, -6);
+      ctx.bezierCurveTo(-60, -50, 40, -56, 100, -34);
+      ctx.bezierCurveTo(124, -24, 124, -4, 104, 8);
+      ctx.bezierCurveTo(60, 34, -50, 30, -90, -6);
+      ctx.closePath();
+    };
+    ctx.fillStyle = '#3a5f80'; // tail stock and fluke
+    ctx.beginPath();
+    ctx.moveTo(-84, -10);
+    ctx.quadraticCurveTo(-120, -14 + fl * 0.4, -140, -22 + fl);
+    ctx.lineTo(-158, -40 + fl);
+    ctx.quadraticCurveTo(-146, -18 + fl, -148, -6 + fl);
+    ctx.quadraticCurveTo(-158, 14 + fl, -140, 10 + fl);
+    ctx.quadraticCurveTo(-116, 0 + fl * 0.4, -80, 4);
+    ctx.fill();
+    body();
+    ctx.fill();
+    ctx.save();
+    body();
+    ctx.clip();
+    ctx.fillStyle = '#a8c4d6'; // pale belly
+    ctx.beginPath();
+    ctx.ellipse(10, 20, 100, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(60,95,128,.5)';
+    ctx.lineWidth = 1;
+    for (let j = 0; j < 7; j++) {
+      ctx.beginPath();
+      ctx.moveTo(30 + j * 10, 8);
+      ctx.lineTo(24 + j * 10, 26);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.fillStyle = '#2f5070'; // flipper
+    ctx.beginPath();
+    ctx.ellipse(30, 14, 26, 7, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    circ(86, -8, 3.6);
+    ctx.fillStyle = '#10202c';
+    circ(87, -8, 1.8);
+    ctx.strokeStyle = 'rgba(16,32,44,.6)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(118, -2);
+    ctx.quadraticCurveTo(90, 8, 56, 2);
+    ctx.stroke();
+    ctx.fillStyle = '#10202c'; // blowhole
+    ctx.beginPath();
+    ctx.ellipse(62, -47, 4.5, 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const rr = r - c.lock;
+      if (rr < 0) continue;
+      const ex = c.x + cw / 2;
+      const ey = c.y - fs * 0.3;
+      if (rr < WHALE_T) {
+        const q = rr / WHALE_T;
+        const e = 1 - Math.pow(1 - q, 2);
+        bubbleLetter(c, blow.x + (ex - blow.x) * e + Math.sin(q * 9 + c.x) * 8 * (1 - q), blow.y + (ey - blow.y) * e, 1);
+        continue;
+      }
+      const e = rr - WHALE_T;
+      if (e < 260) { // pop
+        ctx.strokeStyle = `rgba(220,248,255,${0.8 * (1 - e / 260)})`;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(ex, ey, fs * 0.8 + e * 0.06, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      textLit(c, '#eefcff', 'rgba(120,220,255,.85)', 8 - 3 * clamp1(e / 400), c.x, c.y, clamp1(e / 120));
+    }
+    fadeToFinal(r);
+  };
+
+  // Submarine: a sub cruises below the words and fires torpedoes at them; each bursts into bubbles and a sonar
+  // ring that leaves the word behind.
+  const TORP_T = 450; // a torpedo's run
+  const TORP_BURST = 450; // the burst
+  const su2 = Math.min(1.2, Math.max(0.6, H / 300));
+  const drawSubmarine = (r: number) => {
+    drawSea(r, '#0f4f66', '#06202c');
+    const sx = Math.min(W * 0.2, 120);
+    const sy = H - 56 * su2 + Math.sin(r / 650) * 4;
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(Math.sin(r / 900) * 0.02);
+    ctx.scale(su2, su2);
+    ctx.fillStyle = '#4a5f6c'; // tail fin and conning tower
+    ctx.beginPath();
+    ctx.moveTo(-66, -8);
+    ctx.lineTo(-84, -30);
+    ctx.lineTo(-52, -14);
+    ctx.fill();
+    ctx.fillRect(-12, -42, 32, 22);
+    ctx.fillStyle = '#6f8796';
+    ctx.fillRect(4, -62, 3.5, 20); // periscope
+    ctx.fillRect(4, -62, 14, 3.5);
+    const hull = ctx.createLinearGradient(0, -24, 0, 24);
+    hull.addColorStop(0, '#9fb7c4');
+    hull.addColorStop(1, '#566c79');
+    ctx.fillStyle = hull;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 76, 24, 0, 0, Math.PI * 2);
+    ctx.fill();
+    for (let k = 0; k < 3; k++) { // lit portholes
+      ctx.fillStyle = '#ffd86a';
+      circ(-30 + k * 22, -2, 5.5);
+      ctx.strokeStyle = '#3a4a54';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(-30 + k * 22, -2, 5.5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.save(); // spinning propeller
+    ctx.translate(-80, 0);
+    ctx.scale(1, Math.abs(Math.sin(r / 40)) * 0.9 + 0.1);
+    ctx.fillStyle = '#3a4a54';
+    ctx.fillRect(-2, -14, 4, 28);
+    ctx.restore();
+    ctx.restore();
+    const bow = { x: sx + 76 * su2, y: sy };
+    ctx.font = `${fs}px ${FONT}`;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const tx = w.cx;
+      const ty = w.cells[0].y - fs * 0.3;
+      if (rr < TORP_T) {
+        const q = rr / TORP_T;
+        const e = q * q;
+        const x = bow.x + (tx - bow.x) * e;
+        const y = bow.y + (ty - bow.y) * e;
+        const a = Math.atan2(ty - bow.y, tx - bow.x);
+        for (let k = 1; k <= 7; k++) { // bubble trail
+          const tq = Math.max(0, q - k * 0.05);
+          ctx.fillStyle = `rgba(210,245,255,${0.5 - k * 0.06})`;
+          circ(bow.x + (tx - bow.x) * tq * tq, bow.y + (ty - bow.y) * tq * tq + Math.sin(k + r / 60) * 2, 2.8 - k * 0.2);
+        }
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(a);
+        ctx.fillStyle = '#c9d4da';
+        ctx.fillRect(-9, -2.6, 18, 5.2);
+        ctx.fillStyle = '#d24a3a';
+        ctx.beginPath();
+        ctx.moveTo(9, -2.6);
+        ctx.lineTo(14, 0);
+        ctx.lineTo(9, 2.6);
+        ctx.fill();
+        ctx.restore();
+        continue;
+      }
+      const e = rr - TORP_T;
+      if (e < TORP_BURST) {
+        const q = e / TORP_BURST;
+        ctx.strokeStyle = `rgba(120,255,200,${0.8 * (1 - q)})`; // sonar ring
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(tx, ty, 10 + 50 * q, 0, Math.PI * 2);
+        ctx.stroke();
+        for (let k = 0; k < 8; k++) {
+          const a = (k / 8) * Math.PI * 2 + i;
+          ctx.fillStyle = `rgba(215,245,255,${0.55 * (1 - q)})`;
+          circ(tx + Math.cos(a) * (w.x1 - w.x0 + 20) * 0.3 * q, ty + Math.sin(a) * 18 * q - q * 10, 4 + 5 * (1 - q));
+        }
+      }
+      for (const c of w.cells) textLit(c, '#e4fff4', 'rgba(110,240,190,.85)', 9 - 4 * clamp1(e / 500), c.x, c.y, clamp1(e / 200));
+    }
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -4089,6 +4696,11 @@ export function playReveal(o: RevealOptions): RevealHandle {
     arrows: drawArrows,
     tiles: drawTiles,
     witches: drawWitches,
+    redarrows: drawRedArrows,
+    pirate: drawPirate,
+    fogwriter: drawFogWriter,
+    whale: drawWhale,
+    submarine: drawSubmarine,
   };
 
   const frame = (now: number) => {
