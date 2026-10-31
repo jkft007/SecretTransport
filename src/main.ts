@@ -221,13 +221,14 @@ $('secret-file').addEventListener('change', () => {
 $('photo-kind').addEventListener('change', syncKindUi);
 
 // ---- extra messages in one photo, each with its own passphrase and optional pass code -------
-type ExtraRow = { text: string; pass: string; passcode: string };
+type ExtraRow = { text: string; pass: string; passcode: string; weakOk: boolean };
 
 function readExtras(): ExtraRow[] {
   return [...$('extra-msgs').children].map((r) => ({
     text: r.querySelector('textarea')!.value,
     pass: r.querySelector<HTMLInputElement>('.x-pass')!.value,
     passcode: r.querySelector<HTMLInputElement>('.x-code')!.value,
+    weakOk: r.querySelector<HTMLInputElement>('.x-weak')!.checked,
   }));
 }
 
@@ -250,7 +251,8 @@ $('btn-add-msg').onclick = () => {
     '<textarea rows="2" spellcheck="false" placeholder="Another secret message"></textarea>' +
     '<div class="row"><input class="x-pass" type="password" autocomplete="off" spellcheck="false" placeholder="Its own passphrase" />' +
     '<input class="x-code" type="password" autocomplete="off" spellcheck="false" placeholder="Pass code (optional)" />' +
-    '<button type="button" class="ghost small x-gen">Generate</button><button type="button" class="ghost small x-del">Remove</button></div>';
+    '<button type="button" class="ghost small x-gen">Generate</button><button type="button" class="ghost small x-del">Remove</button></div>' +
+    '<label class="check x-weak-row" hidden><input class="x-weak" type="checkbox" /> Use this weak passphrase or pass code anyway</label>';
   row.querySelector<HTMLButtonElement>('.x-gen')!.onclick = () => {
     const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
     const chars = Array.from(crypto.getRandomValues(new Uint8Array(20)), (b) => alphabet[b % alphabet.length]).join('');
@@ -262,7 +264,14 @@ $('btn-add-msg').onclick = () => {
     row.remove();
     syncExtras();
   };
-  row.addEventListener('input', syncKindUi);
+  row.addEventListener('input', () => {
+    const weak = ['.x-pass', '.x-code'].some((q) => {
+      const v = row.querySelector<HTMLInputElement>(q)!.value;
+      return v !== '' && strength(v).level === 'weak';
+    });
+    row.querySelector<HTMLElement>('.x-weak-row')!.hidden = !weak;
+    syncKindUi();
+  });
   $('extra-msgs').append(row);
   syncExtras();
   row.querySelector('textarea')!.focus();
@@ -423,9 +432,9 @@ $('btn-create').onclick = async () => {
       return setStatus(status, `${label} needs both its text and its own passphrase (or remove it).`, true);
     }
     for (const [what, v] of [['passphrase', x.pass], ['pass code', x.passcode]] as const) {
-      if (v && strength(v).level === 'weak') {
+      if (v && strength(v).level === 'weak' && !x.weakOk) {
         $<HTMLDetailsElement>('multi').open = true;
-        return setStatus(status, `${label}: that ${what} is too easy to guess. Make it longer or press Generate.`, true);
+        return setStatus(status, `${label}: that ${what} is too easy to guess. Make it longer, press Generate, or tick "Use this weak passphrase or pass code anyway".`, true);
       }
     }
   }
