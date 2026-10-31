@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine' | 'bomber';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,7 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
-  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine',
+  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -158,7 +158,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const GW_LT = Math.min(1800, Math.max(700, 5200 / Math.max(1, lineYs.length))); // the ghostly finger's slow write along one line
   const GW_GAP = GW_LT + 160; // plus its lift to the next line
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -210,6 +210,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'fogwriter' ? GW_GAP * (lineYs.length - 1) + GW_LT + 500 + 200
     : style === 'whale' ? Math.max(T_RESOLVE, 1800) + 750 + 300
     : style === 'submarine' ? Math.max(T_RESOLVE, 1600) + 450 + 450 + 200
+    : style === 'bomber' ? Math.max(T_RESOLVE, 1700) + 650 + 400
     : style === 'roadrunner' ? RR_GAP * (lineYs.length - 1) + RR_LT + RR_LAG + 350 + RR_BANG + 200
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
@@ -243,6 +244,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'pirate' ? T_RES - 400 - 450 - 200
     : style === 'whale' ? T_RES - 750 - 300
     : style === 'submarine' ? T_RES - 450 - 450 - 200
+    : style === 'bomber' ? T_RES - 650 - 400
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -4672,6 +4674,122 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // B-52: a big eight-engined bomber cruises back and forth high up, trailing contrails, and drops a bomb on each
+  // word; it bursts and leaves the word glowing hot.
+  const B52_FALL = 650; // a bomb's drop
+  const bomberX = (r: number) => W / 2 + Math.sin(r / 1300) * W * 0.42;
+  const bomberY = Math.max(26, H * 0.12);
+  const bomber = (x: number, y: number, dir: number, sz: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir * sz, sz);
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; // contrails
+    for (const oy of [11, 14, 17, 20]) ctx.fillRect(-190, oy - 1, 148, 2);
+    ctx.fillStyle = '#7f8a94'; // far wing and engines
+    ctx.beginPath();
+    ctx.moveTo(10, 1);
+    ctx.lineTo(-20, 0);
+    ctx.lineTo(-36, -9);
+    ctx.lineTo(-14, -7);
+    ctx.fill();
+    ctx.fillStyle = '#9aa5ae'; // tail fin
+    ctx.beginPath();
+    ctx.moveTo(-44, -3);
+    ctx.lineTo(-60, -28);
+    ctx.lineTo(-50, -28);
+    ctx.lineTo(-30, -3);
+    ctx.fill();
+    ctx.fillStyle = '#c0c9d0'; // fuselage
+    ctx.beginPath();
+    ctx.moveTo(62, 2);
+    ctx.quadraticCurveTo(48, -6, 20, -6);
+    ctx.lineTo(-52, -4);
+    ctx.lineTo(-52, 4);
+    ctx.lineTo(24, 5);
+    ctx.quadraticCurveTo(50, 6, 62, 2);
+    ctx.fill();
+    ctx.fillStyle = '#4e6a86'; // cockpit
+    ctx.beginPath();
+    ctx.ellipse(42, -2, 7, 2.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#a9b4bd'; // near wing, swept down and back
+    ctx.beginPath();
+    ctx.moveTo(14, 3);
+    ctx.lineTo(-22, 3);
+    ctx.lineTo(-44, 18);
+    ctx.lineTo(-14, 16);
+    ctx.fill();
+    ctx.fillStyle = '#5d6872'; // engine pods in pairs
+    for (const ex of [4, -6, -20, -30]) {
+      ctx.beginPath();
+      ctx.ellipse(ex, 13 + (ex < -10 ? 3 : 0), 7, 2.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  };
+  const drawBomber = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#2a3f6a');
+    g.addColorStop(0.7, '#c07a5a');
+    g.addColorStop(1, '#3a2a30');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,.12)';
+    for (const [cx2, cy2, cr] of [[0.2, 0.35, 28], [0.7, 0.45, 34], [0.5, 0.25, 22]]) {
+      circ(W * cx2, H * cy2, cr);
+      circ(W * cx2 + cr, H * cy2 + 5, cr * 0.7);
+    }
+    const sz = Math.min(1.2, Math.max(0.55, H / 330));
+    const dir = Math.cos(r / 1300) >= 0 ? 1 : -1;
+    bomber(bomberX(r), bomberY, dir, sz);
+    ctx.font = `${fs}px ${FONT}`;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const tx = w.cx;
+      const ty = w.cells[0].y - fs * 0.3;
+      if (rr < B52_FALL) {
+        const q = rr / B52_FALL;
+        const sx = bomberX(t0);
+        const d0 = Math.cos(t0 / 1300) >= 0 ? 1 : -1;
+        const cx = sx + d0 * 90;
+        const cy = bomberY + (ty - bomberY) * 0.25;
+        const a = (1 - q) * (1 - q);
+        const b = 2 * q * (1 - q);
+        const x = a * sx + b * cx + q * q * tx;
+        const y = a * (bomberY + 8) + b * cy + q * q * ty;
+        const x2 = (1 - (q + 0.02)) ** 2 * sx + 2 * (q + 0.02) * (1 - (q + 0.02)) * cx + (q + 0.02) ** 2 * tx;
+        const y2 = (1 - (q + 0.02)) ** 2 * (bomberY + 8) + 2 * (q + 0.02) * (1 - (q + 0.02)) * cy + (q + 0.02) ** 2 * ty;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.atan2(y2 - y, x2 - x));
+        ctx.fillStyle = '#3d4a38';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 8, 3.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#2a3326';
+        ctx.fillRect(-11, -3.4, 4, 6.8);
+        ctx.restore();
+        continue;
+      }
+      const e = rr - B52_FALL;
+      if (e < 400) {
+        const q = e / 400;
+        ctx.fillStyle = `rgba(255,255,255,${0.9 * Math.max(0, 1 - q * 3)})`;
+        circ(tx, ty, 10 + 40 * q);
+        ctx.fillStyle = `rgba(255,${Math.round(190 - 110 * q)},40,${0.85 * (1 - q)})`;
+        circ(tx, ty, 8 + ((w.x1 - w.x0) / 2 + 12) * ease(q));
+        for (let k = 0; k < 6; k++) {
+          ctx.fillStyle = `rgba(70,62,60,${0.5 * (1 - q)})`;
+          circ(tx + Math.cos(k * 1.2 + i) * 28 * q, ty - 14 * q - k * 4 * q + Math.sin(k * 1.2 + i) * 8, 9 + 11 * q);
+        }
+      }
+      const hot = clamp1(e / 600);
+      for (const c of w.cells) textLit(c, `rgb(255,${Math.round(225 + 30 * hot)},${Math.round(160 + 90 * hot)})`, 'rgba(255,150,50,.9)', 12 - 6 * hot, c.x, c.y, clamp1(e / 120));
+    }
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -4701,6 +4819,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fogwriter: drawFogWriter,
     whale: drawWhale,
     submarine: drawSubmarine,
+    bomber: drawBomber,
   };
 
   const frame = (now: number) => {
