@@ -25,6 +25,12 @@ describe('Outlook add-in files', () => {
     expect(h).toBeLessThanOrEqual(450);
   });
 
+  it('offers a pinnable pane (VersionOverrides 1.1) and the pane follows the open email', () => {
+    expect(manifest).toContain('<SupportsPinning>true</SupportsPinning>');
+    expect(manifest).toContain('VersionOverridesV1_1');
+    expect(readFileSync(new URL('taskpane.js', dir), 'utf8')).toContain('ItemChanged');
+  });
+
   it('the pane takes only the data after #q= from a link, never follows it, and talks only to its own origin', () => {
     const js = readFileSync(new URL('taskpane.js', dir), 'utf8');
     expect(js).toContain('#q=');

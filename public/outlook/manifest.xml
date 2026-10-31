@@ -99,5 +99,59 @@
         <bt:String id="ButtonTip" DefaultValue="Find the secret hidden in this email's image or link and reveal it with your passphrase. Runs on your device."/>
       </bt:LongStrings>
     </Resources>
+    <!-- Same commands again for Outlook versions that can pin the pane open (it then follows you from email to email). -->
+    <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
+      <Requirements>
+        <bt:Sets DefaultMinVersion="1.8">
+          <bt:Set Name="Mailbox"/>
+        </bt:Sets>
+      </Requirements>
+      <Hosts>
+        <Host xsi:type="MailHost">
+          <DesktopFormFactor>
+            <ExtensionPoint xsi:type="MessageReadCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="stGroup">
+                  <Label resid="GroupLabel"/>
+                  <Control xsi:type="Button" id="stRevealButton">
+                    <Label resid="ButtonLabel"/>
+                    <Supertip>
+                      <Title resid="ButtonLabel"/>
+                      <Description resid="ButtonTip"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon16"/>
+                      <bt:Image size="32" resid="Icon32"/>
+                      <bt:Image size="80" resid="Icon80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="TaskpaneUrl"/>
+                      <SupportsPinning>true</SupportsPinning>
+                    </Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+          </DesktopFormFactor>
+        </Host>
+      </Hosts>
+      <Resources>
+        <bt:Images>
+          <bt:Image id="Icon16" DefaultValue="https://jkft007.github.io/SecretTransport/outlook/icon-16.png"/>
+          <bt:Image id="Icon32" DefaultValue="https://jkft007.github.io/SecretTransport/outlook/icon-32.png"/>
+          <bt:Image id="Icon80" DefaultValue="https://jkft007.github.io/SecretTransport/outlook/icon-80.png"/>
+        </bt:Images>
+        <bt:Urls>
+          <bt:Url id="TaskpaneUrl" DefaultValue="https://jkft007.github.io/SecretTransport/outlook/taskpane.html"/>
+        </bt:Urls>
+        <bt:ShortStrings>
+          <bt:String id="GroupLabel" DefaultValue="SecretTransport"/>
+          <bt:String id="ButtonLabel" DefaultValue="Reveal secret"/>
+        </bt:ShortStrings>
+        <bt:LongStrings>
+          <bt:String id="ButtonTip" DefaultValue="Find the secret hidden in this email's image or link and reveal it with your passphrase. Runs on your device."/>
+        </bt:LongStrings>
+      </Resources>
+    </VersionOverrides>
   </VersionOverrides>
 </OfficeApp>

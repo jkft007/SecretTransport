@@ -49,24 +49,30 @@
     return fileType && (/^image\//i.test(att.contentType || '') || /\.(png|jpe?g|heic|heif|webp|gif|bmp)$/i.test(att.name || ''));
   }
 
+  var token = 0; // a newer email replaces an older one still being read
   async function run(item) {
+    var mine = ++token;
     if (!item) return say('Open this pane on an email.', true);
     say('Looking for a secret in this email…');
 
     // A direct link: only the data after #q= is taken and loaded into our own page; the link itself is never followed.
     var link = LINK.exec(await textOf(item));
+    if (mine !== token) return;
     if (link) {
       await loadApp('#q=' + link[1]);
+      if (mine !== token) return;
       return say('Found a secret link in this email. Type the passphrase below.');
     }
 
     await loadApp('#reveal');
+    if (mine !== token) return;
     var atts = (item.attachments || []).filter(isImage);
     var sent = 0;
     for (var i = 0; i < atts.length; i++) {
       var a = atts[i];
       if (a.size && a.size > MAX_BYTES) continue;
       var buf = await contentOf(item, a);
+      if (mine !== token) return;
       if (!buf) continue;
       frame.contentWindow.postMessage({ type: 'st-image', mime: a.contentType || '', bytes: buf }, location.origin, [buf]);
       sent++;
