@@ -356,6 +356,12 @@ $('btn-create').onclick = async () => {
     return setStatus(status, 'That pass code is too easy to guess. Make it longer, or tick "Use this weak pass code anyway".', true);
   }
 
+  // Photo and fake-QR images hide their data at positions derived from the passphrase, so a pass code could not even find it.
+  if (passcode && (currentMode() === 'photo' || currentMode() === 'fakeqr')) {
+    $<HTMLDetailsElement>('more-opts').open = true;
+    return setStatus(status, 'A recipient pass code works with Code art and QR code only. Photo and fake QR images can only be found with the main passphrase, so clear the pass code or choose another style.', true);
+  }
+
   const btn = $<HTMLButtonElement>('btn-create');
   btn.disabled = true;
   setStatus(status, 'Encrypting… (deriving a memory-hard key takes about a second)');

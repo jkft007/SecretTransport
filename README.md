@@ -78,6 +78,8 @@ What this is not: it is enforced by this app and the recipient's clock, not by c
 ## Recipient pass code (optional)
 The Hide tab can also take a **recipient pass code**. The image's encryption key is then stored inside the image too, locked by a key derived from the pass code (a second key slot, 76 bytes; the packet becomes version 3). The recipient types either the passphrase or the pass code on the Reveal tab. This lets you give the recipient only the pass code and keep the master passphrase to yourself, or press Generate for a random passphrase you never need to share.
 
+It works with **Code art and QR code only**. Photo and fake-QR images hide their data at positions derived from the main passphrase, so a pass code could not locate it; the app refuses the combination, and those images always need the main passphrase.
+
 It is not extra protection: either one opens the image, so the image is only as strong as the weaker of the two. The pass code goes through the same strength check as the passphrase and the same Argon2id cost per guess. The slot is part of the authenticated header, so editing it breaks both ways in.
 
 ## Reading time (optional)
