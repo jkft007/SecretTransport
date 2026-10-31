@@ -35,7 +35,7 @@
     <Form xsi:type="ItemRead">
       <DesktopSettings>
         <SourceLocation DefaultValue="https://jkft007.github.io/SecretTransport/outlook/taskpane.html"/>
-        <RequestedHeight>480</RequestedHeight>
+        <RequestedHeight>450</RequestedHeight>
       </DesktopSettings>
     </Form>
   </FormSettings>

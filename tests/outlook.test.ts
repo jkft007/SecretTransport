@@ -19,6 +19,12 @@ describe('Outlook add-in files', () => {
     expect(manifest).toMatch(/<Id>[0-9a-f-]{36}<\/Id>/);
   });
 
+  it('RequestedHeight stays within the schema limit of 450 that Outlook enforces on install', () => {
+    const h = Number(/<RequestedHeight>(\d+)<\/RequestedHeight>/.exec(manifest)?.[1]);
+    expect(h).toBeGreaterThan(0);
+    expect(h).toBeLessThanOrEqual(450);
+  });
+
   it('the pane takes only the data after #q= from a link, never follows it, and talks only to its own origin', () => {
     const js = readFileSync(new URL('taskpane.js', dir), 'utf8');
     expect(js).toContain('#q=');
