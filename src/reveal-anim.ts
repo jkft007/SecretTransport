@@ -153,10 +153,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const RR_BANG = 700; // how long the bang lasts
   const GEN_IN = 700; // the genie is out and ready this long after the intro starts; the words begin after that
   const GEN_FLY = 600; // a letter's flight from the genie's hand to its place
-  const RA_LT = Math.min(1000, Math.max(500, 4200 / Math.max(1, lineYs.length))); // the formation's pass along one line
+  const RA_LT = Math.min(1900, Math.max(900, 7000 / Math.max(1, lineYs.length))); // the formation's pass along one line (a stately pace)
   const RA_GAP = RA_LT + 60; // one pass at a time
-  const GW_LT = Math.min(1800, Math.max(700, 5200 / Math.max(1, lineYs.length))); // the ghostly finger's slow write along one line
-  const GW_GAP = GW_LT + 160; // plus its lift to the next line
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
   const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
@@ -205,9 +203,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'arrows' ? Math.max(T_RESOLVE, 1500) + 420 + 1200
     : style === 'tiles' ? Math.max(T_RESOLVE, 1500) + 450 + 250
     : style === 'witches' ? Math.max(T_RESOLVE, 1500) + 700 + 400 + 200
-    : style === 'redarrows' ? RA_GAP * (lineYs.length - 1) + RA_LT + 150 + 900 + 200
+    : style === 'redarrows' ? RA_GAP * (lineYs.length - 1) + RA_LT + 150 + 1500 + 200
     : style === 'pirate' ? Math.max(T_RESOLVE, 1600) + 400 + 450 + 200
-    : style === 'fogwriter' ? GW_GAP * (lineYs.length - 1) + GW_LT + 500 + 200
+    : style === 'fogwriter' ? Math.max(T_RESOLVE, 2800) + 1600 + 200
     : style === 'whale' ? Math.max(T_RESOLVE, 1800) + 750 + 300
     : style === 'submarine' ? Math.max(T_RESOLVE, 1600) + 450 + 450 + 200
     : style === 'bomber' ? Math.max(T_RESOLVE, 1700) + 650 + 400
@@ -249,6 +247,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'bomber' ? T_RES - 650 - 400
     : style === 'kraken' ? T_RES - 700 - 700 - 200
     : style === 'thor' ? T_RES - 880 - 200
+    : style === 'fogwriter' ? T_RES - 1600 - 200
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -4166,8 +4165,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
       textLit(c, `rgb(255,${Math.round(150 + 105 * p)},${Math.round(150 + 105 * p)})`, 'rgba(210,40,40,.85)', 9 - 4 * p, c.x, c.y, clamp1(dist / (fs * 1.2)));
     }
     const bb = r - raEnd; // the bomb burst
-    if (bb > -60 && bb < 900) {
-      const q = Math.max(0, bb) / 900;
+    if (bb > -60 && bb < 1500) {
+      const q = Math.max(0, bb) / 1500;
       const sx = W / 2;
       const sy = H * 0.92;
       for (let j = 0; j < 7; j++) {
@@ -4332,121 +4331,42 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
-  // Creepy fog: a pale, see-through hand reaches out of the mist and writes the words with one long finger,
-  // wiping a clear trail through the fog as it goes.
+  // Creepy fog: a thick mist drifts and eddies, and the words slowly come out of it, a few letters at a time.
+  const FOG_FADE = 1600; // how long a letter takes to emerge from the mist
   const gwFog = Array.from({ length: 16 }, () => ({ x: rnd() * W, y: rnd() * H, rad: Math.max(W, H) * (0.18 + rnd() * 0.2), sp: 0.01 + rnd() * 0.02, ph: rnd() * 6 }));
-  const gwPen = (k: number, f: number) => {
-    const ln = pnkSpan[k];
-    return ln.x0 - 24 + f * (ln.x1 - ln.x0 + 48);
-  };
-  const gwTip = (r: number) => {
-    const L = lineYs.length;
-    const k = Math.min(L - 1, Math.max(0, Math.floor(r / GW_GAP)));
-    const rb = r - k * GW_GAP;
-    const ln = pnkSpan[k];
-    const y0 = ln.y - fs * 0.25;
-    if (rb <= GW_LT) {
-      const f = clamp1(rb / GW_LT);
-      return { x: gwPen(k, f), y: y0 + Math.sin(r / 50) * 1.2, a: 1, writing: true };
-    }
-    if (k < L - 1) { // lift and move to the start of the next line
-      const q = ease((rb - GW_LT) / (GW_GAP - GW_LT));
-      const nx = gwPen(k + 1, 0);
-      const ny = pnkSpan[k + 1].y - fs * 0.25;
-      return { x: gwPen(k, 1) + (nx - gwPen(k, 1)) * q, y: y0 + (ny - y0) * q - Math.sin(q * Math.PI) * 14, a: 1, writing: false };
-    }
-    const q = clamp1((rb - GW_LT) / 500); // the last line is done: the hand draws back into the mist
-    return { x: gwPen(k, 1) + q * 90, y: y0 - q * 50, a: 1 - q, writing: false };
-  };
-  const ghostHand = (x: number, y: number, a: number, r: number) => {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(1.6, 1.6);
-    ctx.globalAlpha = a * 0.62;
-    ctx.shadowColor = 'rgba(150,255,220,.9)';
-    ctx.shadowBlur = 16;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    const tre = Math.sin(r / 70) * 0.8;
-    const arm = ctx.createLinearGradient(60, -34, 220, -120);
-    arm.addColorStop(0, 'rgba(215,240,235,.9)');
-    arm.addColorStop(1, 'rgba(215,240,235,0)');
-    ctx.strokeStyle = arm; // the long arm trailing off into the fog
-    ctx.lineWidth = 15;
-    ctx.beginPath();
-    ctx.moveTo(60, -34);
-    ctx.quadraticCurveTo(110, -52 + tre * 3, 220, -120);
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(215,240,235,.92)';
-    ctx.fillStyle = 'rgba(215,240,235,.92)';
-    ctx.beginPath(); // palm
-    ctx.ellipse(54, -30, 17, 11, -0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = 4.6;
-    ctx.beginPath(); // the pointing finger, long and bony
-    ctx.moveTo(0, 0);
-    ctx.lineTo(16, -9 + tre);
-    ctx.lineTo(32, -17);
-    ctx.lineTo(46, -24);
-    ctx.stroke();
-    ctx.lineWidth = 3.4;
-    for (const [fx, fy, ex, ey] of [[60, -38, 72, -28], [57, -41, 70, -34], [53, -42, 65, -39]]) { // curled fingers
-      ctx.beginPath();
-      ctx.moveTo(fx, fy);
-      ctx.lineTo(ex, ey);
-      ctx.stroke();
-    }
-    ctx.beginPath(); // thumb
-    ctx.moveTo(44, -24);
-    ctx.lineTo(34, -10);
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(240,255,250,.95)'; // knuckles
-    for (const [kx, ky] of [[16, -9 + tre], [32, -17]]) circ(kx, ky, 3);
-    ctx.fillStyle = 'rgba(230,255,245,.95)'; // a long pointed nail
-    ctx.beginPath();
-    ctx.moveTo(-1, 0);
-    ctx.lineTo(5, -4);
-    ctx.lineTo(5, 0);
-    ctx.fill();
-    ctx.restore();
-  };
   const drawFogWriter = (r: number) => {
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, '#0e161b');
     g.addColorStop(1, '#17262a');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
-    for (const f of gwFog) {
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const rr = r - c.lock;
+      if (rr < 0) continue;
+      const q = clamp1(rr / FOG_FADE);
+      const a = ease(q) * (0.88 + 0.12 * Math.sin(r / 140 + c.x));
+      textLit(c, '#dcfff2', 'rgba(130,255,200,.85)', 14 - 9 * q, c.x + Math.sin(r / 300 + c.x) * (1 - q) * 2, c.y + (1 - q) * 5, a);
+    }
+    for (const f of gwFog) { // the drifting mist, over the words
       const x = f.x + Math.sin(r * f.sp * 0.1 + f.ph) * W * 0.12;
       const y = f.y + Math.cos(r * f.sp * 0.08 + f.ph) * H * 0.08;
       const fg = ctx.createRadialGradient(x, y, 0, x, y, f.rad);
-      fg.addColorStop(0, 'rgba(185,205,205,.16)');
+      fg.addColorStop(0, 'rgba(185,205,205,.2)');
       fg.addColorStop(1, 'rgba(185,205,205,0)');
       ctx.fillStyle = fg;
       ctx.fillRect(0, 0, W, H);
     }
-    const tip = gwTip(r);
-    ctx.font = `${fs}px ${FONT}`;
-    pnkSpan.forEach((ln, k) => { // the wiped trail
-      const rb = r - k * GW_GAP;
-      if (rb < 0) return;
-      const end = gwPen(k, clamp1(rb / GW_LT));
-      const wg = ctx.createLinearGradient(ln.x0 - 24, 0, end, 0);
-      wg.addColorStop(0, 'rgba(4,10,14,.45)');
-      wg.addColorStop(1, 'rgba(4,10,14,.2)');
+    for (const c of visible) { // a wisp of fog clinging to each letter until it has surfaced
+      const rr = r - c.lock;
+      if (rr < 0 || rr > FOG_FADE) continue;
+      const q = rr / FOG_FADE;
+      const wg = ctx.createRadialGradient(c.x + cw / 2, c.y - fs * 0.3, 0, c.x + cw / 2, c.y - fs * 0.3, fs * 1.4);
+      wg.addColorStop(0, `rgba(190,210,210,${0.3 * (1 - q)})`);
+      wg.addColorStop(1, 'rgba(190,210,210,0)');
       ctx.fillStyle = wg;
-      ctx.fillRect(ln.x0 - 24, ln.y - fs * 1.05, Math.max(0, end - ln.x0 + 24), fs * 1.4);
-    });
-    for (const c of visible) {
-      const k = lineYs.indexOf(c.y);
-      const rb = r - k * GW_GAP;
-      if (rb < 0) continue;
-      const dist = gwPen(k, clamp1(rb / GW_LT)) - c.x;
-      if (dist < 0) continue;
-      const p = clamp1(dist / (fs * 3));
-      textLit(c, '#dcfff2', 'rgba(130,255,200,.85)', 11 - 5 * p, c.x, c.y + (1 - p) * Math.sin(r / 90 + c.x) * 1.2, clamp1(dist / (fs * 0.9)) * (0.85 + 0.15 * Math.sin(r / 120 + c.x)));
+      ctx.fillRect(c.x - fs * 1.2, c.y - fs * 1.7, fs * 2.8, fs * 2.8);
     }
-    ghostHand(tip.x, tip.y, tip.a, r);
     fadeToFinal(r);
   };
 
