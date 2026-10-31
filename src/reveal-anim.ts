@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,7 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
-  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles',
+  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -154,7 +154,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const GEN_IN = 700; // the genie is out and ready this long after the intro starts; the words begin after that
   const GEN_FLY = 600; // a letter's flight from the genie's hand to its place
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -200,6 +200,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'fartgun' ? Math.max(T_RESOLVE, 1600) + 380 + 450 + 200
     : style === 'arrows' ? Math.max(T_RESOLVE, 1500) + 420 + 1200
     : style === 'tiles' ? Math.max(T_RESOLVE, 1500) + 450 + 250
+    : style === 'witches' ? Math.max(T_RESOLVE, 1500) + 700 + 400 + 200
     : style === 'roadrunner' ? RR_GAP * (lineYs.length - 1) + RR_LT + RR_LAG + 350 + RR_BANG + 200
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
@@ -229,6 +230,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'fartgun' ? T_RES - 380 - 450 - 200
     : style === 'arrows' ? T_RES - 420 - 1200
     : style === 'tiles' ? T_RES - 450 - 250
+    : style === 'witches' ? T_RES - 700 - 400 - 200
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -3919,6 +3921,150 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Witches: each word is cast into place by a witch swooping in on her broomstick; she flicks her wand and flies on.
+  const WITCH_IN = 700; // the swoop in, to the spot over her word
+  const WITCH_OUT = 400; // and the dash off again after the spell
+  const witchStart = wt.map(() => 12 + rnd() * H * 0.3);
+  const witchBy = (x: number, y: number, dir: number, tilt: number, sz: number, r: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir * sz, sz);
+    ctx.rotate(tilt);
+    ctx.strokeStyle = '#6b4423'; // the broom
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-32, 6);
+    ctx.lineTo(32, 0);
+    ctx.stroke();
+    ctx.strokeStyle = '#b8863c';
+    ctx.lineWidth = 1.6;
+    for (let j = -3; j <= 3; j++) {
+      ctx.beginPath();
+      ctx.moveTo(-32, 6);
+      ctx.lineTo(-52, 6 + j * 3 + Math.sin(r / 60 + j) * 1.5);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(20,12,30,.9)'; // flowing cloak
+    ctx.beginPath();
+    ctx.moveTo(-6, -24);
+    ctx.lineTo(-30, -12 + Math.sin(r / 70) * 3);
+    ctx.lineTo(-6, -4);
+    ctx.fill();
+    ctx.fillStyle = '#17101f'; // body and dangling legs
+    ctx.beginPath();
+    ctx.ellipse(0, -14, 9, 13, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#17101f';
+    ctx.lineWidth = 3.4;
+    ctx.beginPath();
+    ctx.moveTo(2, -4);
+    ctx.lineTo(7, 9);
+    ctx.moveTo(-2, -4);
+    ctx.lineTo(1, 10);
+    ctx.stroke();
+    ctx.strokeStyle = '#e8892a'; // hair streaming behind
+    ctx.lineWidth = 2;
+    for (let j = 0; j < 3; j++) {
+      ctx.beginPath();
+      ctx.moveTo(2, -30 + j * 2);
+      ctx.lineTo(-10, -26 + j * 4 + Math.sin(r / 80 + j) * 2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#7fc46a'; // face
+    circ(7, -30, 6);
+    ctx.fillStyle = '#111';
+    circ(9.5, -31, 1);
+    ctx.fillStyle = '#17101f'; // hat
+    ctx.beginPath();
+    ctx.ellipse(7, -34, 12, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, -34);
+    ctx.quadraticCurveTo(6, -46, 2, -58);
+    ctx.lineTo(14, -34);
+    ctx.fill();
+    ctx.strokeStyle = '#17101f'; // arm and wand
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(8, -18);
+    ctx.lineTo(24, -26);
+    ctx.stroke();
+    ctx.strokeStyle = '#e8d8ff';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(24, -26);
+    ctx.lineTo(32, -31);
+    ctx.stroke();
+    ctx.restore();
+  };
+  const drawWitches = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1b0e33');
+    g.addColorStop(1, '#2d1346');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,170,60,.92)'; // a big harvest moon
+    circ(W * 0.82, H * 0.22, Math.min(W, H) * 0.12);
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    for (let k = 0; k < 28; k++) circ(((k * 83) % 100) * 0.01 * W, ((k * 47) % 80) * 0.01 * H, 0.9);
+    ctx.fillStyle = '#0d0716'; // bats
+    for (let k = 0; k < 4; k++) {
+      const bx = (((k * 0.27 + r * 0.00006 * (k + 1)) % 1.2) - 0.1) * W;
+      const by = H * (0.12 + 0.18 * k) + Math.sin(r / 200 + k) * 8;
+      const fl = Math.sin(r / 70 + k * 2) * 5;
+      ctx.beginPath();
+      ctx.moveTo(bx - 9, by - fl);
+      ctx.quadraticCurveTo(bx - 3, by - 4, bx, by);
+      ctx.quadraticCurveTo(bx + 3, by - 4, bx + 9, by - fl);
+      ctx.quadraticCurveTo(bx + 3, by + 2, bx, by + 3);
+      ctx.quadraticCurveTo(bx - 3, by + 2, bx - 9, by - fl);
+      ctx.fill();
+    }
+    const sz = Math.min(1.3, Math.max(0.8, fs / 16));
+    ctx.font = `${fs}px ${FONT}`;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const dir = i % 2 ? -1 : 1;
+      const px = w.cx;
+      const py = Math.max(30, w.cells[0].y - fs * 1.7);
+      const sx = dir > 0 ? -60 : W + 60;
+      const ex = dir > 0 ? W + 60 : -60;
+      if (rr < WITCH_IN + WITCH_OUT) {
+        let x: number;
+        let y: number;
+        if (rr < WITCH_IN) {
+          const q = rr / WITCH_IN;
+          const e = 1 - Math.pow(1 - q, 2);
+          x = sx + (px - sx) * e;
+          y = witchStart[i] + (py - witchStart[i]) * e + Math.sin(q * 5) * 10 * (1 - q);
+        } else {
+          const q = (rr - WITCH_IN) / WITCH_OUT;
+          x = px + (ex - px) * q * q;
+          y = py - 60 * q * q;
+        }
+        for (let k = 1; k <= 6; k++) { // glittering trail
+          ctx.fillStyle = `hsla(${(i * 40 + k * 30) % 360},90%,70%,${0.5 - k * 0.07})`;
+          circ(x - dir * (34 + k * 8) * sz, y + 6 + Math.sin(r / 90 + k) * 3, 2.4);
+        }
+        witchBy(x, y, dir, dir * Math.sin(r / 150 + i) * 0.06 + (rr >= WITCH_IN ? -0.25 : 0), sz, r);
+      }
+      if (rr >= WITCH_IN) {
+        const e = rr - WITCH_IN;
+        if (e < 400) { // the spell's burst
+          for (let k = 0; k < 10; k++) {
+            const a = (k / 10) * Math.PI * 2 + i;
+            ctx.fillStyle = `hsla(${(k * 36 + i * 30) % 360},95%,72%,${1 - e / 400})`;
+            circ(px + Math.cos(a) * (10 + e * 0.12) * (w.x1 - w.x0) / 90 * 2, py + fs * 1.2 + Math.sin(a) * (6 + e * 0.05), 2.6 * (1 - e / 400) + 0.6);
+          }
+        }
+        for (const c of w.cells) textLit(c, '#ead4ff', 'rgba(190,120,255,.9)', 10 - 4 * clamp1(e / 500), c.x, c.y, clamp1(e / 250));
+      }
+    }
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -3942,6 +4088,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fartgun: drawFartGun,
     arrows: drawArrows,
     tiles: drawTiles,
+    witches: drawWitches,
   };
 
   const frame = (now: number) => {
