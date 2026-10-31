@@ -2,6 +2,17 @@
 
 Turn any text into an image you can paste into a message or email. Only someone with the passphrase can turn it back. Runs entirely in the browser; nothing is uploaded.
 
+## How to use
+**Sending** (Hide a secret tab)
+1. Type or paste your text (or choose a file, paste a picture, or read the text from a camera photo) and enter a passphrase, or press **Generate**.
+2. Pick an **image style**: code art, QR code, fake QR code, or hidden in a photo (JPEG-safe or lossless), and optionally your own cover photo.
+3. Optionally open **More options**: a reveal animation (one of 41), a reading time, an expiry from 1 minute to 30 days, and a recipient pass code. With the photo style, **More messages in this photo** adds up to 3 more messages, each with its own passphrase and optional pass code.
+4. Press **Create image**, then **Copy message** (the image, a link to the site and, for code art and QR, a direct link to the secret) and paste it into an email or chat, or download the image. Give the passphrase to your recipient by a different route.
+
+**Receiving**
+1. Open the link, use the **Reveal secret** button of the Outlook add-in, or use the **Reveal a secret** tab: paste, drop or choose the image, or scan a QR code with the camera. If the secret was split, add every part.
+2. Type the passphrase (or the pass code) and press **Reveal**. Watch the animation (or **Skip**), read the secret, copy it or save the file. It clears itself after the reading time.
+
 ## Image styles
 - **Code art**: a colourful mosaic that survives JPEG compression, resizing and screenshots.
 - **QR code**: a standard QR holding a link to this page with the encrypted data in the part after `#` (which browsers never send to a server). Scan it with an ordinary phone camera and the page opens on the Reveal tab with the secret already loaded; the recipient only types the passphrase, and the address bar is tidied so the data does not stay in it. Best for short secrets (one QR holds roughly 1.6 KB of encrypted data). With several parts each QR opens its own page, so use **Scan QR with camera** inside the app for those. QR codes made by earlier versions (raw base64) still read. The link points at whichever site made the code, so codes made on a local test copy only work on that copy.
@@ -36,7 +47,7 @@ Choose a file, or paste one from the clipboard (Ctrl/Cmd+V on the Hide tab with 
 ## In email, and the Outlook add-in
 Email programs do not run scripts, so no image or message can decrypt itself inside an email. Two things get close:
 - **Direct link.** The **Copy message** text for a code art or QR image includes a link that opens the secret on this site (see above); the recipient clicks it and types the passphrase.
-- **Outlook add-in** (`public/outlook/`). A **Reveal secret** button on the message toolbar opens a task pane beside the email. The pane looks in the open email for image attachments (pasted inline pictures count) or a SecretTransport link, loads what it finds into this app (shown inside the pane), and the recipient types the passphrase. Decryption runs in the pane on the recipient's device. It asks Outlook only for permission to read the open email, and it only takes the data after `#q=` from a link (the link itself is never followed). Photo and fake-QR images are found the same way, from the attachment.
+- **Outlook add-in** (`public/outlook/`; the manifest link and install steps are also on the site's landing page). A **Reveal secret** button on the message toolbar opens a task pane beside the email. The pane looks in the open email for image attachments (pasted inline pictures count) or a SecretTransport link, loads what it finds into this app (shown inside the pane), and the recipient types the passphrase. Decryption runs in the pane on the recipient's device. It asks Outlook only for permission to read the open email, and it only takes the data after `#q=` from a link (the link itself is never followed). Photo and fake-QR images are found the same way, from the attachment.
 
   To install it (Outlook on the web, new Outlook, or classic Outlook with Microsoft 365): **Get Add-ins → My add-ins → Add a custom add-in → Add from URL**, and give it `https://jkft007.github.io/SecretTransport/outlook/manifest.xml`. A Microsoft 365 admin can instead upload the same manifest under **Integrated apps** to roll it out to a team. Needs a mailbox that supports Mailbox requirement set 1.8 (all current Outlook versions).
 

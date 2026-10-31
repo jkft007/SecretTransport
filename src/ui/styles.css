@@ -148,6 +148,9 @@ details.about li { margin: 4px 0; }
 details.about table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 details.about th, details.about td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 footer a { color: inherit; }
+#outlook-note { margin: -10px 0 18px; font-size: 14px; }
+#outlook-note .link { padding: 0; border: 0; background: none; font-size: inherit; }
+#manifest-url { flex: 1; min-width: 220px; width: auto; font: 13px ui-monospace, Consolas, monospace; }
 footer { margin-top: 20px; color: var(--muted); font-size: 13px; }
 [hidden] { display: none !important; }
 

@@ -1029,6 +1029,25 @@ const openFromHash = () => {
 if (location.hash === '#reveal' || location.hash.startsWith('#q=')) openFromHash();
 window.addEventListener('hashchange', openFromHash);
 
+// The landing page's Outlook add-in note: open the install steps, and copy the manifest link.
+$('outlook-how').onclick = () => {
+  const d = $<HTMLDetailsElement>('outlook');
+  d.open = true;
+  d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+$('manifest-url').addEventListener('focus', (e) => (e.target as HTMLInputElement).select());
+$('btn-copy-manifest').onclick = async () => {
+  const input = $<HTMLInputElement>('manifest-url');
+  const btn = $('btn-copy-manifest');
+  try {
+    await navigator.clipboard.writeText(input.value);
+    btn.textContent = 'Copied';
+    setTimeout(() => (btn.textContent = 'Copy'), 1500);
+  } catch {
+    input.select(); // the clipboard is blocked: the link is selected so Ctrl+C works
+  }
+};
+
 // Enter in the passphrase box does the same as pressing Reveal.
 $('pass2').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.isComposing) {

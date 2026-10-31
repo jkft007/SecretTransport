@@ -11,6 +11,7 @@
       <header>
         <h1>Secret<span>Transport</span></h1>
         <p>Turn any text into an image you can paste into a message or email. Only someone with the passphrase can turn it back. Everything happens in your browser: nothing is uploaded.</p>
+        <p class="hint" id="outlook-note">Using Outlook? <a href="outlook/manifest.xml">Outlook add-in manifest</a> · <button id="outlook-how" class="link" type="button">how to install it</button></p>
       </header>
 
       <div class="tabs" role="tablist">
@@ -278,6 +279,20 @@
           <li><b>Reveal.</b> The recipient pastes, drops, picks or scans the image on the Reveal tab and types the passphrase (or pass code). The original comes back with an animation, and clears itself from the screen after the reading time. Nothing is uploaded: there is no server.</li>
         </ol>
 
+        <h3>How to use</h3>
+        <p><b>Sending</b></p>
+        <ol>
+          <li>On <b>Hide a secret</b>, type or paste your text (or choose a file, paste a picture, or read the text from a camera photo) and enter a passphrase, or press Generate.</li>
+          <li>Pick an <b>Image style</b>: code art (works almost everywhere), QR code (opens this site when scanned), fake QR code (scans as a decoy) or hidden in a photo (looks like an ordinary picture; the JPEG-safe method survives normal recompression). You can choose your own cover photo.</li>
+          <li>Optionally open <b>More options</b>: a reveal animation (one of 41), a reading time, an expiry from 1 minute to 30 days, and a recipient pass code. With the photo style you can also add up to 3 more messages to the same photo, each with its own passphrase.</li>
+          <li>Press <b>Create image</b>, then <b>Copy message</b> (the image, a link to this site and, for code art and QR, a direct link to the secret) and paste it into an email or chat, or download the image. Give the passphrase to your recipient by a different route.</li>
+        </ol>
+        <p><b>Receiving</b></p>
+        <ol>
+          <li>Open the link, use the <b>Reveal secret</b> button of the Outlook add-in, or use this page's <b>Reveal a secret</b> tab: paste (Ctrl+V), drop or choose the image, or scan a QR code with the camera. If the secret was split, add every part.</li>
+          <li>Type the passphrase (or the pass code) and press <b>Reveal</b>. Watch the animation (or press Skip), read the secret, copy it or save the file. It clears itself after the reading time.</li>
+        </ol>
+
         <h3>When to use this</h3>
         <ul>
           <li><b>Good for:</b> sending a password, API key, recovery phrase or private note over a channel you do not fully trust (email, chat), when you can give the passphrase by a different route (a phone call, in person). Also for hiding text in plain sight inside a photo.</li>
@@ -302,6 +317,23 @@
           </table>
         </div>
         <p class="hint">In practice: attachments and "send as file/document" options (email, Telegram, WhatsApp, Signal) generally deliver the original. Sending as a normal photo in most chat and social apps (WhatsApp, iMessage, Messenger, Instagram, and Telegram or Signal photo mode) re-compresses it and may shrink it, so use Code art or a JPEG-safe photo there. Pasting inline into an email usually works but some mail programs resize large pictures. Apps differ and change their behaviour between versions, and not every app has been tested: send yourself a test image first.</p>
+      </details>
+
+      <details class="about" id="outlook">
+        <summary>Use it inside Outlook (add-in)</summary>
+        <p>An email program cannot run the decryption itself, so SecretTransport has an Outlook add-in: a <b>Reveal secret</b> button that opens a pane beside the email, picks up its image attachment (or secret link) and asks for the passphrase. Everything runs on your device.</p>
+        <p>Add-in manifest link:</p>
+        <div class="row">
+          <input id="manifest-url" type="text" readonly value="https://jkft007.github.io/SecretTransport/outlook/manifest.xml" spellcheck="false" />
+          <button id="btn-copy-manifest" class="ghost small" type="button">Copy</button>
+          <a href="outlook/manifest.xml">Open</a>
+        </div>
+        <ol>
+          <li>In Outlook choose <b>Get Add-ins</b> (or <b>Manage add-ins</b>), then <b>My add-ins</b>, then <b>Add a custom add-in</b>, then <b>Add from URL</b>.</li>
+          <li>Paste the manifest link above and confirm.</li>
+          <li>Open an email that holds a secret image or link and click <b>Reveal secret</b> on its toolbar. Type the passphrase in the pane.</li>
+        </ol>
+        <p class="hint">A Microsoft 365 admin can add the same manifest under <b>Integrated apps</b> for a whole team. The pane loads Microsoft's office.js (Outlook needs it); this page loads nothing from third parties. The add-in has been tested with a stand-in for Outlook, not yet inside every real Outlook, and some organisations block custom add-ins.</p>
       </details>
 
       <footer>
