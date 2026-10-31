@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,6 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
+  'seance', 'poltergeist', 'haunted', 'dragon',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -143,8 +144,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const COIN_T = 650; // how long a coin takes to fly out of the chest to its letter
   const PP_T = 1000; // a paper plane's whole trip: glide in, land, unfold
   const GHOST_T = 1100; // how long a letter takes to materialise out of the mist
+  const DR_GAP = Math.min(750, Math.max(250, 3200 / Math.max(1, lineYs.length))); // the dragon starts a new line this often
+  const DR_LT = 1100; // the dragon's sweep along one line
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -181,6 +184,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'treasure' ? Math.max(T_RESOLVE, 1400) + COIN_T + 150
     : style === 'paperplanes' ? Math.max(T_RESOLVE, 1400) + PP_T + 300
     : style === 'ghosts' ? Math.max(T_RESOLVE, 1800) + GHOST_T + 300
+    : style === 'seance' ? Math.max(T_RESOLVE, 1600) + 500
+    : style === 'poltergeist' ? Math.max(T_RESOLVE, 1800) + 520 + 200
+    : style === 'haunted' ? Math.max(T_RESOLVE, 1400) + 1100 + 450
+    : style === 'dragon' ? DR_GAP * (lineYs.length - 1) + DR_LT + 700
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
@@ -201,6 +208,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'treasure' ? T_RES - COIN_T - 150
     : style === 'paperplanes' ? T_RES - PP_T - 300
     : style === 'ghosts' ? T_RES - GHOST_T - 300
+    : style === 'seance' ? T_RES - 500
+    : style === 'poltergeist' ? T_RES - 520 - 200
+    : style === 'haunted' ? T_RES - 1100 - 450
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -2824,6 +2834,215 @@ export function playReveal(o: RevealOptions): RevealHandle {
     }
     fadeToFinal(r);
   };
+  // Seance: a planchette glides across a candle-lit board and spells each word out.
+  const clamp1 = (v: number) => Math.min(1, Math.max(0, v));
+  const drawSeance = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#2b1a10');
+    g.addColorStop(1, '#150c07');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    for (const cx of [26, W - 26]) {
+      ctx.fillStyle = '#e8dcc0';
+      ctx.fillRect(cx - 5, H - 46, 10, 40);
+      const fl = 1 + Math.sin(r / 70 + cx) * 0.18;
+      const halo = ctx.createRadialGradient(cx, H - 54, 2, cx, H - 54, 70);
+      halo.addColorStop(0, 'rgba(255,190,90,.35)');
+      halo.addColorStop(1, 'rgba(255,190,90,0)');
+      ctx.fillStyle = halo;
+      ctx.fillRect(cx - 80, H - 130, 160, 140);
+      ctx.fillStyle = '#ffcf6a';
+      ctx.beginPath();
+      ctx.ellipse(cx, H - 54, 4, 9 * fl, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const rr = r - c.lock;
+      if (rr < 0) continue;
+      textLit(c, '#ffe9b0', 'rgba(255,190,90,.85)', 9 - 4 * clamp1(rr / 500), c.x, c.y, clamp1(rr / 450));
+    }
+    let cur = -1;
+    for (const x of wt) if (x.t0 <= r) cur = x.i;
+    const spot = (k: number) => (k < 0 ? { x: W / 2, y: H * 0.8 } : { x: wt[k].w.cx, y: wt[k].w.cells[0].y - fs * 0.3 });
+    const to = spot(cur);
+    const from = spot(cur - 1);
+    const e = cur < 0 ? 0 : ease((r - wt[cur].t0) / 320);
+    const px = from.x + (to.x - from.x) * e + (cur < 0 ? Math.sin(r / 300) * 12 : 0);
+    const py = from.y + (to.y - from.y) * e;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(Math.sin(r / 260) * 0.08);
+    ctx.fillStyle = '#6b4a2a';
+    ctx.shadowColor = 'rgba(0,0,0,.6)';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(0, -22);
+    ctx.quadraticCurveTo(26, 6, 0, 22);
+    ctx.quadraticCurveTo(-26, 6, 0, -22);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(235,225,200,.55)';
+    circ(0, 2, 7);
+    ctx.restore();
+    fadeToFinal(r);
+  };
+
+  // Poltergeist: the letters whirl around the room, then are flung into their places one by one.
+  const POLT_T = 520;
+  const orbit = (i: number, r: number) => {
+    const m = Math.min(W, H);
+    const ang = r / 380 + i * 0.9;
+    const rad = m * (0.14 + (i % 5) * 0.06) + Math.sin(r / 300 + i) * 10;
+    return { x: W / 2 + Math.cos(ang) * rad * 1.7, y: H / 2 + Math.sin(ang) * rad };
+  };
+  const drawPolter = (r: number) => {
+    const g = ctx.createRadialGradient(W / 2, H / 2, 10, W / 2, H / 2, W * 0.7);
+    g.addColorStop(0, '#12261f');
+    g.addColorStop(1, `rgb(${BG})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = `${fs}px ${FONT}`;
+    const open = clamp1((r + T_INTRO) / T_INTRO);
+    visible.forEach((c, i) => {
+      const rr = r - c.lock;
+      if (rr >= POLT_T) {
+        textLit(c, '#e4fff0', 'rgba(120,255,190,.8)', rr < POLT_T + 200 ? 16 : 6);
+      } else if (rr >= 0) {
+        const q = ease(rr / POLT_T);
+        const o = orbit(i, c.lock);
+        textLit(c, '#c9ffe2', 'rgba(120,255,190,.8)', 10, o.x + (c.x - o.x) * q, o.y + (c.y - o.y) * q + Math.sin(q * Math.PI) * -26, 0.9);
+      } else {
+        const o = orbit(i, r);
+        textLit(c, '#9fe8c4', 'rgba(120,255,190,.5)', 6, o.x, o.y, 0.7 * open);
+      }
+    });
+    fadeToFinal(r);
+  };
+
+  // Haunted house: a ghost slips out of a window, carries each word to its place and leaves it there.
+  const HAUNT_T = 1100;
+  const drawHaunted = (r: number) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#12122a');
+    sky.addColorStop(1, `rgb(${BG})`);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(240,240,220,.9)';
+    circ(W * 0.12, H * 0.16, 15);
+    const hx = W / 2;
+    ctx.fillStyle = '#05070c';
+    ctx.fillRect(hx - 70, H - 70, 140, 70);
+    ctx.fillRect(hx + 40, H - 112, 26, 46);
+    ctx.beginPath();
+    ctx.moveTo(hx - 82, H - 70);
+    ctx.lineTo(hx, H - 118);
+    ctx.lineTo(hx + 82, H - 70);
+    ctx.fill();
+    const wins = [hx - 48, hx - 8, hx + 32].map((x, k) => ({ x, y: H - 54, on: 0.7 + 0.3 * Math.sin(r / 110 + k * 2) }));
+    for (const w of wins) {
+      ctx.fillStyle = `rgba(255,210,90,${w.on})`;
+      ctx.fillRect(w.x, w.y, 16, 22);
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    const fade = r > T_RES - 300 ? clamp1(1 - (r - T_RES + 300) / 300) : 1;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const win = wins[i % 3];
+      const ey = w.cells[0].y - fs * 0.9;
+      if (rr < HAUNT_T) {
+        const q = rr / HAUNT_T;
+        const e = q * q * (3 - 2 * q);
+        ghostSheet(win.x + 8 + (w.cx - win.x - 8) * e + Math.sin(q * 7 + i) * 16 * (1 - q), win.y + (ey - win.y) * e, 0.55 + 0.45 * q, rr / 150, 0.6 * fade, w.cx > win.x ? 1 : -1);
+        continue;
+      }
+      const out = rr - HAUNT_T;
+      if (out < 450) ghostSheet(w.cx + out * 0.1, ey - out * 0.18, 1, rr / 150, 0.6 * (1 - out / 450) * fade, 1);
+      for (const c of w.cells) textLit(c, '#eaf6ff', 'rgba(160,210,255,.8)', 8 - 3 * clamp1(out / 500), c.x, c.y, clamp1(out / 250));
+    }
+    fadeToFinal(r);
+  };
+
+  // Dragon: a dragon sweeps along each line breathing fire; every letter flares white-hot, then cools into place.
+  const lineSpan = lineYs.map((y) => {
+    const xs = visible.filter((c) => c.y === y).map((c) => c.x);
+    return { y, x0: Math.min(...xs), x1: Math.max(...xs) };
+  });
+  const lineFrac = (c: Cell) => {
+    const k = lineYs.indexOf(c.y);
+    const ln = lineSpan[k];
+    const f = (c.x - ln.x0) / Math.max(1, ln.x1 - ln.x0);
+    return { k, f: k % 2 ? 1 - f : f };
+  };
+  const dragonAt = (r: number, k: number, y: number, flap: number, dx: number, dir: number, tx: number) => {
+    const dy = Math.max(38, y - fs * 2.2);
+    ctx.save();
+    ctx.translate(dx, dy);
+    ctx.scale(dir, 1);
+    const lx = (tx - dx) * dir;
+    const ly = y - dy;
+    for (let j = 0; j < 14; j++) {
+      const p = j / 13;
+      const jit = (Math.sin(r / 40 + j * 3 + k) + 1) * 2.5;
+      ctx.fillStyle = `rgba(255,${Math.round(210 - 130 * p)},40,${0.5 - 0.25 * p})`;
+      circ(50 + (lx - 50) * p + jit, -2 + (ly + 2) * p, 4 + 12 * p);
+    }
+    ctx.fillStyle = '#2f7d4f';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 34, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-30, 2);
+    ctx.quadraticCurveTo(-60, 14 + flap * 4, -78, -4);
+    ctx.lineTo(-30, -4);
+    ctx.fill();
+    circ(38, -5, 10);
+    ctx.beginPath();
+    ctx.moveTo(40, -9);
+    ctx.lineTo(54, -3);
+    ctx.lineTo(40, 2);
+    ctx.fill();
+    ctx.fillStyle = '#7a1f2b';
+    ctx.beginPath();
+    ctx.moveTo(-4, -8);
+    ctx.lineTo(-26, -8 - 36 * Math.abs(flap));
+    ctx.lineTo(14, -10);
+    ctx.fill();
+    ctx.fillStyle = '#ffd24a';
+    circ(41, -8, 2.4);
+    ctx.restore();
+  };
+  const drawDragon = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#2a0f1c');
+    g.addColorStop(1, `rgb(${BG})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) {
+      const { k, f } = lineFrac(c);
+      const rr = r - (k * DR_GAP + f * DR_LT);
+      if (rr < 0) continue;
+      const p = clamp1(rr / 700);
+      ctx.fillStyle = `rgb(${Math.round(255 - 23 * p)},${Math.round(246 + 9 * p)},${Math.round(192 + 52 * p)})`;
+      ctx.shadowColor = `rgba(255,${Math.round(140 + 70 * p)},40,${0.95 - 0.35 * p})`;
+      ctx.shadowBlur = 16 - 9 * p;
+      ctx.fillText(c.ch, c.x, c.y);
+      ctx.shadowBlur = 0;
+    }
+    lineSpan.forEach((ln, k) => {
+      const rr = r - k * DR_GAP;
+      if (rr < -100 || rr > DR_LT + 200) return;
+      const f = clamp1(rr / DR_LT);
+      const dir = k % 2 ? -1 : 1;
+      const run = ln.x1 - ln.x0;
+      const dx = dir > 0 ? ln.x0 - 50 + f * (run + 100) : ln.x1 + 50 - f * (run + 100);
+      const tx = dir > 0 ? ln.x0 + f * run : ln.x1 - f * run;
+      dragonAt(r, k, ln.y, Math.sin(r / 75), dx, dir, tx);
+    });
+    fadeToFinal(r);
+  };
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -2837,6 +3056,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
     treasure: drawTreasure,
     paperplanes: drawPlanes,
     ghosts: drawGhosts,
+    seance: drawSeance,
+    poltergeist: drawPolter,
+    haunted: drawHaunted,
+    dragon: drawDragon,
   };
 
   const frame = (now: number) => {
