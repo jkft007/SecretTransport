@@ -33,6 +33,15 @@ If a secret does not fit in one image, it is encrypted once and cut into numbere
 ## Cover photos
 Choose a file, or paste one from the clipboard (Ctrl/Cmd+V on the Hide tab with the photo style selected, or the **Paste cover from clipboard** button). JPEG, PNG and iPhone **HEIC/HEIF** photos work as cover images. HEIC is decoded in the browser with [libheif-js](https://github.com/catdad-experiments/libheif-js) (WebAssembly, LGPL-3.0), loaded only when a HEIC file is picked. Output is always PNG or JPEG-safe pixels, never HEIC.
 
+## In email, and the Outlook add-in
+Email programs do not run scripts, so no image or message can decrypt itself inside an email. Two things get close:
+- **Direct link.** The **Copy message** text for a code art or QR image includes a link that opens the secret on this site (see above); the recipient clicks it and types the passphrase.
+- **Outlook add-in** (`public/outlook/`). A **Reveal secret** button on the message toolbar opens a task pane beside the email. The pane looks in the open email for image attachments (pasted inline pictures count) or a SecretTransport link, loads what it finds into this app (shown inside the pane), and the recipient types the passphrase. Decryption runs in the pane on the recipient's device. It asks Outlook only for permission to read the open email, and it only takes the data after `#q=` from a link (the link itself is never followed). Photo and fake-QR images are found the same way, from the attachment.
+
+  To install it (Outlook on the web, new Outlook, or classic Outlook with Microsoft 365): **Get Add-ins → My add-ins → Add a custom add-in → Add from URL**, and give it `https://jkft007.github.io/SecretTransport/outlook/manifest.xml`. A Microsoft 365 admin can instead upload the same manifest under **Integrated apps** to roll it out to a team. Needs a mailbox that supports Mailbox requirement set 1.8 (all current Outlook versions).
+
+  Honest caveats: the pane page loads Microsoft's `office.js` from Microsoft's own server (Outlook requires it; the main app loads no third-party script). The add-in was tested here with a stand-in for Outlook's email object, not inside a real Outlook, and some organisations block custom add-ins. If a mail program removes or rescales an image before it reaches the pane, the same limits as in the table above apply.
+
 ## Run
 
 ```

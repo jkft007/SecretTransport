@@ -652,6 +652,13 @@ document.addEventListener('paste', (e) => {
     loadBlobs(files);
   }
 });
+// Outlook add-in: the task pane page (same origin, this app in a frame) hands over the open email's image attachments.
+window.addEventListener('message', (e) => {
+  if (window.parent === window || e.source !== window.parent || e.origin !== location.origin) return;
+  const d = e.data as { type?: string; mime?: string; bytes?: unknown } | null;
+  if (d?.type !== 'st-image' || !(d.bytes instanceof ArrayBuffer) || d.bytes.byteLength > 20 * 1024 * 1024) return;
+  loadBlobs([new Blob([d.bytes], { type: typeof d.mime === 'string' ? d.mime : 'image/png' })]);
+});
 $<HTMLInputElement>('file-in').onchange = (e) => {
   const input = e.target as HTMLInputElement;
   const files = [...(input.files ?? [])];

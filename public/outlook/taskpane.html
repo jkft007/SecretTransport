@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://appsforoffice.microsoft.com; script-src 'self' https://appsforoffice.microsoft.com; style-src 'self' 'unsafe-inline'; frame-src 'self'; img-src 'self' data: blob:" />
+    <title>SecretTransport for Outlook</title>
+    <style>
+      :root { --bg: #f4f6f8; --text: #17202a; --muted: #5f6b78; --err: #c0392b; --line: #d5dbe1; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #0b0f14; --text: #e6edf3; --muted: #8b98a5; --err: #ff7b6b; --line: #26313c; } }
+      html, body { height: 100%; margin: 0; }
+      body { display: flex; flex-direction: column; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      #bar { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+      #msg { margin: 0; color: var(--muted); }
+      #msg.err { color: var(--err); }
+      #app { flex: 1; width: 100%; border: 0; min-height: 360px; background: var(--bg); }
+    </style>
+  </head>
+  <body>
+    <div id="bar"><p id="msg" role="status">Looking for a secret in this email…</p></div>
+    <iframe id="app" title="SecretTransport"></iframe>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <script src="taskpane.js"></script>
+  </body>
+</html>
