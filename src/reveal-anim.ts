@@ -146,7 +146,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const RA_LT = Math.min(1900, Math.max(900, 7000 / Math.max(1, lineYs.length))); // the formation's pass along one line (a stately pace)
   const RA_GAP = RA_LT + 60; // one pass at a time
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -207,6 +207,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'earthquake' ? Math.max(T_RESOLVE, 1700) + 1100
     : style === 'volcano' ? Math.max(T_RESOLVE, 1800) + 900 + 300
     : style === 'emoji' ? Math.max(T_RESOLVE, 1800) + 600
+    : style === 'sharks' ? Math.max(T_RESOLVE, 1600) + 1400 + 300
+    : style === 'broomball' ? Math.max(T_RESOLVE, 1500) + 700 + 400 + 200
+    : style === 'zombies' ? Math.max(T_RESOLVE, 1700) + 800 + 600 + 150
     : style === 'roadrunner' ? RR_GAP * (lineYs.length - 1) + RR_LT + RR_LAG + 350 + RR_BANG + 200
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
@@ -250,6 +253,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'earthquake' ? T_RES - 1100
     : style === 'volcano' ? T_RES - 900 - 300
     : style === 'emoji' ? T_RES - 600
+    : style === 'sharks' ? T_RES - 1400 - 300
+    : style === 'broomball' ? T_RES - 700 - 400 - 200
+    : style === 'zombies' ? T_RES - 800 - 600 - 150
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -5632,6 +5638,360 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Sharks: a shark cruises past each word carrying it in on its back, and the word drops into place as the shark
+  // swims on in a burst of bubbles.
+  const SH_T = 1400; // a shark's swim across the whole sea
+  const shu = Math.min(1.25, Math.max(0.65, H / 300));
+  const sharkAt = (x: number, y: number, dir: number, r: number, i: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir * shu, shu);
+    ctx.rotate(Math.sin(r / 140 + i) * 0.04);
+    const wag = Math.sin(r / 110 + i) * 5;
+    const g = ctx.createLinearGradient(0, -16, 0, 14);
+    g.addColorStop(0, '#6b8aa2');
+    g.addColorStop(1, '#2e4a5e');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(52, -1);
+    ctx.bezierCurveTo(30, -17, -10, -18, -40, -3);
+    ctx.lineTo(-52, -4 + wag * 0.3);
+    ctx.lineTo(-68, -26 + wag);
+    ctx.lineTo(-58, -2 + wag * 0.5);
+    ctx.lineTo(-64, 18 + wag);
+    ctx.lineTo(-40, 4);
+    ctx.bezierCurveTo(-5, 16, 30, 13, 52, 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#d9e6ee'; // pale belly
+    ctx.beginPath();
+    ctx.moveTo(48, 1);
+    ctx.bezierCurveTo(30, 10, -2, 12, -36, 3);
+    ctx.bezierCurveTo(-4, 6, 28, 5, 48, 1);
+    ctx.fill();
+    ctx.fillStyle = '#3d5a70'; // dorsal and pectoral fins
+    ctx.beginPath();
+    ctx.moveTo(6, -14);
+    ctx.lineTo(-8, -34);
+    ctx.lineTo(-16, -14);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(14, 8);
+    ctx.lineTo(-6, 26);
+    ctx.lineTo(-10, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(20,40,55,.6)'; // gills
+    ctx.lineWidth = 1.2;
+    for (let k = 0; k < 3; k++) {
+      ctx.beginPath();
+      ctx.moveTo(22 - k * 4, -6);
+      ctx.lineTo(21 - k * 4, 2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#fff'; // eye
+    circ(38, -5, 2.6);
+    ctx.fillStyle = '#10202c';
+    circ(38.6, -5, 1.4);
+    ctx.fillStyle = '#fff'; // teeth
+    for (let k = 0; k < 6; k++) {
+      ctx.beginPath();
+      ctx.moveTo(28 + k * 3.6, 2.6 - k * 0.15);
+      ctx.lineTo(29.8 + k * 3.6, 6);
+      ctx.lineTo(31.6 + k * 3.6, 2.4 - k * 0.15);
+      ctx.fill();
+    }
+    ctx.restore();
+  };
+  const drawSharks = (r: number) => {
+    drawSea(r, '#0f5a7a', '#06202c');
+    ctx.font = `${fs}px ${FONT}`;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const dir = i % 2 ? -1 : 1;
+      const ty = w.cells[0].y - fs * 0.3;
+      const sx0 = dir > 0 ? -90 : W + 90;
+      const ex0 = dir > 0 ? W + 90 : -90;
+      const q = clamp1(rr / SH_T);
+      const sx = sx0 + (ex0 - sx0) * q;
+      const passed = dir > 0 ? sx >= w.cx : sx <= w.cx;
+      const sy = Math.min(H - 30, ty + fs * 2.6 + shu * 22);
+      if (q < 1) sharkAt(sx, sy, dir, r, i);
+      const off = passed ? 0 : sx - w.cx;
+      for (const c of w.cells) textLit(c, '#e8fbff', 'rgba(130,220,255,.9)', passed ? 6 : 10, c.x + off, c.y + (passed ? 0 : 4 * Math.sin(r / 120 + c.x)));
+      if (passed) {
+        const e = dir > 0 ? (sx - w.cx) / Math.max(1, (ex0 - sx0) / SH_T) : (w.cx - sx) / Math.max(1, Math.abs(ex0 - sx0) / SH_T);
+        if (e < 320) {
+          for (let k = 0; k < 7; k++) {
+            ctx.fillStyle = `rgba(220,245,255,${0.7 * (1 - e / 320)})`;
+            circ(w.cx + (k - 3) * (w.x1 - w.x0) * 0.12, ty + 8 - e * 0.05 * (0.5 + (k % 3) * 0.3) - k * 2, 2 + (k % 3));
+          }
+        }
+      }
+    }
+    fadeToFinal(r);
+  };
+
+  // Broomstick ball match: riders in team colours race through a floodlit stadium sky after a darting, winged
+  // golden ball; each catch drops a word into place, and the rider zooms off with a fist in the air.
+  const BB_IN = 700; // the chase in
+  const BB_OUT = 400; // the victory dash
+  const bbStart = wt.map(() => 14 + rnd() * H * 0.34);
+  const riderAt = (x: number, y: number, dir: number, tilt: number, sz: number, r: number, col: string) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir * sz, sz);
+    ctx.rotate(tilt);
+    ctx.strokeStyle = '#7a5230'; // broom
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-30, 5);
+    ctx.lineTo(30, -1);
+    ctx.stroke();
+    ctx.strokeStyle = '#c4954a';
+    ctx.lineWidth = 1.6;
+    for (let j = -3; j <= 3; j++) {
+      ctx.beginPath();
+      ctx.moveTo(-30, 5);
+      ctx.lineTo(-48, 5 + j * 3 + Math.sin(r / 55 + j) * 1.5);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = col; // streaming scarf
+    ctx.lineWidth = 3.4;
+    ctx.beginPath();
+    ctx.moveTo(4, -26);
+    ctx.quadraticCurveTo(-12, -22 + Math.sin(r / 60) * 4, -26, -26 + Math.sin(r / 50) * 5);
+    ctx.stroke();
+    ctx.fillStyle = col; // robes, leaning into the wind
+    ctx.beginPath();
+    ctx.moveTo(-2, -24);
+    ctx.lineTo(12, -22);
+    ctx.lineTo(6, -2);
+    ctx.lineTo(-8, -3);
+    ctx.fill();
+    ctx.strokeStyle = '#1a1620';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(2, -4);
+    ctx.lineTo(8, 6);
+    ctx.stroke();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(8, -20);
+    ctx.lineTo(24, -26);
+    ctx.stroke();
+    ctx.fillStyle = '#f0c9a0';
+    circ(26, -26, 2.6);
+    circ(6, -31, 6);
+    ctx.fillStyle = '#2a1c14'; // hair
+    ctx.beginPath();
+    ctx.arc(5, -33, 6.2, Math.PI, Math.PI * 1.9);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    circ(8.5, -31.5, 1);
+    ctx.restore();
+  };
+  const goldBall = (x: number, y: number, r: number) => {
+    const fl = Math.sin(r / 25) * 4;
+    ctx.fillStyle = 'rgba(255,235,170,.9)';
+    ctx.beginPath();
+    ctx.ellipse(x - 6, y - 4 - fl, 7, 2.4, -0.5, 0, Math.PI * 2);
+    ctx.ellipse(x + 6, y - 4 - fl, 7, 2.4, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffd24a';
+    ctx.shadowColor = 'rgba(255,215,80,.95)';
+    ctx.shadowBlur = 10;
+    circ(x, y, 4.2);
+    ctx.shadowBlur = 0;
+  };
+  const drawBroomball = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1d2a5a');
+    g.addColorStop(0.75, '#8a5a78');
+    g.addColorStop(1, '#2a1a30');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#d8b04a'; // the goal hoops on their poles
+    ctx.lineWidth = 3;
+    for (const gx of [W * 0.06, W * 0.94]) {
+      ctx.beginPath();
+      ctx.moveTo(gx, H);
+      ctx.lineTo(gx, H * 0.4);
+      ctx.stroke();
+      for (const [hy, hr] of [[0.4, 13], [0.5, 15], [0.6, 13]]) {
+        ctx.beginPath();
+        ctx.ellipse(gx, H * hy - hr, hr * 0.5, hr, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    ctx.fillStyle = 'rgba(10,8,20,.7)'; // stands full of spectators
+    ctx.fillRect(0, H - 22, W, 22);
+    for (let k = 0; k < W / 9; k++) {
+      ctx.fillStyle = `hsl(${(k * 47) % 360},60%,55%)`;
+      circ(k * 9 + 4, H - 14 + Math.sin(r / 200 + k) * 1.5, 2.4);
+    }
+    const sz = Math.min(1.3, Math.max(0.8, fs / 16));
+    ctx.font = `${fs}px ${FONT}`;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const dir = i % 2 ? -1 : 1;
+      const col = i % 2 ? '#d83a3a' : '#2f6fe0';
+      const px = w.cx;
+      const py = Math.max(30, w.cells[0].y - fs * 1.6);
+      const sx = dir > 0 ? -60 : W + 60;
+      const ex = dir > 0 ? W + 60 : -60;
+      if (rr < BB_IN + BB_OUT) {
+        let x: number;
+        let y: number;
+        if (rr < BB_IN) {
+          const q = rr / BB_IN;
+          const e = 1 - Math.pow(1 - q, 2);
+          x = sx + (px - sx) * e;
+          y = bbStart[i] + (py - bbStart[i]) * e + Math.sin(q * 6) * 12 * (1 - q);
+          const bx = x + dir * 46 * (1 - q); // the ball darts a little way ahead and is caught at the end
+          const by = y + Math.sin(r / 70) * 14 * (1 - q) - 4;
+          for (let k = 1; k <= 5; k++) {
+            ctx.fillStyle = `rgba(255,220,100,${0.5 - k * 0.08})`;
+            circ(bx - dir * k * 7, by + Math.sin(r / 70 - k) * 3, 2.4);
+          }
+          goldBall(bx, by, r);
+        } else {
+          const q = (rr - BB_IN) / BB_OUT;
+          x = px + (ex - px) * q * q;
+          y = py - 50 * q * q;
+        }
+        riderAt(x, y, dir, dir * Math.sin(r / 140 + i) * 0.05 + (rr >= BB_IN ? -0.2 : 0), sz, r, col);
+      }
+      if (rr >= BB_IN) {
+        const e = rr - BB_IN;
+        if (e < 350) { // the catch
+          ctx.strokeStyle = `rgba(255,225,110,${1 - e / 350})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(px, py, 6 + 44 * (e / 350), 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        for (const c of w.cells) textLit(c, '#fff2c0', 'rgba(255,205,80,.95)', 10 - 4 * clamp1(e / 500), c.x, c.y, clamp1(e / 200));
+      }
+    }
+    fadeToFinal(r);
+  };
+
+  // Zombies: green hands claw up out of the graves holding the words, heave them into place and sink back, while
+  // zombies shamble through the mist behind.
+  const ZOM_UP = 800; // the hand's heave
+  const ZOM_BACK = 600; // and its sinking away
+  const zomGy = H - 20;
+  const zomWalk = Array.from({ length: 3 }, (_, k) => ({ x: rnd() * W, v: (k % 2 ? -1 : 1) * (0.012 + rnd() * 0.01), s: 0.55 + rnd() * 0.25 }));
+  const zombieWalker = (x: number, dir: number, sz: number, r: number, k: number) => {
+    ctx.save();
+    ctx.translate(x, zomGy - 4);
+    ctx.scale(dir * sz, sz);
+    const sw = Math.sin(r / 260 + k * 2);
+    ctx.fillStyle = 'rgba(40,52,34,.9)';
+    ctx.fillRect(-4, -26, 3, 26 - Math.max(0, sw) * 3); // shuffling legs
+    ctx.fillRect(1, -26, 3, 26 + Math.min(0, sw) * 3);
+    ctx.fillStyle = '#3d3a4a'; // ragged clothes
+    ctx.fillRect(-7, -50, 14, 26);
+    ctx.fillStyle = '#6f9a4c';
+    ctx.beginPath();
+    ctx.arc(1, -58, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#10140a';
+    circ(3.5, -59, 1.8);
+    circ(-1, -59, 1.8);
+    ctx.fillRect(0, -54, 6, 1.4);
+    ctx.strokeStyle = '#6f9a4c'; // arms stretched out in front
+    ctx.lineWidth = 3.2;
+    ctx.beginPath();
+    ctx.moveTo(4, -46);
+    ctx.lineTo(24, -48 + sw * 1.5);
+    ctx.moveTo(4, -42);
+    ctx.lineTo(22, -42 - sw * 1.5);
+    ctx.stroke();
+    ctx.restore();
+  };
+  const zombieHand = (x: number, baseY: number, topY: number, r: number, i: number) => {
+    const bend = Math.sin(r / 180 + i) * 5;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#496b30';
+    ctx.lineWidth = 11;
+    ctx.beginPath();
+    ctx.moveTo(x, baseY);
+    ctx.quadraticCurveTo(x + bend, (baseY + topY) / 2, x, topY);
+    ctx.stroke();
+    ctx.strokeStyle = '#7fae58';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(x, baseY);
+    ctx.quadraticCurveTo(x + bend, (baseY + topY) / 2, x, topY);
+    ctx.stroke();
+    ctx.fillStyle = '#7fae58'; // the clutching hand
+    circ(x, topY, 7);
+    ctx.strokeStyle = '#7fae58';
+    ctx.lineWidth = 2.6;
+    for (let f = -2; f <= 1; f++) {
+      ctx.beginPath();
+      ctx.moveTo(x + f * 4 + 2, topY - 3);
+      ctx.lineTo(x + f * 5.5 + 2 + Math.sin(r / 150 + f) * 1.5, topY - 12);
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+  const drawZombies = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0c1a14');
+    g.addColorStop(1, '#1b2a20');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(210,235,190,.85)'; // a sickly moon
+    circ(W * 0.84, H * 0.17, Math.min(W, H) * 0.075);
+    ctx.fillStyle = 'rgba(30,46,34,.9)'; // tombstones
+    for (let k = 0; k < Math.max(4, W / 90); k++) {
+      const tx2 = ((k * 97 + 40) % W);
+      ctx.beginPath();
+      ctx.moveTo(tx2 - 9, zomGy);
+      ctx.lineTo(tx2 - 9, zomGy - 20 - (k % 3) * 6);
+      ctx.arc(tx2, zomGy - 20 - (k % 3) * 6, 9, Math.PI, 0);
+      ctx.lineTo(tx2 + 9, zomGy);
+      ctx.fill();
+    }
+    zomWalk.forEach((z, k) => {
+      const x = (((z.x + r * z.v) % (W + 80)) + W + 80) % (W + 80) - 40;
+      zombieWalker(x, z.v > 0 ? 1 : -1, z.s * Math.min(1.3, H / 280), r, k);
+    });
+    ctx.font = `${fs}px ${FONT}`;
+    const held: { c: Cell; dy: number }[] = [];
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const ty = w.cells[0].y;
+      if (rr < ZOM_UP) {
+        const q = ease(rr / ZOM_UP);
+        const dy = (zomGy + fs * 0.6 - ty) * (1 - q);
+        zombieHand(w.cx, zomGy + 6, ty + dy + fs * 0.8, r, i);
+        for (const c of w.cells) held.push({ c, dy });
+      } else {
+        const e = rr - ZOM_UP;
+        if (e < ZOM_BACK) zombieHand(w.cx, zomGy + 6, ty + fs * 0.8 + (zomGy + 14 - ty - fs * 0.8) * ease(e / ZOM_BACK), r, i);
+        for (const c of w.cells) held.push({ c, dy: 0 });
+      }
+    }
+    ctx.fillStyle = '#0b130e'; // the ground in front hides what is still underground
+    ctx.fillRect(0, zomGy, W, H - zomGy);
+    ctx.fillStyle = 'rgba(160,190,150,.07)'; // mist
+    for (let k = 0; k < 5; k++) circ(((k * 0.23 + r * 0.00004) % 1.2) * W, zomGy - 6, 60);
+    for (const h of held) {
+      if (h.c.y + h.dy > zomGy) continue;
+      textLit(h.c, '#e6ffd4', 'rgba(150,255,110,.85)', 9, h.c.x, h.c.y + h.dy);
+    }
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -5670,6 +6030,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     earthquake: drawQuake,
     volcano: drawVolcano,
     emoji: drawEmoji,
+    sharks: drawSharks,
+    broomball: drawBroomball,
+    zombies: drawZombies,
   };
 
   const frame = (now: number) => {
