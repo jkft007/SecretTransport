@@ -29,6 +29,9 @@ describe('reveal animation stored with the image', () => {
     expect(new Set(STYLES).size).toBe(STYLES.length);
     STYLES.forEach((s) => expect(idToStyle(styleToId(s))).toBe(s));
     expect(styleToId('matrix')).toBe(1); // ids are stored in images: never reorder
+    expect(styleToId('wizard')).toBe(30);
+    expect(STYLES.slice(30)).toEqual(['minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons']);
+    expect(STYLES.length).toBe(37);
     expect(idToStyle(250)).toBeUndefined();
     expect(idToStyle(0)).toBeUndefined();
   });

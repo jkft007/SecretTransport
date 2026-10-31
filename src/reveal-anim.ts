@@ -1,11 +1,12 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
   'ticker', 'radar', 'film', 'parade', 'asteroids',
   'hearts', 'flowers', 'bomb', 'wizard',
+  'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -132,8 +133,14 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const RISE = 900; // how long a bubble takes to float up to its place
   const WIN = 1000; // the jackpot celebration after the last reel stops
   const INK = 900; // how long invisible ink takes to darken once the flame reaches it
+  const MIN_T = 1800; // a minion's whole trip: run in, throw, cheer, run off
+  const AIR_T = 2050; // a helicopter's whole trip: fly in, lower, release, fly off
+  const HELI_GAP = Math.min(700, Math.max(250, 3200 / Math.max(1, lineYs.length))); // one helicopter carries each line; this is the wait between them
+  const BANNER_T = 2600; // how long the banner plane takes to bring the banner home
+  const BAL_POP = 700; // a balloon pops this long after its letter's turn
+  const BAL_SHRED = 450; // how long the bits of a popped balloon fly
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -159,6 +166,13 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'flowers' ? Math.max(T_RESOLVE, 1400) + BLOOM + 500
     : style === 'bomb' ? BOOM_T + 1000
     : style === 'wizard' ? WIZ_SPREAD + 3600
+    : style === 'minions' ? Math.max(T_RESOLVE, 1400) + MIN_T + 200
+    : style === 'helicopters' ? HELI_GAP * (lineYs.length - 1) + AIR_T + 300
+    : style === 'snowglobe' ? Math.max(T_RESOLVE, 2000) + 1800
+    : style === 'rocket' ? T_TYPE + 500
+    : style === 'lightning' ? 3600
+    : style === 'banner' ? BANNER_T + 600
+    : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
   const T_END = T_INTRO + T_RES + 250;
@@ -172,6 +186,9 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'parade' ? T_RES - 300
     : style === 'hearts' ? T_RES - HEART_RISE - 300
     : style === 'flowers' ? T_RES - BLOOM - 500
+    : style === 'minions' ? T_RES - MIN_T - 200
+    : style === 'snowglobe' ? T_RES - 800
+    : style === 'balloons' ? T_RES - BAL_POP - BAL_SHRED - 100
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -1800,6 +1817,653 @@ export function playReveal(o: RevealOptions): RevealHandle {
     ctx.fillRect(mx - 4, gunY - 5, 4, 10);
   };
 
+  // ---- Minions, snow globe, rocket, lightning and helicopters ------------------------------------
+  const wt = words.map((w, i) => ({ w, i, t0: Math.min(...w.cells.map((c) => c.lock)) }));
+  const textLit = (c: Cell, color: string, glow: string, blur = 5, x = c.x, y = c.y, alpha = 1) => {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = blur;
+    ctx.fillText(c.ch, x, y);
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  };
+  const circ = (x: number, y: number, rad: number) => {
+    ctx.beginPath();
+    ctx.arc(x, y, rad, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  // Minions: a little yellow helper runs in carrying a word, tosses it up into place, cheers and runs off.
+  const RUNIN = 650;
+  const THROW = 450;
+  const minion = (x: number, gy: number, dir: number, ph: number, eyes: number, up: number, hop: number) => {
+    ctx.save();
+    ctx.translate(x, gy - hop);
+    ctx.scale(dir * 0.95, 0.95);
+    const sw = Math.sin(ph);
+    ctx.fillStyle = '#1b1b1f';
+    ctx.fillRect(-8 + sw * 2, -4, 7, 4);
+    ctx.fillRect(1 - sw * 2, -4, 7, 4);
+    ctx.fillStyle = '#ffd83a';
+    ctx.beginPath();
+    ctx.moveTo(-9, -4);
+    ctx.lineTo(-9, -27);
+    ctx.arc(0, -27, 9, Math.PI, 0);
+    ctx.lineTo(9, -4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#2f5fa8';
+    ctx.fillRect(-9, -13, 18, 9);
+    ctx.fillRect(-5, -17, 10, 5);
+    ctx.strokeStyle = '#2f5fa8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-5, -17);
+    ctx.lineTo(-9, -24);
+    ctx.moveTo(5, -17);
+    ctx.lineTo(9, -24);
+    ctx.stroke();
+    ctx.fillStyle = '#4a4a52';
+    ctx.fillRect(-9, -30, 18, 4);
+    const er = eyes === 1 ? 5.4 : 4.1;
+    for (const ex of eyes === 1 ? [0] : [-4, 4]) {
+      ctx.fillStyle = '#c9ced6';
+      circ(ex, -28, er + 1.3);
+      ctx.fillStyle = '#ffffff';
+      circ(ex, -28, er);
+      ctx.fillStyle = '#5a3a1a';
+      circ(ex + 1, -28, er * 0.45);
+      ctx.fillStyle = '#111111';
+      circ(ex + 1.3, -28, er * 0.2);
+    }
+    ctx.strokeStyle = '#222222';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-3, -35.5);
+    ctx.lineTo(-4, -40);
+    ctx.moveTo(0, -36);
+    ctx.lineTo(0, -41);
+    ctx.moveTo(3, -35.5);
+    ctx.lineTo(4, -40);
+    ctx.stroke();
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.arc(1, -21, 2.5, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.stroke();
+    ctx.strokeStyle = '#ffd83a';
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    for (const s of [-1, 1]) {
+      const hx = (11 - 2 * up) * s;
+      const hy = -6 - 27 * up + (1 - up) * sw * 2 * s;
+      ctx.beginPath();
+      ctx.moveTo(9 * s, -15);
+      ctx.lineTo(hx, hy);
+      ctx.stroke();
+      ctx.fillStyle = '#222222';
+      circ(hx, hy, 2.2);
+    }
+    ctx.lineCap = 'butt';
+    ctx.restore();
+  };
+  const drawMinions = (r: number, t: number) => {
+    const gy = H - 12;
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#16324a');
+    bg.addColorStop(1, '#1d2f3c');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,.07)';
+    ctx.fillRect(0, gy + 2, W, H - gy);
+    ctx.font = `${fs}px ${FONT}`;
+    const settled: Cell[] = [];
+    const carried: { c: Cell; x: number; y: number }[] = [];
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const dirIn = i % 2 ? -1 : 1; // 1: runs in from the left
+      const edge = dirIn > 0 ? -30 : W + 30;
+      const eyes = i % 3 === 0 ? 1 : 2;
+      const wy = gy - 52 - (i % 3) * 15; // carried words ride at three heights so they do not pile up
+      if (rr < RUNIN) {
+        const q = rr / RUNIN;
+        const x = edge + (w.cx - edge) * (1 - Math.pow(1 - q, 2));
+        const ph = rr / 70;
+        minion(x, gy, dirIn, ph, eyes, 1, Math.abs(Math.sin(ph)) * 2.5);
+        for (const c of w.cells) carried.push({ c, x: c.x + (x - w.cx), y: wy });
+      } else if (rr < RUNIN + THROW) {
+        const p = (rr - RUNIN) / THROW;
+        minion(w.cx, gy, dirIn, 0, eyes, 1 - p, Math.sin(p * Math.PI) * 6);
+        for (const c of w.cells) carried.push({ c, x: c.x, y: wy + (c.y - wy) * ease(p) - Math.sin(p * Math.PI) * 18 });
+      } else {
+        settled.push(...w.cells);
+        const e = rr - RUNIN - THROW;
+        if (e < 150) minion(w.cx, gy, dirIn, 0, eyes, 1, Math.abs(Math.sin((e / 150) * Math.PI)) * 7);
+        else if (e < 700) {
+          const q = (e - 150) / 550;
+          const target = dirIn > 0 ? W + 30 : -30;
+          minion(w.cx + (target - w.cx) * q * q, gy, dirIn, e / 70, eyes, 0, Math.abs(Math.sin(e / 70)) * 2.5);
+        }
+      }
+    }
+    for (const k of carried) textLit(k.c, '#fff3b0', 'rgba(255,216,58,.7)', 6, k.x, k.y);
+    for (const c of settled) textLit(c, '#fff3b0', 'rgba(255,216,58,.5)', 4);
+    fadeToFinal(r);
+  };
+
+  // Snow globe: shaken, the snow swirls, then settles and the writing appears under it.
+  const globeFlakes = Array.from({ length: 150 }, () => ({ x: rnd() * W, y: rnd() * H, s: 1 + rnd() * 2.4, ph: rnd() * 6, v: 0.25 + rnd() * 0.6 }));
+  const drawSnowglobe = (r: number, t: number) => {
+    const settle = clamp01(r / (T_RES - 700));
+    const shake = 1 - settle;
+    const jolt = Math.max(0, 1 - t / (T_INTRO + 500));
+    ctx.save();
+    ctx.translate(Math.sin(t / 22) * 6 * jolt, Math.cos(t / 27) * 4 * jolt);
+    const bg = ctx.createRadialGradient(W / 2, H * 0.45, 10, W / 2, H * 0.5, Math.max(W, H) * 0.7);
+    bg.addColorStop(0, '#1d3f6e');
+    bg.addColorStop(1, '#0a1530');
+    ctx.fillStyle = bg;
+    ctx.fillRect(-10, -10, W + 20, H + 20);
+    const gh = 14 + 26 * settle;
+    ctx.fillStyle = '#e8f1fb';
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    ctx.lineTo(0, H - gh);
+    ctx.quadraticCurveTo(W / 2, H - gh - 14, W, H - gh);
+    ctx.lineTo(W, H);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    for (const f of globeFlakes) {
+      const y = (((f.y + t * 0.04 * f.v + Math.cos(t / 260 + f.ph) * 70 * shake) % H) + H) % H;
+      const x = (((f.x + Math.sin(t / 340 + f.ph) * (14 + 70 * shake)) % W) + W) % W;
+      circ(x, y, f.s);
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) textLit(c, '#f4fbff', 'rgba(160,210,255,.9)', 6, c.x, c.y, clamp01((r - c.lock) / 600));
+    ctx.restore();
+    fadeToFinal(r);
+  };
+
+  // Rocket: it skywrites the message, one letter at a time, trailing rocketSmoke.
+  const nightStars = Array.from({ length: 50 }, () => ({ x: rnd() * W, y: rnd() * H, s: 0.5 + rnd() * 1.3, p: rnd() * 6 }));
+  const rocketSmoke: { x: number; y: number; t0: number }[] = [];
+  let rvx = 1;
+  let rvy = 0;
+  const rocketPos = (r: number) => {
+    if (!visible.length) return { x: W / 2, y: H / 2 };
+    if (r < 0) {
+      const q = ease((r + T_INTRO) / T_INTRO);
+      return { x: -50 + (visible[0].x - 6 + 50) * q, y: visible[0].y - fs * 0.3 };
+    }
+    const k = Math.max(0, latest(r));
+    const cur = visible[k];
+    const nxt = visible[k + 1];
+    if (!nxt) {
+      const d = Math.max(0, r - typeAt[k]);
+      return { x: cur.x + cw / 2 + d * 0.9, y: cur.y - fs * 0.3 - d * 0.25 };
+    }
+    const f = clamp01((r - typeAt[k]) / Math.max(1, typeAt[k + 1] - typeAt[k]));
+    return { x: cur.x + cw / 2 + (nxt.x - cur.x) * f, y: cur.y - fs * 0.3 + (nxt.y - cur.y) * f };
+  };
+  const drawRocket = (r: number, t: number) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#050a18');
+    sky.addColorStop(1, '#14264a');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    for (const s of nightStars) {
+      ctx.fillStyle = `rgba(255,255,255,${0.35 + 0.4 * Math.sin(t / 400 + s.p)})`;
+      ctx.fillRect(s.x, s.y, s.s, s.s);
+    }
+    const p = rocketPos(r);
+    const q = rocketPos(r - 40);
+    rvx += (p.x - q.x - rvx) * 0.25;
+    rvy += (p.y - q.y - rvy) * 0.25;
+    const ang = Math.hypot(rvx, rvy) > 0.2 ? Math.atan2(rvy, rvx) : 0;
+    rocketSmoke.push({ x: p.x - Math.cos(ang) * 30, y: p.y - Math.sin(ang) * 30, t0: t });
+    if (rocketSmoke.length > 140) rocketSmoke.shift();
+    for (const s of rocketSmoke) {
+      const age = t - s.t0;
+      const a = 0.4 * (1 - age / 1000);
+      if (a <= 0) continue;
+      ctx.fillStyle = `rgba(220,225,235,${a})`;
+      circ(s.x, s.y - age * 0.01, 3 + age / 110);
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    visible.forEach((c, i) => {
+      if (r < typeAt[i]) return;
+      const fresh = r - typeAt[i] < 260;
+      textLit(c, fresh ? '#ffe2b0' : '#eaf6ff', fresh ? 'rgba(255,170,60,.9)' : 'rgba(120,180,255,.6)', fresh ? 12 : 5);
+    });
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(ang);
+    ctx.scale(0.85, 0.85);
+    const fl = 9 + 6 * Math.sin(t / 40);
+    ctx.fillStyle = '#ffb02e';
+    ctx.beginPath();
+    ctx.moveTo(-34, -3);
+    ctx.lineTo(-34 - fl, 0);
+    ctx.lineTo(-34, 3);
+    ctx.fill();
+    ctx.fillStyle = '#e0443a';
+    ctx.beginPath();
+    ctx.moveTo(-34, -4.5);
+    ctx.lineTo(-40, -10);
+    ctx.lineTo(-24, -4.5);
+    ctx.moveTo(-34, 4.5);
+    ctx.lineTo(-40, 10);
+    ctx.lineTo(-24, 4.5);
+    ctx.fill();
+    ctx.fillStyle = '#f3f6fa';
+    ctx.fillRect(-34, -4.5, 24, 9);
+    ctx.fillStyle = '#e0443a';
+    ctx.beginPath();
+    ctx.moveTo(-10, -4.5);
+    ctx.lineTo(0, 0);
+    ctx.lineTo(-10, 4.5);
+    ctx.fill();
+    ctx.fillStyle = '#7fc4ff';
+    circ(-19, 0, 2.6);
+    ctx.restore();
+    fadeToFinal(r);
+  };
+
+  // Lightning: a storm; each flash lights up part of the message.
+  const FLS = 5;
+  const makeBolt = (x0: number, yEnd: number) => {
+    const pts: [number, number][] = [[x0, 0]];
+    let x = x0;
+    let y = 0;
+    while (y < yEnd) {
+      y += 14 + rnd() * 16;
+      x += (rnd() - 0.5) * 34;
+      pts.push([x, y]);
+    }
+    return pts;
+  };
+  const flashes = [{ at: -250, bolt: makeBolt(W * 0.8, H * 0.5) }, ...Array.from({ length: FLS }, (_, i) => ({ at: 250 + i * 600, bolt: makeBolt(W * (0.12 + rnd() * 0.76), H * (0.45 + rnd() * 0.4)) }))];
+  const rainDrops = Array.from({ length: 90 }, () => ({ x: rnd() * W, y: rnd() * H, l: 8 + rnd() * 10, v: 0.6 + rnd() * 0.5 }));
+  const groupOf = (i: number) => Math.min(FLS - 1, Math.floor((i / Math.max(1, visible.length)) * FLS));
+  const drawStorm = (r: number, t: number) => {
+    let f = 0;
+    for (const s of flashes) {
+      if (r >= s.at) f = Math.max(f, Math.exp(-(r - s.at) / 120));
+      if (r >= s.at + 170) f = Math.max(f, 0.5 * Math.exp(-(r - s.at - 170) / 90));
+    }
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, `rgb(${10 + f * 90},${14 + f * 100},${28 + f * 120})`);
+    sky.addColorStop(1, `rgb(${6 + f * 40},${9 + f * 44},${16 + f * 60})`);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = `rgba(${30 + f * 150},${36 + f * 160},${60 + f * 170},.9)`;
+    for (let x = -20; x < W + 40; x += 70) {
+      ctx.beginPath();
+      ctx.ellipse(x, 6, 55, 26 + ((x * 7) % 11), 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(170,190,230,.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (const d of rainDrops) {
+      const y = (d.y + t * d.v * 0.9) % H;
+      const x = (d.x - t * 0.12 * d.v + W * 4) % W;
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 2, y + d.l);
+    }
+    ctx.stroke();
+    for (const s of flashes) {
+      const age = r - s.at;
+      if (age < 0 || age > 200) continue;
+      ctx.strokeStyle = `rgba(235,245,255,${1 - age / 200})`;
+      ctx.shadowColor = '#9cf';
+      ctx.shadowBlur = 14;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      s.bolt.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    visible.forEach((c, i) => {
+      if (r >= flashes[1 + groupOf(i)].at) textLit(c, '#d4e3ff', 'rgba(150,190,255,.9)', 3 + 14 * f);
+    });
+    if (f > 0.02) {
+      ctx.fillStyle = `rgba(200,220,255,${f * 0.35})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+    fadeToFinal(r);
+  };
+
+  // Helicopters: each word is slung under a helicopter, flown over its spot and lowered into place.
+  const IN = 750;
+  const LOW = 550;
+  const HOLD = 150;
+  const heli = (x: number, y: number, dir: number, t: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(dir, 1);
+    ctx.fillStyle = '#4d6a3f';
+    ctx.beginPath();
+    ctx.moveTo(-14, -4);
+    ctx.lineTo(-46, -8);
+    ctx.lineTo(-46, -3);
+    ctx.lineTo(-14, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-46, -8);
+    ctx.lineTo(-52, -17);
+    ctx.lineTo(-43, -8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#5b7a4a';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#bfe6ff';
+    ctx.beginPath();
+    ctx.ellipse(10, -2, 9, 6, -0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-16, 17);
+    ctx.lineTo(18, 17);
+    ctx.moveTo(-8, 11);
+    ctx.lineTo(-10, 17);
+    ctx.moveTo(8, 11);
+    ctx.lineTo(10, 17);
+    ctx.moveTo(0, -12);
+    ctx.lineTo(0, -18);
+    ctx.stroke();
+    const bl = 8 + 34 * Math.abs(Math.cos(t / 38));
+    ctx.strokeStyle = 'rgba(210,220,230,.9)';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(-bl, -18);
+    ctx.lineTo(bl, -18);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(200,210,220,.12)';
+    ctx.beginPath();
+    ctx.ellipse(0, -18, 38, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const tb = 3 + 7 * Math.abs(Math.sin(t / 30));
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = 'rgba(210,220,230,.9)';
+    ctx.beginPath();
+    ctx.moveTo(-48, -9 - tb);
+    ctx.lineTo(-48, -9 + tb);
+    ctx.stroke();
+    ctx.restore();
+  };
+  // One helicopter per line of text; it hovers over the left or right of the line and slings the whole line.
+  const heliLines = lineYs.map((y, k) => {
+    const cs = visible.filter((c) => c.y === y);
+    const x0 = cs[0].x;
+    const x1 = cs[cs.length - 1].x + cw;
+    return { w: { cells: cs, x0, x1, cx: x0 + (x1 - x0) * (k % 2 ? 0.3 : 0.7) }, i: k, t0: k * HELI_GAP };
+  });
+  const heliClouds = Array.from({ length: 6 }, () => ({ x: rnd() * W, y: H * (0.2 + rnd() * 0.6), s: 24 + rnd() * 40 }));
+  const drawHelis = (r: number, t: number) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#27486b');
+    sky.addColorStop(1, `rgb(${BG})`);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,.08)';
+    for (const k of heliClouds) {
+      const x = (((k.x - t * 0.03) % (W + 120)) + W + 120) % (W + 120) - 60;
+      ctx.beginPath();
+      ctx.ellipse(x, k.y, k.s, k.s * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    const hanging: { c: Cell; x: number; y: number }[] = [];
+    const settled: Cell[] = [];
+    for (const { w, i, t0 } of heliLines) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      const dirIn = i % 2 ? -1 : 1;
+      const edge = dirIn > 0 ? -70 : W + 70;
+      const hy = Math.max(26, w.cells[0].y - 74);
+      const hang = hy + 52;
+      let hx = w.cx;
+      let hyy = hy + Math.sin(t / 160 + i) * 2;
+      let ropes = true;
+      if (rr < IN) {
+        const q = rr / IN;
+        hx = edge + (w.cx - edge) * (1 - Math.pow(1 - q, 2));
+      } else if (rr >= IN + LOW) {
+        settled.push(...w.cells);
+        const e = rr - IN - LOW;
+        if (e >= HOLD) {
+          ropes = false;
+          const q = (e - HOLD) / (AIR_T - IN - LOW - HOLD);
+          if (q >= 1) continue;
+          const target = dirIn > 0 ? W + 80 : -80;
+          hx = w.cx + (target - w.cx) * q * q;
+          hyy = hy - 30 * q;
+        }
+      }
+      const p = rr < IN ? 0 : clamp01((rr - IN) / LOW);
+      const ox = hx - w.cx;
+      const lowered = (cy: number) => hang + (cy - hang) * ease(p);
+      if (ropes) {
+        const top = lowered(w.cells[0].y) - fs + 2;
+        ctx.strokeStyle = '#d9c9a0';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(hx - 7, hyy + 17);
+        ctx.lineTo(w.x0 + ox, top);
+        ctx.moveTo(hx + 7, hyy + 17);
+        ctx.lineTo(w.x1 + ox, top);
+        ctx.stroke();
+      }
+      heli(hx, hyy, dirIn, t);
+      if (rr < IN + LOW) for (const c of w.cells) hanging.push({ c, x: c.x + ox, y: lowered(c.y) });
+    }
+    for (const k of hanging) textLit(k.c, '#fff3d8', 'rgba(255,220,150,.6)', 5, k.x, k.y);
+    for (const c of settled) textLit(c, '#fff3d8', 'rgba(255,220,150,.45)', 4);
+    fadeToFinal(r);
+  };
+  // Banner plane: a plane tows a banner carrying the message across the sky and leaves it hanging in place.
+  const bPad = 12;
+  const bx0 = Math.min(...visible.map((c) => c.x)) - bPad;
+  const bx1 = Math.max(...visible.map((c) => c.x + cw)) + bPad;
+  const by0 = Math.min(...visible.map((c) => c.y)) - fs - 4;
+  const by1 = Math.max(...visible.map((c) => c.y)) + 8;
+  const bPlaneY = Math.max(26, by0 - 46);
+  const towPlane = (x: number, y: number, t: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(-1, 1); // drawn facing right, flown facing left
+    ctx.fillStyle = '#d23b3b';
+    ctx.beginPath();
+    ctx.moveTo(-26, -1);
+    ctx.lineTo(-32, -13);
+    ctx.lineTo(-19, -2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(-24, 1, 8, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 27, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f4f4f4';
+    ctx.beginPath();
+    ctx.ellipse(0, 2.5, 23, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#bfe6ff';
+    ctx.beginPath();
+    ctx.ellipse(5, -6, 7, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#b32e2e';
+    ctx.beginPath();
+    ctx.ellipse(-2, 5, 15, 3.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(8, 8);
+    ctx.lineTo(8, 12);
+    ctx.stroke();
+    ctx.fillStyle = '#2a2a2a';
+    circ(8, 13, 2.6);
+    const bl = 3 + 11 * Math.abs(Math.sin(t / 22));
+    ctx.strokeStyle = 'rgba(225,225,225,.9)';
+    ctx.beginPath();
+    ctx.moveTo(28, -bl);
+    ctx.lineTo(28, bl);
+    ctx.stroke();
+    ctx.restore();
+  };
+  const bannerClouds = Array.from({ length: 6 }, () => ({ x: rnd() * W, y: H * (0.2 + rnd() * 0.6), s: 24 + rnd() * 40 }));
+  const drawBanner = (r: number, t: number) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#2d5b87');
+    sky.addColorStop(1, `rgb(${BG})`);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,.08)';
+    for (const k of bannerClouds) {
+      const x = (((k.x - t * 0.03) % (W + 120)) + W + 120) % (W + 120) - 60;
+      ctx.beginPath();
+      ctx.ellipse(x, k.y, k.s, k.s * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const q = clamp01((r + T_INTRO) / (T_INTRO + BANNER_T));
+    const px = W + 70 + (bx0 - 80 - (W + 70)) * (1 - Math.pow(1 - q, 2.2));
+    const gone = clamp01((r - BANNER_T) / 600); // once the banner is home the plane climbs away
+    const planeX = px - gone * 160;
+    const planeY = bPlaneY - gone * 90;
+    const damp = 1 - 0.85 * clamp01((r - BANNER_T + 300) / 600);
+    const bL = px + 80;
+    const ox = bL - bx0;
+    const bw = bx1 - bx0;
+    const wv = (x: number) => 7 * damp * (0.15 + 0.85 * clamp01((x - bL) / bw)) * Math.sin((x - bL) * 0.05 - t * 0.012);
+    if (gone < 1) {
+      ctx.strokeStyle = `rgba(217,207,168,${1 - gone})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(planeX + 30, planeY + 3);
+      ctx.lineTo(bL, by0 + wv(bL));
+      ctx.moveTo(planeX + 30, planeY + 3);
+      ctx.lineTo(bL, by1 + wv(bL));
+      ctx.stroke();
+    }
+    const cloth = () => {
+      ctx.beginPath();
+      ctx.moveTo(bL, by0 + wv(bL));
+      for (let x = bL + 6; x < bL + bw; x += 6) ctx.lineTo(x, by0 + wv(x));
+      ctx.lineTo(bL + bw, by0 + wv(bL + bw));
+      ctx.lineTo(bL + bw, by1 + wv(bL + bw));
+      for (let x = bL + bw - 6; x > bL; x -= 6) ctx.lineTo(x, by1 + wv(x));
+      ctx.lineTo(bL, by1 + wv(bL));
+      ctx.closePath();
+    };
+    ctx.save();
+    cloth();
+    ctx.clip();
+    ctx.fillStyle = '#f6f0dc';
+    ctx.fillRect(bL - 2, by0 - 12, bw + 4, by1 - by0 + 24);
+    for (let x = bL; x < bL + bw; x += 6) {
+      const s = Math.cos((x - bL) * 0.05 - t * 0.012);
+      ctx.fillStyle = s > 0 ? `rgba(255,255,255,${0.25 * s * damp})` : `rgba(80,60,20,${-0.12 * s * damp})`;
+      ctx.fillRect(x, by0 - 12, 6, by1 - by0 + 24);
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    ctx.fillStyle = '#7a1424';
+    for (const c of visible) ctx.fillText(c.ch, c.x + ox, c.y + wv(c.x + ox));
+    ctx.restore();
+    cloth();
+    ctx.strokeStyle = '#b83a3a';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    towPlane(planeX, planeY, t);
+    fadeToFinal(r);
+  };
+
+  // Balloons: a bunch floats up with a letter behind each; they pop one by one to show the message.
+  const balloons = visible.map((c, i) => ({ c, hue: (i * 47 + rnd() * 30) % 360, rs: -T_INTRO + rnd() * 400, ph: rnd() * 6 }));
+  const drawBalloons = (r: number, t: number) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#1b2c4f');
+    sky.addColorStop(1, '#2a1f4a');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    const rad = cw * 0.95;
+    const letters: Cell[] = [];
+    for (const b of balloons) {
+      const pt = b.c.lock + BAL_POP;
+      const cx0 = b.c.x + cw / 2;
+      const cy0 = b.c.y - fs * 0.3;
+      if (r >= pt) {
+        letters.push(b.c);
+        const a = (r - pt) / BAL_SHRED;
+        if (a < 1) {
+          if (a < 0.18) {
+            ctx.fillStyle = `rgba(255,240,160,${1 - a / 0.18})`;
+            ctx.beginPath();
+            for (let k = 0; k < 10; k++) {
+              const ang = (k / 10) * Math.PI * 2;
+              const rr = (k % 2 ? rad * 0.6 : rad * 1.5) * (0.5 + a * 4);
+              ctx.lineTo(cx0 + Math.cos(ang) * rr, cy0 + Math.sin(ang) * rr);
+            }
+            ctx.closePath();
+            ctx.fill();
+          }
+          for (let k = 0; k < 6; k++) {
+            const ang = (k / 6) * Math.PI * 2 + b.ph;
+            const d = a * 22;
+            ctx.fillStyle = `hsla(${b.hue},80%,60%,${1 - a})`;
+            circ(cx0 + Math.cos(ang) * d, cy0 + Math.sin(ang) * d + a * a * 14, 2.2 * (1 - a * 0.5));
+          }
+        }
+        continue;
+      }
+      if (r < b.rs) continue;
+      const rise = clamp01((r - b.rs) / 900);
+      const y = H + 40 + (cy0 - (H + 40)) * ease(rise) + Math.sin(t / 500 + b.ph) * 2 * rise;
+      const x = cx0 + Math.sin(t / 700 + b.ph) * 1.5;
+      const sw = 1 + 0.25 * clamp01((r - (pt - 160)) / 160); // it swells just before it pops
+      const ry = rad * 1.18 * sw;
+      ctx.strokeStyle = 'rgba(255,255,255,.35)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y + ry);
+      ctx.quadraticCurveTo(x + 5, y + ry + 9, x - 2, y + ry + 18);
+      ctx.stroke();
+      ctx.fillStyle = `hsl(${b.hue},78%,58%)`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rad * sw, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x - 2, y + ry - 1);
+      ctx.lineTo(x + 2, y + ry - 1);
+      ctx.lineTo(x, y + ry + 4);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.45)';
+      ctx.beginPath();
+      ctx.ellipse(x - rad * 0.35 * sw, y - rad * 0.4 * sw, rad * 0.2, rad * 0.32, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of letters) textLit(c, '#fff6d0', 'rgba(255,200,90,.7)', 6);
+    fadeToFinal(r);
+  };
+  const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
+    minions: drawMinions,
+    snowglobe: drawSnowglobe,
+    rocket: drawRocket,
+    lightning: drawStorm,
+    helicopters: drawHelis,
+    banner: drawBanner,
+    balloons: drawBalloons,
+  };
+
   const frame = (now: number) => {
     const t = now - t0;
     if (skipped || t >= T_END) {
@@ -1808,6 +2472,12 @@ export function playReveal(o: RevealOptions): RevealHandle {
       return;
     }
     const r = t - T_INTRO;
+    const own = special[style];
+    if (own) {
+      own(r, t);
+      requestAnimationFrame(frame);
+      return;
+    }
     if (style === 'matrix') {
       if (t < T_SCAN) {
         drawScan(t / T_SCAN);

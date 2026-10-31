@@ -222,6 +222,13 @@
             <option value="flowers">Flowers</option>
             <option value="bomb">Cartoon bomb</option>
             <option value="wizard">Wizard's magic ink</option>
+            <option value="minions">Minions</option>
+            <option value="snowglobe">Snow globe</option>
+            <option value="rocket">Rocket skywriting</option>
+            <option value="lightning">Lightning storm</option>
+            <option value="helicopters">Helicopter airlift</option>
+            <option value="banner">Banner plane</option>
+            <option value="balloons">Popping balloons</option>
           </select>
         </div>
         <div id="reveal-status" class="status" role="status"></div>
@@ -257,9 +264,10 @@
 
         <h3>How it works</h3>
         <ol>
-          <li>Your browser encrypts the secret with your passphrase (AES-256-GCM; the key comes from Argon2id, which is deliberately slow and memory-hungry so that guessing is expensive).</li>
-          <li>The encrypted bytes, with error correction added, are drawn into an image: a code-art mosaic, a QR code (a phone camera opens this page with the secret ready for the passphrase), a fake QR code (it scans as a harmless decoy while the real data hides in the error-correction budget) or an ordinary-looking photo.</li>
-          <li>You send the image like any picture. The recipient pastes or drops it on the Reveal tab, types the passphrase, and the original comes back. Nothing is uploaded: there is no server.</li>
+          <li><b>Encrypt.</b> Your browser encrypts the secret (text, a file or a pasted picture) with your passphrase: AES-256-GCM, with a key from Argon2id, which is deliberately slow and memory-hungry so that guessing is expensive. Your choices (reveal animation, reading time, expiry) are sealed inside the same encrypted data. An optional recipient pass code is a second way in.</li>
+          <li><b>Hide.</b> The encrypted bytes, with error correction added, are drawn into an image: a code-art mosaic, a QR code (a phone camera opens this page with the secret ready for the passphrase), a fake QR code (it scans as a harmless decoy while the real data hides in the error-correction budget) or an ordinary-looking photo. One photo can hold up to 4 messages, each with its own passphrase and pass code, and a secret that is too big is split across several images.</li>
+          <li><b>Send.</b> You send the image like any picture: pasted, attached or scanned.</li>
+          <li><b>Reveal.</b> The recipient pastes, drops, picks or scans the image on the Reveal tab and types the passphrase (or pass code). The original comes back with an animation, and clears itself from the screen after the reading time. Nothing is uploaded: there is no server.</li>
         </ol>
 
         <h3>When to use this</h3>

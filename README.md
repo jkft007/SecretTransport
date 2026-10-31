@@ -9,10 +9,11 @@ Turn any text into an image you can paste into a message or email. Only someone 
 - **Hidden in a photo**:
   - *JPEG-safe* (default): bits stored in DCT coefficients with heavy redundancy and error correction. Survives normal JPEG recompression (about quality 50+), not cropping, rotation or resizing.
   - *Lossless*: LSB embedding, more capacity, but only survives as an original PNG.
+  - Either method can hold **up to 4 messages**, each with its own passphrase and optional pass code, in one photo (see "Several messages in one photo" below).
 
 **Copy message (image + link)** puts the image, the link to this site and a short explanation on the clipboard (as rich text plus plain text and a PNG) so you can paste it straight into an email or chat.
 
-Encryption: AES-256-GCM, key from the passphrase via Argon2id (64 MiB, 3 passes), Reed-Solomon error correction. The reveal is animated, with 30 styles (matrix rain, fireworks, a safe opening, a train puffing the text out of its chimney, and more). The sender can pick one when creating the image: the choice is stored inside the encrypted data, so only the passphrase holder can see it, and it is played when the recipient reveals the secret. The recipient can still override it from the animation menu, and images with no choice get a random one.
+Encryption: AES-256-GCM, key from the passphrase via Argon2id (64 MiB, 3 passes), Reed-Solomon error correction. The reveal is animated, with 37 styles (matrix rain, fireworks, a safe opening, a train puffing the text out of its chimney, Minions running the words in, helicopters lifting the lines into place, a banner plane, popping balloons, a lightning storm, a snow globe, rocket skywriting, and more). The sender can pick one when creating the image: the choice is stored inside the encrypted data, so only the passphrase holder can see it, and it is played when the recipient reveals the secret. The recipient can still override it from the animation menu, and images with no choice get a random one.
 
 ## Files and documents
 Choose **File or document** on the Hide tab to hide a PDF, spreadsheet, key file, zip or anything else instead of text. The file name and contents are both encrypted, and the recipient gets a **Save file** button (files are never opened automatically; executable-type files get an extra warning). Rough size limits per style: lossless photo ~400 KB, code art ~58 KB (images get big above 8 KB), JPEG-safe photo ~3 KB, QR ~1.6 KB, fake QR ~350 bytes. The app shows the limit for the chosen style and refuses oversize files.
@@ -49,9 +50,10 @@ Because everything runs in the browser, anyone who copies an image can guess pas
 - **Lockout on this device.** After 4 wrong passphrases on the same images, further tries are delayed (5 s, then doubling up to 5 min). This only frustrates casual guessing at the keyboard; it cannot stop offline attacks, so a strong passphrase is still what matters.
 
 ## How it works
-1. The browser encrypts the secret with your passphrase (AES-256-GCM, key from Argon2id).
-2. The encrypted bytes, with Reed-Solomon error correction, are drawn into an image: code art, QR, fake QR or a photo.
-3. You send the image like any picture. The recipient pastes or drops it on the Reveal tab, types the passphrase, and the original comes back. There is no server and nothing is uploaded.
+1. **Encrypt.** The browser turns your passphrase into a key with Argon2id and encrypts the secret (text, a file, or a pasted picture) with AES-256-GCM. The settings you choose (reveal animation, reading time, expiry) are sealed inside the same encrypted data, so only the passphrase holder can read them. An optional recipient pass code gets its own way in: the image key is wrapped under a key derived from the pass code (a key slot in code art and QR images, a small locator record in photos).
+2. **Hide.** The encrypted bytes, with Reed-Solomon error correction, are drawn into an image: a code-art mosaic, a QR code (a phone camera opens this page with the image ready), a fake QR (it scans as a decoy), or an ordinary-looking photo. Photo data is scattered across positions that only the passphrase reveals, and one photo can carry up to 4 messages in separate lanes. A secret too big for one image is split across up to 60.
+3. **Send.** The image travels like any picture: pasted, attached, or scanned from a QR code.
+4. **Reveal.** The recipient adds the image on the Reveal tab (paste, drop, choose, camera or a QR link) and types the passphrase or pass code. The browser finds the data, checks it, decrypts it, enforces any expiry, plays the sender's chosen animation (or the recipient's own pick) and shows the text, which clears itself after the reading time. All of this happens in the browser; nothing is uploaded.
 
 ## When to use it
 - **Good for:** a password, API key, recovery phrase or private note sent over a channel you do not fully trust, when the passphrase travels by a different route. Also for hiding text in plain sight inside a photo.
