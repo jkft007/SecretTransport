@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine' | 'bomber' | 'kraken' | 'thor' | 'spiders';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine' | 'bomber' | 'kraken' | 'thor' | 'spiders' | 'hatdance' | 'lasers';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,7 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
-  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders',
+  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -156,7 +156,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const RA_LT = Math.min(1900, Math.max(900, 7000 / Math.max(1, lineYs.length))); // the formation's pass along one line (a stately pace)
   const RA_GAP = RA_LT + 60; // one pass at a time
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -212,6 +212,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'kraken' ? Math.max(T_RESOLVE, 1800) + 700 + 700 + 200
     : style === 'thor' ? Math.max(T_RESOLVE, 1700) + 880 + 200
     : style === 'spiders' ? Math.max(T_RESOLVE, 1700) + 900 + 800 + 150
+    : style === 'hatdance' ? Math.max(T_RESOLVE, 1800) + 700 + 300
+    : style === 'lasers' ? Math.max(T_RESOLVE, 2200) + 900 + 300
     : style === 'roadrunner' ? RR_GAP * (lineYs.length - 1) + RR_LT + RR_LAG + 350 + RR_BANG + 200
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
@@ -250,6 +252,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'thor' ? T_RES - 880 - 200
     : style === 'fogwriter' ? T_RES - 1600 - 200
     : style === 'spiders' ? T_RES - 900 - 800 - 150
+    : style === 'hatdance' ? T_RES - 700 - 300
+    : style === 'lasers' ? T_RES - 900 - 300
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -5131,6 +5135,258 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Hat dance: two dancers in bright folk dress hop and stamp around a big sombrero on the floor, under paper
+  // bunting, and toss each letter out of their own hats in a shower of confetti.
+  const HAT_T = 700; // a letter's flight from a dancer's hat
+  const hu = Math.min(1.25, Math.max(0.7, H / 300));
+  const hatCx = W / 2;
+  const hatFloor = H - 24 * hu;
+  const hatOrbit = Math.min(W * 0.3, 190);
+  const dancerPos = (k: number, t: number) => {
+    const a = t / 420 + k * Math.PI;
+    const hop = Math.abs(Math.sin(t / 110 + k * 2)) * 6 * hu;
+    return { x: hatCx + Math.cos(a) * hatOrbit, y: hatFloor + Math.sin(a) * 9 * hu - hop, depth: Math.sin(a), hop };
+  };
+  const dancerHatTop = (k: number, t: number) => {
+    const p = dancerPos(k, t);
+    return { x: p.x, y: p.y - 58 * hu };
+  };
+  const folkDancer = (k: number, r: number) => {
+    const p = dancerPos(k, r);
+    const col = k ? '#2f9e5a' : '#d6334a';
+    const ph = r / 110 + k * 2;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.scale(hu, hu);
+    ctx.fillStyle = 'rgba(0,0,0,.28)';
+    ctx.beginPath();
+    ctx.ellipse(0, p.hop / hu + 1, 15, 3.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#3a2418'; // legs, one stamping
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-3, -14);
+    ctx.lineTo(-4, -2 - Math.max(0, Math.sin(ph)) * 5);
+    ctx.moveTo(3, -14);
+    ctx.lineTo(4, -2 - Math.max(0, -Math.sin(ph)) * 5);
+    ctx.stroke();
+    ctx.fillStyle = col; // the full skirt with a ruffle
+    ctx.beginPath();
+    ctx.moveTo(-5, -25);
+    ctx.lineTo(5, -25);
+    ctx.lineTo(17 + Math.sin(ph * 2) * 1.5, -11);
+    ctx.lineTo(-17 - Math.sin(ph * 2) * 1.5, -11);
+    ctx.fill();
+    ctx.fillStyle = '#f6efe2';
+    ctx.fillRect(-16, -14, 32, 3);
+    ctx.fillStyle = '#e8b52a';
+    for (let j = -2; j <= 2; j++) circ(j * 6, -18, 1.6);
+    ctx.fillStyle = '#f6efe2'; // blouse
+    ctx.fillRect(-5, -37, 10, 13);
+    ctx.fillStyle = col;
+    ctx.fillRect(-5, -33, 10, 2.4);
+    ctx.strokeStyle = '#d9a066'; // arms: one lifts the skirt, one waves
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-5, -35);
+    ctx.lineTo(-14, -26 + Math.sin(ph) * 2);
+    ctx.moveTo(5, -35);
+    ctx.lineTo(14, -44 + Math.sin(ph + 1.5) * 4);
+    ctx.stroke();
+    ctx.fillStyle = '#d9a066'; // head and braid
+    circ(0, -42, 5.6);
+    ctx.strokeStyle = '#1e140e';
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(-4, -42);
+    ctx.quadraticCurveTo(-9, -34, -6 + Math.sin(ph) * 2, -27);
+    ctx.stroke();
+    ctx.fillStyle = '#e8b52a'; // the broad straw hat
+    ctx.beginPath();
+    ctx.ellipse(0, -47, 16, 3.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, -51, 7.5, 5.5, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = col;
+    ctx.fillRect(-7.5, -52, 15, 2.6);
+    ctx.restore();
+  };
+  const drawHatDance = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#2a1450');
+    g.addColorStop(1, '#5a2a3a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#6a4228'; // the floor
+    ctx.fillRect(0, hatFloor - 10 * hu, W, H);
+    ctx.strokeStyle = 'rgba(255,220,160,.12)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 30 * hu) {
+      ctx.beginPath();
+      ctx.moveTo(x, hatFloor - 10 * hu);
+      ctx.lineTo(x - 20, H);
+      ctx.stroke();
+    }
+    const flagCols = ['#e8334a', '#f2a30f', '#2fb86a', '#2f8fe8', '#c93fd0', '#f6e14a']; // paper bunting
+    ctx.strokeStyle = 'rgba(255,255,255,.5)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(0, 10);
+    ctx.quadraticCurveTo(W / 2, 34, W, 10);
+    ctx.stroke();
+    const nFlags = Math.max(6, Math.round(W / 46));
+    for (let k = 0; k < nFlags; k++) {
+      const q = (k + 0.5) / nFlags;
+      const fx = W * q;
+      const fy = 10 + 24 * 4 * q * (1 - q) * 0.5 + 0;
+      const sway = Math.sin(r / 400 + k) * 2;
+      ctx.fillStyle = flagCols[k % flagCols.length];
+      ctx.beginPath();
+      ctx.moveTo(fx - 13, fy);
+      ctx.lineTo(fx + 13, fy);
+      ctx.lineTo(fx + 13 + sway, fy + 24);
+      ctx.lineTo(fx + sway, fy + 17);
+      ctx.lineTo(fx - 13 + sway, fy + 24);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      circ(fx + sway * 0.5, fy + 8, 2.2);
+    }
+    ctx.fillStyle = '#d9a64a'; // the big sombrero on the floor
+    ctx.beginPath();
+    ctx.ellipse(hatCx, hatFloor, 56 * hu, 11 * hu, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#c4903a';
+    ctx.beginPath();
+    ctx.ellipse(hatCx, hatFloor - 6 * hu, 22 * hu, 13 * hu, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#c0283c';
+    ctx.fillRect(hatCx - 22 * hu, hatFloor - 8 * hu, 44 * hu, 4 * hu);
+    const order = [0, 1].sort((a, b) => dancerPos(a, r).depth - dancerPos(b, r).depth);
+    for (const k of order) folkDancer(k, r);
+    ctx.font = `${fs}px ${FONT}`;
+    visible.forEach((c, i) => {
+      const rr = r - c.lock;
+      if (rr < 0) return;
+      const hue = (i * 37) % 360;
+      if (rr < HAT_T) {
+        const q = rr / HAT_T;
+        const s = dancerHatTop(i % 2, c.lock);
+        const ex = c.x + cw / 2;
+        const ey = c.y - fs * 0.3;
+        const cx = (s.x + ex) / 2;
+        const cy = Math.min(s.y, ey) - H * 0.25;
+        const pos = (p: number) => ({ x: (1 - p) * (1 - p) * s.x + 2 * p * (1 - p) * cx + p * p * ex, y: (1 - p) * (1 - p) * s.y + 2 * p * (1 - p) * cy + p * p * ey });
+        for (let k = 3; k >= 1; k--) {
+          const tp = pos(Math.max(0, q - k * 0.05));
+          ctx.fillStyle = `hsla(${hue},90%,65%,${0.6 - k * 0.14})`;
+          circ(tp.x, tp.y, 2.6);
+        }
+        const p = pos(q);
+        ctx.fillStyle = `hsla(${hue},95%,62%,.85)`;
+        circ(p.x, p.y, fs * 0.62);
+        textLit(c, '#ffffff', `hsla(${hue},95%,70%,.95)`, 6, p.x - cw / 2, p.y + fs * 0.3, 1);
+        return;
+      }
+      const e = rr - HAT_T;
+      if (e < 300) {
+        for (let k = 0; k < 6; k++) { // confetti burst on landing
+          const a = (k / 6) * Math.PI * 2 + i;
+          ctx.fillStyle = `hsla(${(hue + k * 50) % 360},95%,65%,${1 - e / 300})`;
+          ctx.fillRect(c.x + cw / 2 + Math.cos(a) * (6 + e * 0.07), c.y - fs * 0.3 + Math.sin(a) * (6 + e * 0.05) + e * 0.02, 3, 3);
+        }
+      }
+      textLit(c, '#fff6d8', `hsla(${hue},95%,68%,.85)`, 8 - 4 * clamp1(e / 400), c.x, c.y, clamp1(e / 100));
+    });
+    fadeToFinal(r);
+  };
+
+  // Techno lasers: a dark club with a pulsing floor and equaliser, and neon laser beams sweeping the room; a word
+  // lights up where a beam crosses it.
+  const LZ_COL = ['0,255,156', '255,43,214', '43,216,255', '255,238,43', '255,90,60', '150,90,255'];
+  const lzSrc = [0.16, 0.5, 0.84].map((f) => ({ x: W * f, y: -4 }));
+  const lzBeams = Array.from({ length: 6 }, (_, b) => ({ s: lzSrc[b % 3], ph: b * 1.1, sp: 520 + b * 140, amp: 0.7 + (b % 2) * 0.25, col: LZ_COL[b] }));
+  const lzAngle = (b: (typeof lzBeams)[number], r: number) => Math.PI / 2 + Math.sin(r / b.sp + b.ph) * b.amp;
+  const lzLit = visible.map(() => ({ at: -1, col: '255,255,255' }));
+  const drawLasers = (r: number) => {
+    ctx.fillStyle = '#07040f';
+    ctx.fillRect(0, 0, W, H);
+    const beat = (r % 500) / 500; // 120 bpm
+    const pulse = Math.pow(1 - beat, 3);
+    ctx.fillStyle = `rgba(255,255,255,${0.05 * pulse})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = `rgba(150,90,255,${0.18 + 0.3 * pulse})`; // the floor grid
+    ctx.lineWidth = 1;
+    for (let k = 0; k < 8; k++) {
+      const y = H * 0.74 + Math.pow(k / 7, 2) * H * 0.26;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+    for (let k = -8; k <= 8; k++) {
+      ctx.beginPath();
+      ctx.moveTo(W / 2 + k * 14, H * 0.74);
+      ctx.lineTo(W / 2 + k * 70, H);
+      ctx.stroke();
+    }
+    const bars = Math.max(12, Math.round(W / 22)); // equaliser
+    for (let k = 0; k < bars; k++) {
+      const hgt = (0.25 + 0.75 * Math.abs(Math.sin(r / 150 + k * 0.7) * Math.cos(r / 230 + k))) * H * 0.14 * (0.7 + 0.3 * pulse);
+      ctx.fillStyle = `hsla(${(k / bars) * 300 + (r / 20) % 60},100%,60%,.55)`;
+      ctx.fillRect((W / bars) * k + 2, H - hgt, W / bars - 4, hgt);
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    for (const b of lzBeams) {
+      const a = lzAngle(b, r);
+      const L = H * 1.7;
+      const x2 = b.s.x + Math.cos(a) * L;
+      const y2 = b.s.y + Math.sin(a) * L;
+      ctx.strokeStyle = `rgba(${b.col},.08)`;
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.moveTo(b.s.x, b.s.y);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(${b.col},.75)`;
+      ctx.shadowColor = `rgba(${b.col},1)`;
+      ctx.shadowBlur = 12;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(b.s.x, b.s.y);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+    ctx.font = `${fs}px ${FONT}`;
+    visible.forEach((c, i) => {
+      const lit = lzLit[i];
+      if (lit.at < 0) {
+        const cx = c.x + cw / 2;
+        const cy = c.y - fs * 0.3;
+        for (const b of lzBeams) {
+          const dx = cx - b.s.x;
+          const dy = cy - b.s.y;
+          const da = Math.abs(Math.atan2(dy, dx) - lzAngle(b, r));
+          if (da < 11 / Math.max(30, Math.hypot(dx, dy))) {
+            lit.at = r;
+            lit.col = b.col;
+            break;
+          }
+        }
+        if (lit.at < 0 && r >= c.lock + 900) lit.at = r; // a beam that has not found it yet cannot hold it back
+      }
+      if (lit.at < 0) return;
+      const e = r - lit.at;
+      textLit(c, e < 260 ? `rgb(${lit.col})` : '#e8fff4', `rgba(${lit.col},.95)`, 14 - 7 * clamp1(e / 600), c.x, c.y, clamp1(e / 60));
+    });
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -5164,6 +5420,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     kraken: drawKraken,
     thor: drawThor,
     spiders: drawSpiders,
+    hatdance: drawHatDance,
+    lasers: drawLasers,
   };
 
   const frame = (now: number) => {

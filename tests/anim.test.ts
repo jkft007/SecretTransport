@@ -30,8 +30,8 @@ describe('reveal animation stored with the image', () => {
     STYLES.forEach((s) => expect(idToStyle(styleToId(s))).toBe(s));
     expect(styleToId('matrix')).toBe(1); // ids are stored in images: never reorder
     expect(styleToId('wizard')).toBe(30);
-    expect(STYLES.slice(30)).toEqual(['minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders']);
-    expect(STYLES.length).toBe(62);
+    expect(STYLES.slice(30)).toEqual(['minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers']);
+    expect(STYLES.length).toBe(64);
     expect(idToStyle(250)).toBeUndefined();
     expect(idToStyle(0)).toBeUndefined();
   });
