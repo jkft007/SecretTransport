@@ -2,7 +2,7 @@ import { decodeCodeArt, encodeCodeArt, MAX_PACKET, type Rgba } from './codeart';
 import { cropTo8, extractDct, MAX_COVER_SIDE } from './dct';
 import { MAX_MESSAGES } from './lanes';
 import { findPhoto, hidePhoto, photoCapacity, photoLayout, type PhotoMessage } from './photo';
-import { decodeFakeQr, decodePlainQr, encodeFakeQr, encodePlainQr, linkOverhead, packetFromQrText } from './qrmodes';
+import { decodeFakeQr, decodePlainQr, encodeFakeQr, encodePlainQr, linkOverhead, packetFromQrText, packetLink } from './qrmodes';
 import { ExpiredError, NEVER_CLEAR, openPayload, sealPayload, WrongPassphraseError, type Payload } from './crypto';
 import { encodedLength } from './ecc';
 import { byteCapacity } from './qr';
@@ -333,6 +333,9 @@ $('btn-paste-cover').onclick = async () => {
 };
 
 let outs: HTMLCanvasElement[] = [];
+/** A link that opens this site with the one image's encrypted data loaded; set for code art and QR only, and only when short enough for email. */
+let openLink: string | null = null;
+const MAX_OPEN_LINK = 1900;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const partName = (i: number, n: number) => (n > 1 ? `secret-part-${i + 1}-of-${n}.png` : 'secret.png');
 
@@ -444,6 +447,7 @@ $('btn-create').onclick = async () => {
   setStatus(status, 'Encrypting… (deriving a memory-hard key takes about a second)');
   await sleep(30); // let the status paint before the heavy work
   $('out-wrap').hidden = true;
+  openLink = null;
   const warn = $('warn');
   warn.hidden = true;
   try {
@@ -496,6 +500,13 @@ $('btn-create').onclick = async () => {
     warn.textContent = notes.join(' ');
     warn.hidden = notes.length === 0;
 
+    // Photo and fake-QR images exist to hide that a secret is there, so they never get a link that gives it away.
+    const direct = frames.length === 1 && (mode === 'codeart' || mode === 'qr') ? packetLink(frames[0], siteBase()) : '';
+    openLink = direct && direct.length <= MAX_OPEN_LINK ? direct : null;
+    if (openLink) notes.push('The copied message also has a link that opens the secret directly, for email programs that hide images. The encrypted data sits after the # in it (browsers never send that part to a server); the passphrase is not in it.');
+    warn.textContent = notes.join(' ');
+    warn.hidden = notes.length === 0;
+
     showOutputs(imgs, packet.length);
     $('out-wrap').hidden = false;
     setStatus(status, frames.length > 1 ? `Done: ${frames.length} images. Copy the message or download them all.` : 'Done. Copy it into your message, or download it.');
@@ -516,7 +527,7 @@ $('btn-copy').onclick = async () => {
 };
 $('btn-copy-msg').onclick = async () => {
   try {
-    await copyMessage(outs, location.origin + location.pathname + '#reveal');
+    await copyMessage(outs, location.origin + location.pathname + '#reveal', outs.length === 1 ? openLink : null);
     setStatus(
       $('hide-status'),
       outs.length > 1
