@@ -73,7 +73,7 @@ It depends on whether an app delivers the image as it is, or re-compresses and s
 Attachments and "send as file/document" options generally deliver the original. Sending as a normal photo in most chat and social apps (WhatsApp, iMessage, Messenger, Instagram, Telegram or Signal in photo mode) re-compresses and may shrink it, so use Code art or a JPEG-safe photo there. Apps differ and change between versions and have not all been tested: send yourself a test image first. "Tested" above refers to the automated tests in `tests/`, which simulate JPEG recompression and scaling in code, not real apps.
 
 ## Expiry (optional)
-The Hide tab can set the secret to expire in 1 hour, 24 hours, 7 days or 30 days. The expiry time is stored inside the encrypted payload (so it cannot be read or edited without the passphrase, and it is covered by the same authentication as the rest) and the Reveal step refuses to show the secret after it. A wrong passphrase learns nothing about the expiry.
+The Hide tab can set the secret to expire in 1, 5, 15 or 30 minutes, or in 1 hour, 24 hours, 7 days or 30 days. The expiry time is stored inside the encrypted payload (so it cannot be read or edited without the passphrase, and it is covered by the same authentication as the rest) and the Reveal step refuses to show the secret after it. A wrong passphrase learns nothing about the expiry.
 
 What this is not: it is enforced by this app and the recipient's clock, not by cryptography or a server. Someone who has the passphrase can copy the secret before it expires, change their clock, or decrypt the image with other software. Treat it as a courtesy that limits accidental late reads, not as a way to make a leaked image safe.
 
