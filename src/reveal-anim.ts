@@ -1,6 +1,6 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine' | 'bomber' | 'kraken' | 'thor' | 'spiders' | 'hatdance' | 'lasers' | 'earthquake' | 'volcano';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes' | 'ghosts' | 'seance' | 'poltergeist' | 'haunted' | 'dragon' | 'panther' | 'roadrunner' | 'genie' | 'fartgun' | 'arrows' | 'tiles' | 'witches' | 'redarrows' | 'pirate' | 'fogwriter' | 'whale' | 'submarine' | 'bomber' | 'kraken' | 'thor' | 'spiders' | 'hatdance' | 'lasers' | 'earthquake' | 'volcano' | 'emoji';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
@@ -8,7 +8,7 @@ export const STYLES: RevealStyle[] = [
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
   'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts',
-  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano',
+  'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -156,7 +156,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const RA_LT = Math.min(1900, Math.max(900, 7000 / Math.max(1, lineYs.length))); // the formation's pass along one line (a stately pace)
   const RA_GAP = RA_LT + 60; // one pass at a time
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -216,6 +216,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'lasers' ? Math.max(T_RESOLVE, 2200) + 900 + 300
     : style === 'earthquake' ? Math.max(T_RESOLVE, 1700) + 1100
     : style === 'volcano' ? Math.max(T_RESOLVE, 1800) + 900 + 300
+    : style === 'emoji' ? Math.max(T_RESOLVE, 1800) + 600
     : style === 'roadrunner' ? RR_GAP * (lineYs.length - 1) + RR_LT + RR_LAG + 350 + RR_BANG + 200
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
@@ -258,6 +259,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'lasers' ? T_RES - 900 - 300
     : style === 'earthquake' ? T_RES - 1100
     : style === 'volcano' ? T_RES - 900 - 300
+    : style === 'emoji' ? T_RES - 600
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -5592,6 +5594,54 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Emoji: every letter starts as a shuffling emoji, then pops like a balloon into its real letter in a burst of
+  // tiny emoji, while big ones drift down the background.
+  const EMO = ['😀', '😎', '🤩', '🥳', '😂', '🤯', '😱', '👻', '🤖', '👽', '🦄', '🐙', '🐸', '🐵', '🦊', '🐼', '🍕', '🍩', '🍉', '🌮', '⚡', '🔥', '🌈', '⭐', '💎', '🎈', '🎉', '🚀', '👑', '🎸', '🔮', '🍀'];
+  const EMO_POP = 500; // the pop
+  const EMO_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  const emoRain = Array.from({ length: 12 }, () => ({ x: rnd() * W, y: rnd() * H, e: Math.floor(rnd() * EMO.length), s: 0.03 + rnd() * 0.04, z: 18 + rnd() * 20, ph: rnd() * 6 }));
+  const emojiAt = (e: string, x: number, y: number, size: number, alpha: number) => {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `${size}px ${EMO_FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(e, x, y);
+    ctx.restore();
+  };
+  const drawEmoji = (r: number) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#2a1a4a');
+    g.addColorStop(1, '#14284a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    for (const d of emoRain) {
+      const y = (((d.y + r * d.s) % (H + 40)) + H + 40) % (H + 40) - 20;
+      emojiAt(EMO[(d.e + Math.floor(r / 900)) % EMO.length], d.x + Math.sin(r / 500 + d.ph) * 10, y, d.z, 0.3);
+    }
+    const open = clamp1((r + T_INTRO) / T_INTRO);
+    visible.forEach((c, i) => {
+      const cx = c.x + cw / 2;
+      const cy = c.y - fs * 0.3;
+      const rr = r - c.lock;
+      if (rr < 0) { // still a shuffling emoji
+        const e = EMO[(i * 11 + ((i * i) % 7) + Math.floor(r / 220 + i) * 5) % EMO.length];
+        emojiAt(e, cx, cy + Math.sin(r / 180 + i) * 2, fs * (0.95 + 0.1 * Math.sin(r / 160 + i)), open);
+        return;
+      }
+      if (rr < EMO_POP) {
+        const q = rr / EMO_POP;
+        if (q < 0.25) emojiAt(EMO[(i * 11 + ((i * i) % 7) + Math.floor(c.lock / 220 + i) * 5) % EMO.length], cx, cy, fs * (1 + q * 3.2), 1 - q * 3); // swells, then pops
+        for (let k = 0; k < 5; k++) { // tiny emoji fly out of the pop
+          const a = (k / 5) * Math.PI * 2 + i;
+          emojiAt(EMO[(i + k * 5) % EMO.length], cx + Math.cos(a) * q * fs * 2, cy + Math.sin(a) * q * fs * 1.6 + q * q * 8, fs * 0.5, 1 - q);
+        }
+      }
+      textLit(c, '#fff6c8', 'rgba(255,210,90,.95)', 10 - 5 * clamp1(rr / 700), c.x, c.y, clamp1((rr - 80) / 160));
+    });
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -5629,6 +5679,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     lasers: drawLasers,
     earthquake: drawQuake,
     volcano: drawVolcano,
+    emoji: drawEmoji,
   };
 
   const frame = (now: number) => {
