@@ -1,12 +1,13 @@
 // Presentational only: a randomly chosen animation (matrix rain, scramble, typewriter, pixelate, iris,
 // fireworks, curtain, can, flag) turns the scanned image into the decoded text.
-export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons';
+export type RevealStyle = 'matrix' | 'scramble' | 'typewriter' | 'pixelate' | 'iris' | 'fireworks' | 'curtain' | 'can' | 'flag' | 'moon' | 'plane' | 'swarm' | 'bubbles' | 'ufo' | 'spotlight' | 'jackpot' | 'ink' | 'safe' | 'train' | 'oldtype' | 'printer' | 'ticker' | 'radar' | 'film' | 'parade' | 'asteroids' | 'hearts' | 'flowers' | 'bomb' | 'wizard' | 'minions' | 'snowglobe' | 'rocket' | 'lightning' | 'helicopters' | 'banner' | 'balloons' | 'quill' | 'dominoes' | 'treasure' | 'paperplanes';
 export const STYLES: RevealStyle[] = [
   'matrix', 'scramble', 'typewriter', 'pixelate', 'iris', 'fireworks', 'curtain', 'can', 'flag', 'moon', 'plane',
   'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer',
   'ticker', 'radar', 'film', 'parade', 'asteroids',
   'hearts', 'flowers', 'bomb', 'wizard',
   'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons',
+  'quill', 'dominoes', 'treasure', 'paperplanes',
 ];
 
 // The position in STYLES (plus one) is stored inside encrypted images, so only ever append new styles.
@@ -139,8 +140,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const BANNER_T = 2600; // how long the banner plane takes to bring the banner home
   const BAL_POP = 700; // a balloon pops this long after its letter's turn
   const BAL_SHRED = 450; // how long the bits of a popped balloon fly
+  const COIN_T = 650; // how long a coin takes to fly out of the chest to its letter
+  const PP_T = 1000; // a paper plane's whole trip: glide in, land, unfold
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -172,6 +175,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'rocket' ? T_TYPE + 500
     : style === 'lightning' ? 3600
     : style === 'banner' ? BANNER_T + 600
+    : style === 'quill' ? T_TYPE + 700
+    : style === 'dominoes' ? T_TYPE + 500
+    : style === 'treasure' ? Math.max(T_RESOLVE, 1400) + COIN_T + 150
+    : style === 'paperplanes' ? Math.max(T_RESOLVE, 1400) + PP_T + 300
     : style === 'balloons' ? Math.max(T_RESOLVE, 1400) + BAL_POP + BAL_SHRED + 100
     : style === 'can' ? Math.max(T_RESOLVE, 1400) + FLIGHT + 100
     : T_RESOLVE;
@@ -189,6 +196,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'minions' ? T_RES - MIN_T - 200
     : style === 'snowglobe' ? T_RES - 800
     : style === 'balloons' ? T_RES - BAL_POP - BAL_SHRED - 100
+    : style === 'treasure' ? T_RES - COIN_T - 150
+    : style === 'paperplanes' ? T_RES - PP_T - 300
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -2454,6 +2463,298 @@ export function playReveal(o: RevealOptions): RevealHandle {
     for (const c of letters) textLit(c, '#fff6d0', 'rgba(255,200,90,.7)', 6);
     fadeToFinal(r);
   };
+  // Quill: a feather pen rises out of an ink pot and writes the message in cursive on parchment.
+  const QFONT = (px: number) => `italic ${px}px 'Segoe Script','Snell Roundhand','Brush Script MT','Lucida Handwriting','Apple Chancery',cursive`;
+  const qLines = lineYs.map((y) => {
+    const first = visible.findIndex((c) => c.y === y);
+    let last = first;
+    for (let i = first; i < visible.length && visible[i].y === y; i++) last = i;
+    return { y, text: cells.filter((c) => c.y === y).map((c) => c.ch).join(''), t0: typeAt[first], t1: typeAt[last] + perChar, w: 0, x0: 0 };
+  });
+  let qs = fs * 1.3;
+  ctx.font = QFONT(qs);
+  const qWidest = Math.max(1, ...qLines.map((l) => ctx.measureText(l.text).width));
+  if (qWidest > W - pad * 2) qs *= (W - pad * 2) / qWidest;
+  ctx.font = QFONT(qs);
+  for (const l of qLines) {
+    l.w = ctx.measureText(l.text).width;
+    l.x0 = (W - l.w) / 2;
+  }
+  const potX = W - 56;
+  const potY = H - 22;
+  const mouth = { x: potX - 2, y: potY - 36 };
+  const nibAt = (l: { y: number }, x: number) => ({ x, y: l.y - qs * 0.2 });
+  const penAt = (r: number) => {
+    const first = qLines[0];
+    if (r < 0) {
+      const e = ease((r + T_INTRO) / T_INTRO);
+      const s = nibAt(first, first.x0);
+      return { x: mouth.x + (s.x - mouth.x) * e, y: mouth.y + (s.y - mouth.y) * e - 60 * Math.sin(Math.PI * e) };
+    }
+    let k = 0;
+    qLines.forEach((l, i) => {
+      if (r >= l.t0) k = i;
+    });
+    const l = qLines[k];
+    if (r <= l.t1) {
+      const f = clamp01((r - l.t0) / Math.max(1, l.t1 - l.t0));
+      const n = nibAt(l, l.x0 + l.w * f);
+      return { x: n.x, y: n.y + Math.sin(r / 55) * 2.5 };
+    }
+    const a = nibAt(l, l.x0 + l.w);
+    const nx = qLines[k + 1];
+    if (nx) {
+      const b = nibAt(nx, nx.x0);
+      const f = ease((r - l.t1) / Math.max(1, nx.t0 - l.t1));
+      return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f - 14 * Math.sin(Math.PI * f) };
+    }
+    const f = ease((r - l.t1) / 500);
+    return { x: a.x + (mouth.x - a.x) * f, y: a.y + (mouth.y - a.y) * f - 40 * Math.sin(Math.PI * f) };
+  };
+  const drawQuill = (r: number, t: number) => {
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#efe0b8');
+    bg.addColorStop(1, '#dcc48c');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+    vg.addColorStop(0, 'rgba(90,60,20,0)');
+    vg.addColorStop(1, 'rgba(90,60,20,.3)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#24180c';
+    for (const l of qLines) {
+      const p = r < l.t0 ? 0 : clamp01((r - l.t0) / Math.max(1, l.t1 - l.t0));
+      if (p <= 0) continue;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(l.x0 - 6, l.y - qs * 1.4, l.w * p + (p >= 1 ? 24 : 2), qs * 2);
+      ctx.clip();
+      ctx.font = QFONT(qs);
+      ctx.fillText(l.text, l.x0, l.y);
+      ctx.restore();
+    }
+    // the ink pot
+    ctx.fillStyle = '#1d2b3a';
+    ctx.beginPath();
+    ctx.moveTo(potX - 24, potY);
+    ctx.lineTo(potX - 24, potY - 22);
+    ctx.quadraticCurveTo(potX - 24, potY - 30, potX - 12, potY - 31);
+    ctx.lineTo(potX + 12, potY - 31);
+    ctx.quadraticCurveTo(potX + 24, potY - 30, potX + 24, potY - 22);
+    ctx.lineTo(potX + 24, potY);
+    ctx.quadraticCurveTo(potX, potY + 8, potX - 24, potY);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(160,200,240,.25)';
+    ctx.beginPath();
+    ctx.ellipse(potX - 15, potY - 14, 3, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#050708';
+    ctx.beginPath();
+    ctx.ellipse(potX, potY - 33, 12, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // the quill itself
+    const p = penAt(r);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(-0.08 + Math.sin(t / 380) * 0.02);
+    ctx.fillStyle = '#f7f3e8';
+    ctx.strokeStyle = '#a79f8c';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(5, -14);
+    ctx.bezierCurveTo(-26, -52, -10, -102, 62, -132);
+    ctx.bezierCurveTo(48, -98, 42, -56, 5, -14);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    for (let k = 1; k < 8; k++) {
+      const f = k / 8;
+      const sx = 62 * f;
+      const sy = -132 * f;
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx - 16 * Math.sin(f * 3), sy + 9);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = '#7d725d';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(62, -132);
+    ctx.stroke();
+    ctx.fillStyle = '#24180c';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(4, -10);
+    ctx.lineTo(-3, -9);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    fadeToFinal(r);
+  };
+
+  // Dominoes: a row of tiles stands over the writing and topples in a chain, uncovering each letter.
+  const domH = fs * 1.1;
+  const domW = cw * 0.72;
+  const drawDominoes = (r: number) => {
+    clear();
+    ctx.font = `${fs}px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,.06)';
+    for (const y of lineYs) ctx.fillRect(pad / 2, y + 3, W - pad, 1);
+    visible.forEach((c, i) => {
+      const appear = clamp01((r + T_INTRO - (i / visible.length) * (T_INTRO - 150)) / 150);
+      if (appear <= 0) return;
+      const fall = clamp01((r - typeAt[i]) / 170);
+      ctx.save();
+      ctx.globalAlpha = appear;
+      ctx.translate(c.x + cw / 2 + domW / 2, c.y + 3);
+      ctx.rotate(fall * (Math.PI / 2 - 0.05));
+      ctx.fillStyle = `hsl(${(i * 23) % 360},65%,46%)`;
+      ctx.fillRect(-domW, -domH, domW, domH);
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.fillRect(-domW, -domH * 0.55, domW, 1.2);
+      ctx.restore();
+    });
+    visible.forEach((c, i) => {
+      const age = r - typeAt[i] - 60;
+      if (age < 0) return;
+      textLit(c, age < 250 ? '#ffffff' : '#e8fff4', 'rgba(80,255,190,.6)', age < 250 ? 10 : 5);
+    });
+    fadeToFinal(r);
+  };
+
+  // Treasure chest: the lid creaks open and gold coins fly out, each landing as a letter.
+  const chX = W / 2;
+  const chY = H - 16;
+  const chH = 34;
+  const coinFrom = { x: chX, y: chY - chH - 8 };
+  const drawTreasure = (r: number, t: number) => {
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0e1a26');
+    bg.addColorStop(1, '#1a2530');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    const open = ease((r + T_INTRO) / T_INTRO);
+    const glow = ctx.createRadialGradient(chX, chY - chH, 4, chX, chY - chH, 90);
+    glow.addColorStop(0, `rgba(255,214,90,${0.55 * open})`);
+    glow.addColorStop(1, 'rgba(255,214,90,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#6b4423';
+    ctx.fillRect(chX - 35, chY - chH, 70, chH);
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    for (let k = 1; k < 4; k++) ctx.fillRect(chX - 35, chY - chH + k * (chH / 4), 70, 1);
+    ctx.fillStyle = '#3a3f47';
+    ctx.fillRect(chX - 36, chY - chH, 72, 4);
+    ctx.fillRect(chX - 26, chY - chH, 5, chH);
+    ctx.fillRect(chX + 21, chY - chH, 5, chH);
+    ctx.fillStyle = '#ffd23f';
+    ctx.fillRect(chX - 8, chY - chH + 8, 16, 9);
+    ctx.fillStyle = '#ffd23f';
+    ctx.beginPath();
+    ctx.ellipse(chX, chY - chH + 1, 30, 5 * open, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const lidY = chY - chH - 16 - open * 26;
+    ctx.fillStyle = open > 0.5 ? '#4a1a14' : '#7a4f2a';
+    ctx.fillRect(chX - (35 - open * 5), lidY, 70 - open * 10, 16);
+    ctx.fillStyle = '#3a3f47';
+    ctx.fillRect(chX - (36 - open * 5), lidY, 72 - open * 10, 3);
+    ctx.font = `${fs}px ${FONT}`;
+    const landed: Cell[] = [];
+    for (const c of visible) {
+      const q = (r - c.lock) / COIN_T;
+      if (q < 0) continue;
+      const tx = c.x + cw / 2;
+      const ty = c.y - fs * 0.3;
+      if (q >= 1) {
+        landed.push(c);
+        const a = (q - 1) * COIN_T;
+        if (a < 260) {
+          ctx.fillStyle = `rgba(255,224,120,${0.6 * (1 - a / 260)})`;
+          circ(tx, ty, 4 + a / 26);
+        }
+        continue;
+      }
+      const e = q * q * (3 - 2 * q);
+      const x = coinFrom.x + (tx - coinFrom.x) * e;
+      const y = coinFrom.y + (ty - coinFrom.y) * e - (50 + Math.abs(tx - coinFrom.x) * 0.15) * 4 * q * (1 - q);
+      const sq = Math.max(0.15, Math.abs(Math.cos(q * 14 + c.x)));
+      ctx.fillStyle = '#b8870b';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 5 * sq + 0.8, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffd23f';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 4 * sq, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (const c of landed) textLit(c, r - c.lock - COIN_T < 260 ? '#ffe59a' : '#e8fff4', 'rgba(255,200,80,.7)', 6);
+    fadeToFinal(r);
+    void t;
+  };
+
+  // Paper planes: each word is folded into a plane that glides in, lands on its spot and unfolds into the word.
+  const ppStart = wt.map(() => 16 + rnd() * H * 0.4);
+  const planePos = (i: number, w: { cx: number; cells: Cell[] }, q: number) => {
+    const sx = i % 2 ? W + 30 : -30;
+    const ex = w.cx;
+    const ey = w.cells[0].y - fs * 0.3;
+    const e = q * q * (3 - 2 * q);
+    return { x: sx + (ex - sx) * e, y: ppStart[i] + (ey - ppStart[i]) * e + Math.sin(q * Math.PI * 2) * 20 * (1 - q) };
+  };
+  const drawPlanes = (r: number) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#223a5c');
+    sky.addColorStop(1, `rgb(${BG})`);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = `${fs}px ${FONT}`;
+    const shown: Cell[] = [];
+    const FLY_T = PP_T - 200;
+    for (const { w, i, t0 } of wt) {
+      const rr = r - t0;
+      if (rr < 0) continue;
+      if (rr >= FLY_T) {
+        shown.push(...w.cells);
+        const a = (rr - FLY_T) / 200;
+        if (a < 1) {
+          ctx.fillStyle = `rgba(255,255,255,${0.5 * (1 - a)})`;
+          ctx.beginPath();
+          ctx.ellipse(w.cx, w.cells[0].y - fs * 0.3, (w.x1 - w.x0) / 2 + 6 * a, 10 + 8 * a, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        continue;
+      }
+      const q = rr / FLY_T;
+      for (let k = 6; k >= 1; k--) {
+        const pq = q - k * 0.035;
+        if (pq < 0) continue;
+        const tp = planePos(i, w, pq);
+        ctx.fillStyle = `rgba(255,255,255,${0.35 - k * 0.05})`;
+        circ(tp.x, tp.y, 1.6);
+      }
+      const p = planePos(i, w, q);
+      const n = planePos(i, w, Math.min(1, q + 0.02));
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(Math.atan2(n.y - p.y, n.x - p.x));
+      ctx.fillStyle = '#f4f4f8';
+      ctx.beginPath();
+      ctx.moveTo(14, 0);
+      ctx.lineTo(-10, -7);
+      ctx.lineTo(-2, 0);
+      ctx.fill();
+      ctx.fillStyle = '#c4c8d6';
+      ctx.beginPath();
+      ctx.moveTo(14, 0);
+      ctx.lineTo(-10, 5);
+      ctx.lineTo(-2, 0);
+      ctx.fill();
+      ctx.restore();
+    }
+    for (const c of shown) textLit(c, '#f4f8ff', 'rgba(150,200,255,.7)', 5);
+    fadeToFinal(r);
+  };
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -2462,6 +2763,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
     helicopters: drawHelis,
     banner: drawBanner,
     balloons: drawBalloons,
+    quill: drawQuill,
+    dominoes: drawDominoes,
+    treasure: drawTreasure,
+    paperplanes: drawPlanes,
   };
 
   const frame = (now: number) => {
