@@ -11,7 +11,7 @@ Turn any text into an image you can paste into a message or email. Only someone 
 
 **Receiving**
 1. Open the link, use the **Reveal secret** button of the Outlook add-in, or use the **Reveal a secret** tab: paste, drop or choose the image, or scan a QR code with the camera. If the secret was split, add every part.
-2. Type the passphrase (or the pass code) and press **Reveal**. If the secret was sent to your public key, the box changes to **Your key's passphrase**: type the passphrase you chose when you made your key (it is not a shared secret). Your key must be saved on this device, or restored first from its backup under **My keys and contacts**. Watch the animation (or **Skip**), read the secret, copy it or save the file. It clears itself after the reading time.
+2. Type the passphrase (or the pass code) and press **Reveal**. If the secret was sent to your public key, the box changes to **Your key's passphrase**: type the passphrase you chose when you made your key (it is not a shared secret). Your key must be saved on this device, or restored first from its backup under **My keys and contacts**. Watch the animation (or **Skip**), read the secret, copy it or save the file. It clears itself after the reading time: when the time is up the revealed text burns away on screen, and the extracted text and any picture burn away with it. (**Clear now** clears at once.)
 
 ## Public keys (no shared passphrase)
 A passphrase has to reach your recipient by some other safe route. Public keys remove that step, and sit alongside the passphrase option rather than replacing it.

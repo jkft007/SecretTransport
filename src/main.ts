@@ -20,6 +20,7 @@ import { strength } from './strength';
 import { checkLock, defaultStore, fingerprint, recordFailure, recordSuccess } from './throttle';
 import { getRecipients, handleToHash, hasStoredKeys, initKeysUi, storedPublicKeys } from './keysui';
 import { unlockAll } from './keystore';
+import { burnCanvas } from './burn';
 import { photoPassFor } from './pubkey';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -822,7 +823,24 @@ $('btn-copy-img').onclick = async () => {
   }
 };
 
+// When the reading time runs out the revealed text burns up on the stage, the extracted text and any picture burn away
+// with it, and then everything is cleared. "Clear now" (and a new reveal) still clears at once.
+let burnToken = 0;
+async function burnAndClear() {
+  clearInterval(clearTimer);
+  if (reducedMotion()) return clearResult();
+  const mine = ++burnToken;
+  $('timer').textContent = 'Time is up.';
+  const burning = ['plain', 'file-meta', 'file-preview'].map((id) => $(id));
+  for (const e of burning) e.classList.add('burning');
+  await burnCanvas($<HTMLCanvasElement>('stage'), 1800, () => mine !== burnToken);
+  for (const e of burning) e.classList.remove('burning');
+  if (mine === burnToken) clearResult();
+}
+
 function clearResult() {
+  burnToken++; // stops a burn that is still running
+  for (const id of ['plain', 'file-meta', 'file-preview']) $(id).classList.remove('burning');
   clearPreview();
   pendingFile = null;
   $('file-meta').textContent = '';
@@ -983,7 +1001,7 @@ $('btn-reveal').onclick = async () => {
       let left = limit;
       const tick = () => {
         $('timer').textContent = `Clears in ${left}s`;
-        if (left-- <= 0) clearResult();
+        if (left-- <= 0) void burnAndClear();
       };
       tick();
       clearTimer = window.setInterval(tick, 1000);
