@@ -19,7 +19,7 @@ const SECRET = 'The vault code is 4-8-15-16-23-42. (This is only a demo secret.)
 const KEY_NAME = 'Demo tour key (temporary)';
 const KEY_PASS = 'demo tour passphrase 2468 blue';
 const TYPE_MS = 90; // time per typed letter: slow enough to read along
-const FIELDS = ['secret', 'pass', 'mode', 'anim-pick', 'read-time', 'expiry', 'passcode', 'read-clear', 'anim-style', 'chk-motion', 'to-self', 'pass2', 'chk-split'];
+const FIELDS = ['secret', 'pass', 'mode', 'anim-pick', 'read-time', 'expiry', 'passcode', 'read-clear', 'anim-style', 'chk-motion', 'to-self', 'pass2', 'chk-split', 'chk-nonsense'];
 
 let running = false;
 
@@ -206,7 +206,7 @@ export async function runDemo(d: DemoDeps): Promise<void> {
     await typeInto($<HTMLInputElement>('pass2'), pass);
     await wait(2000);
     choose('read-clear', '15');
-    note('The right passphrase opens it with an animation. There are 83: this one was chosen by the sender and stored inside the image. The recipient can pick another.');
+    note('The right passphrase opens it with an animation. There are 84: this one was chosen by the sender and stored inside the image. The recipient can pick another.');
     press('btn-reveal');
     await until(() => !$('stage-wrap').hidden, 30_000, 'the animation');
     highlight($('stage'));

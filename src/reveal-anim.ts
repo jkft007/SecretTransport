@@ -148,7 +148,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt', 'shaken', 'footsmash']; // the styles that destroy the scanned image
   const FX_DUR = 2200; // how long the destruction takes
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', 'builder', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -209,6 +209,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'earthquake' ? Math.max(T_RESOLVE, 1700) + 1100
     : style === 'volcano' ? Math.max(T_RESOLVE, 1800) + 900 + 300
     : style === 'emoji' ? Math.max(T_RESOLVE, 1800) + 600
+    : style === 'builder' ? Math.min(4200, Math.max(1600, wordCount * 330)) + 440 + 700
     : IMG_FX.includes(style) ? FX_DUR + 300
     : style === 'sharks' ? Math.max(T_RESOLVE, 1600) + 1400 + 300
     : style === 'broomball' ? Math.max(T_RESOLVE, 1500) + 700 + 400 + 200
@@ -259,6 +260,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'sharks' ? T_RES - 1400 - 300
     : style === 'broomball' ? T_RES - 700 - 400 - 200
     : style === 'zombies' ? T_RES - 800 - 600 - 150
+    : style === 'builder' ? T_RES - 440 - 700
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -6994,6 +6996,240 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Builder: a builder in a hard hat and his truck work at the bottom of the stage. The truck's crane lifts each word, built as a
+  // little brick wall, up into place, one line after another from the bottom line to the top.
+  const BLD_LIFT = 440; // how long the crane takes to swing a word into place
+  const BLD_SPAN = Math.min(4200, Math.max(1600, words.length * 330)); // the whole job
+  const bs = Math.max(0.55, Math.min(1.1, H / 270)); // the size of the truck and the builder
+  const gY = H - 6; // the ground
+  const bldOrder = words.map((w, i) => ({ w, i })).sort((a, b) => b.w.cells[0].y - a.w.cells[0].y || a.w.x0 - b.w.x0); // the bottom line first
+  const bldT = new Array<number>(words.length).fill(0);
+  bldOrder.forEach((o2, rank) => (bldT[o2.i] = (rank / Math.max(1, words.length)) * BLD_SPAN));
+  const bldBox = (w: (typeof words)[number]) => {
+    const y = w.cells[0].y;
+    return { x: w.x0 - 4, y: y - fs * 0.95, w: w.x1 - w.x0 + 8, h: fs * 1.3 };
+  };
+  const bricks = (x: number, y: number, w: number, h: number, alpha: number) => { // a little wall of bricks
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+    ctx.fillStyle = '#b5542f';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(236,222,200,.6)';
+    ctx.lineWidth = 1;
+    const rh = Math.max(5, 7 * bs);
+    const bw = Math.max(10, 16 * bs);
+    ctx.beginPath();
+    for (let j = 0, yy = y; yy < y + h; j++, yy += rh) {
+      ctx.moveTo(x, yy);
+      ctx.lineTo(x + w, yy);
+      for (let xx = x + (j % 2) * (bw / 2); xx < x + w; xx += bw) {
+        ctx.moveTo(xx, yy);
+        ctx.lineTo(xx, yy + rh);
+      }
+    }
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; // the shaded underside
+    ctx.fillRect(x, y + h - 3, w, 3);
+    ctx.restore();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#6e2f18';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, w, h);
+    ctx.globalAlpha = 1;
+  };
+  const bldWheel = (x: number, y: number, rad: number, spin: number) => {
+    ctx.fillStyle = '#1b1d22';
+    circ(x, y, rad);
+    ctx.fillStyle = '#9aa3ad';
+    circ(x, y, rad * 0.5);
+    ctx.strokeStyle = '#444b55';
+    ctx.lineWidth = 2;
+    for (let k = 0; k < 3; k++) {
+      const a = spin + (k * Math.PI * 2) / 3;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a) * rad * 0.5, y + Math.sin(a) * rad * 0.5);
+      ctx.stroke();
+    }
+  };
+  const bldTruck = (tx: number, spin: number) => { // a yellow truck with a load of bricks, facing right
+    const k = bs;
+    ctx.fillStyle = '#f2b705'; // the bed
+    ctx.fillRect(tx, gY - 46 * k, 80 * k, 30 * k);
+    ctx.fillStyle = '#c99500';
+    ctx.fillRect(tx, gY - 20 * k, 128 * k, 8 * k); // the chassis
+    ctx.fillStyle = '#b5542f'; // the load of bricks
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 5 - j; i++) ctx.fillRect(tx + (6 + i * 14 + j * 7) * k, gY - (58 + j * 9) * k, 12 * k, 8 * k);
+    ctx.fillStyle = '#f2b705'; // the cab
+    ctx.beginPath();
+    ctx.moveTo(tx + 82 * k, gY - 12 * k);
+    ctx.lineTo(tx + 82 * k, gY - 58 * k);
+    ctx.lineTo(tx + 112 * k, gY - 58 * k);
+    ctx.lineTo(tx + 128 * k, gY - 34 * k);
+    ctx.lineTo(tx + 128 * k, gY - 12 * k);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#bfe3f5'; // the window
+    ctx.beginPath();
+    ctx.moveTo(tx + 88 * k, gY - 52 * k);
+    ctx.lineTo(tx + 110 * k, gY - 52 * k);
+    ctx.lineTo(tx + 121 * k, gY - 36 * k);
+    ctx.lineTo(tx + 88 * k, gY - 36 * k);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#fff3a8';
+    ctx.fillRect(tx + 125 * k, gY - 28 * k, 4 * k, 7 * k); // the headlight
+    ctx.strokeStyle = '#8a6a00';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(tx, gY - 46 * k, 80 * k, 30 * k);
+    bldWheel(tx + 26 * k, gY - 11 * k, 11 * k, spin);
+    bldWheel(tx + 104 * k, gY - 11 * k, 11 * k, spin);
+  };
+  const bldMan = (x: number, swing: number, cheer: number) => { // the builder, with a yellow hard hat and a mallet
+    const k = bs;
+    ctx.lineCap = 'round';
+    ctx.fillStyle = '#2f4f8f'; // dungarees
+    ctx.fillRect(x - 9 * k, gY - 30 * k, 8 * k, 28 * k);
+    ctx.fillRect(x + 1 * k, gY - 30 * k, 8 * k, 28 * k);
+    ctx.fillStyle = '#3b2a1a'; // boots
+    ctx.fillRect(x - 11 * k, gY - 4 * k, 11 * k, 5 * k);
+    ctx.fillRect(x + 1 * k, gY - 4 * k, 11 * k, 5 * k);
+    ctx.fillStyle = '#e8742a'; // shirt
+    ctx.fillRect(x - 10 * k, gY - 52 * k, 20 * k, 24 * k);
+    ctx.fillStyle = '#2f4f8f';
+    ctx.fillRect(x - 10 * k, gY - 38 * k, 20 * k, 10 * k); // the bib of the dungarees
+    ctx.fillStyle = '#6b4a1e'; // the tool belt
+    ctx.fillRect(x - 10 * k, gY - 31 * k, 20 * k, 3 * k);
+    const arm = (sx: number, ang: number, withMallet: boolean) => {
+      ctx.save();
+      ctx.translate(sx, gY - 48 * k);
+      ctx.rotate(ang);
+      ctx.strokeStyle = '#e8742a';
+      ctx.lineWidth = 6 * k;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, 20 * k);
+      ctx.stroke();
+      ctx.fillStyle = '#e8b78f';
+      circ(0, 22 * k, 4 * k);
+      if (withMallet) {
+        ctx.strokeStyle = '#8a5a2b';
+        ctx.lineWidth = 3 * k;
+        ctx.beginPath();
+        ctx.moveTo(0, 22 * k);
+        ctx.lineTo(0, 40 * k);
+        ctx.stroke();
+        ctx.fillStyle = '#555c66';
+        ctx.fillRect(-7 * k, 38 * k, 14 * k, 8 * k);
+      }
+      ctx.restore();
+    };
+    arm(x - 11 * k, -2.5 * cheer + 0.2, false);
+    arm(x + 11 * k, cheer > 0 ? 2.5 * cheer - 0.2 : -0.9 + swing * 1.4, cheer === 0);
+    ctx.fillStyle = '#e8b78f'; // head
+    circ(x, gY - 60 * k, 9 * k);
+    ctx.fillStyle = '#3a2a1a';
+    circ(x - 3 * k, gY - 61 * k, 1.2 * k);
+    circ(x + 3 * k, gY - 61 * k, 1.2 * k);
+    ctx.strokeStyle = '#7a3b2a';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.arc(x, gY - 58 * k, 3.5 * k, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+    ctx.fillStyle = '#f7d21a'; // the hard hat
+    ctx.beginPath();
+    ctx.arc(x, gY - 63 * k, 10.5 * k, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillRect(x - 13 * k, gY - 64 * k, 26 * k, 3 * k);
+    ctx.strokeStyle = '#a48800';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(x, gY - 63 * k, 10.5 * k, Math.PI, 0);
+    ctx.stroke();
+  };
+  const drawBuilder = (r: number) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#1d2744');
+    sky.addColorStop(1, '#34476b');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#4a4030'; // the ground
+    ctx.fillRect(0, gY, W, H - gY);
+    const intro = ease(clamp1((r + T_INTRO) / T_INTRO));
+    const tx = -150 * bs + (14 + 150 * bs) * intro;
+    const mx = tx + 160 * bs;
+    ctx.font = `${fs}px ${FONT}`;
+    ctx.textBaseline = 'alphabetic';
+    // the truck and the builder stand behind the wall of words
+    let carry = -1;
+    for (let i = 0; i < words.length; i++) if (r - bldT[i] >= 0 && r - bldT[i] < BLD_LIFT + 120) carry = i;
+    const hit = carry >= 0 ? Math.sin((r - bldT[carry]) / 55) : 0;
+    bldTruck(tx, -r / 120);
+    const finished = r > BLD_SPAN + BLD_LIFT;
+    const cheer = finished ? Math.abs(Math.sin(r / 110)) : 0;
+    bldMan(mx, hit, cheer > 0 ? Math.max(0.2, cheer) : 0);
+    // the words that are built
+    for (let i = 0; i < words.length; i++) {
+      const rel = r - bldT[i];
+      if (rel < 0) continue;
+      const b = bldBox(words[i]);
+      if (rel < BLD_LIFT) continue;
+      const e = rel - BLD_LIFT;
+      const drop = e < 220 ? Math.sin((e / 220) * Math.PI) * -3 * (1 - e / 220) : 0;
+      bricks(b.x, b.y + drop, b.w, b.h, 1);
+      for (const c of words[i].cells) textLit(c, '#fffaf0', 'rgba(0,0,0,.65)', 3, c.x, c.y + drop);
+      if (e < 320) { // the dust of the landing
+        for (let d = 0; d < 4; d++) {
+          ctx.fillStyle = `rgba(210,200,185,${0.45 * (1 - e / 320)})`;
+          circ(b.x + (b.w * (d + 0.5)) / 4, b.y + b.h - e * 0.02, 3 + e * 0.02);
+        }
+      }
+    }
+    // the crane: it follows the word being lifted, and otherwise rests
+    const pivot = { x: tx + 64 * bs, y: gY - 54 * bs };
+    let aim = { x: tx + 70 * bs, y: gY - 120 * bs };
+    if (carry >= 0) {
+      const rel = r - bldT[carry];
+      const b = bldBox(words[carry]);
+      const q = ease(clamp1(rel / BLD_LIFT));
+      const sx = tx + 40 * bs;
+      const sy = gY - 62 * bs;
+      const tgx = b.x + b.w / 2;
+      const tgy = b.y + b.h / 2;
+      const sc = 0.3 + 0.7 * q;
+      const cx = sx + (tgx - sx) * q;
+      const cy = sy + (tgy - sy) * q - Math.sin(q * Math.PI) * 14;
+      aim = { x: cx, y: cy - (b.h * sc) / 2 - 10 };
+      if (rel < BLD_LIFT) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(Math.sin(rel / 38) * 0.06 * (1 - q));
+        bricks(-(b.w * sc) / 2, -(b.h * sc) / 2, b.w * sc, b.h * sc, 1);
+        ctx.restore();
+      }
+    }
+    ctx.strokeStyle = '#c99500'; // the boom
+    ctx.lineWidth = 6 * bs;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pivot.x, pivot.y);
+    ctx.lineTo(aim.x, aim.y);
+    ctx.stroke();
+    ctx.strokeStyle = '#2b2b2b'; // the cable and hook
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(aim.x, aim.y);
+    ctx.lineTo(aim.x, aim.y + 10);
+    ctx.stroke();
+    ctx.fillStyle = '#c99500';
+    circ(pivot.x, pivot.y, 5 * bs);
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -7048,6 +7284,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     icemelt: drawIce,
     shaken: drawShaken,
     footsmash: drawFoot,
+    builder: drawBuilder,
   };
 
   const frame = (now: number) => {

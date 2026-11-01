@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { openPayload, sealPayload, WrongPassphraseError } from '../src/crypto';
 import { crc32, FLAG_ANIM, MODE_CODEART, parsePacket } from '../src/packet';
 import { idToStyle, STYLES, styleToId } from '../src/reveal-anim';
+import { NO_ANIM } from '../src/reveal-styles';
 import { assemble, splitPacket } from '../src/split';
 
 describe('reveal animation stored with the image', () => {
@@ -30,8 +31,8 @@ describe('reveal animation stored with the image', () => {
     STYLES.forEach((s) => expect(idToStyle(styleToId(s))).toBe(s));
     expect(styleToId('matrix')).toBe(1); // ids are stored in images: never reorder
     expect(styleToId('wizard')).toBe(30);
-    expect(STYLES.slice(30)).toEqual(['minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', 'dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt', 'shaken', 'footsmash']);
-    expect(STYLES.length).toBe(83);
+    expect(STYLES.slice(30)).toEqual(['minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', 'dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt', 'shaken', 'footsmash', 'builder']);
+    expect(STYLES.length).toBe(84);
     expect(idToStyle(250)).toBeUndefined();
     expect(idToStyle(0)).toBeUndefined();
   });
@@ -61,5 +62,15 @@ describe('reveal animation stored with the image', () => {
     if (asm.state !== 'complete') return;
     const o = await openPayload(asm.packet, 'pw');
     expect(idToStyle(o.anim)).toBe('curtain');
+  });
+});
+
+describe('"no nonsense": show the message with no animation', () => {
+  it('is stored with the image like an animation choice, and is not a style', async () => {
+    const t = await sealPayload({ kind: 'text', text: 'plain and simple' }, 'pw', MODE_CODEART, undefined, NO_ANIM);
+    const o = await openPayload(t, 'pw');
+    expect(o).toMatchObject({ text: 'plain and simple', anim: NO_ANIM });
+    expect(idToStyle(o.anim)).toBeUndefined();
+    expect(STYLES.length).toBeLessThan(NO_ANIM);
   });
 });

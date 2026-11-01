@@ -11,7 +11,7 @@ import { MAX_PARTS, MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, PA
 import { assemble, splitPacket } from './split';
 import { extract } from './stego';
 import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
-import { idToStyle, styleToId, STYLES } from './reveal-styles';
+import { idToStyle, NO_ANIM, styleToId, STYLES } from './reveal-styles';
 import type { RevealHandle } from './reveal-anim';
 import { startScanner, type Scanner } from './camera';
 import { startPreview, type Preview } from './capture';
@@ -20,7 +20,7 @@ import { strength } from './strength';
 import { checkLock, defaultStore, fingerprint, recordFailure, recordSuccess } from './throttle';
 import { getRecipients, handleToHash, hasStoredKeys, initKeysUi, passphraseViaPasskey, storedPublicKeys } from './keysui';
 import { unlockAll } from './keystore';
-import { poofCanvas } from './poof';
+import { poofCanvas, wallyPeek } from './poof';
 import { PasskeyError } from './passkey';
 import { photoPassFor } from './pubkey';
 
@@ -85,13 +85,21 @@ function updateOptSummary() {
     return s.options[s.selectedIndex]?.textContent ?? '';
   };
   const parts: string[] = [];
-  if ($<HTMLSelectElement>('anim-pick').value !== 'auto') parts.push(text('anim-pick'));
+  if ($<HTMLInputElement>('chk-nonsense').checked) parts.push('no animation');
+  else if ($<HTMLSelectElement>('anim-pick').value !== 'auto') parts.push(text('anim-pick'));
   if ($<HTMLSelectElement>('read-time').value !== '60') parts.push(`reading ${text('read-time').toLowerCase()}`);
   if ($<HTMLSelectElement>('expiry').value !== '0') parts.push(`expires ${text('expiry').toLowerCase()}`);
   if ($<HTMLInputElement>('passcode').value) parts.push('pass code');
   $('opt-summary').textContent = parts.length ? `(${parts.join(' · ')})` : '(defaults)';
 }
 for (const id of ['anim-pick', 'read-time', 'expiry', 'passcode']) $(id).addEventListener('input', updateOptSummary);
+// "No nonsense": the secret is shown at once, with no animation, and the animation menu is not used.
+for (const ev of ['change', 'input']) {
+  $('chk-nonsense').addEventListener(ev, () => {
+    $<HTMLSelectElement>('anim-pick').disabled = $<HTMLInputElement>('chk-nonsense').checked;
+    updateOptSummary();
+  });
+}
 
 // The sender's animation list mirrors the reveal list; "auto" there means the recipient's browser picks one.
 {
@@ -483,7 +491,7 @@ $('btn-create').onclick = async () => {
     const readSecs = readTime === 60 ? 0 : readTime;
     const ttl = Number($<HTMLSelectElement>('expiry').value); // seconds, 0 = never
     const expiresAt = ttl > 0 ? Math.floor(Date.now() / 1000) + ttl : 0;
-    const anim = chosen ? styleToId(chosen) : 0;
+    const anim = $<HTMLInputElement>('chk-nonsense').checked ? NO_ANIM : chosen ? styleToId(chosen) : 0;
     // A photo for public keys holds one message per way in (each recipient, and the passphrase if there is one), each placed
     // by a key the recipient can work out for themselves.
     let photoLead: PhotoMessage[] | undefined;
@@ -838,11 +846,18 @@ async function vanishAndClear() {
   for (const e of vanishing) e.classList.add('vanishing');
   await poofCanvas($<HTMLCanvasElement>('stage'), 2800, () => mine !== vanishToken);
   for (const e of vanishing) e.classList.remove('vanishing');
-  if (mine === vanishToken) clearResult();
+  if (mine === vanishToken) {
+    clearResult();
+    $('stage-wrap').hidden = false; // what is left behind: a doodle peeking over the wall
+    $('btn-skip').hidden = true;
+    wallyPeek($<HTMLCanvasElement>('stage'));
+  }
 }
 
 function clearResult() {
   vanishToken++; // stops a vanish that is still running
+  $<HTMLCanvasElement>('stage').dataset.wally = ''; // and the doodle left behind by the last one
+  $('btn-skip').hidden = false;
   for (const id of ['plain', 'file-meta', 'file-preview']) $(id).classList.remove('vanishing');
   clearPreview();
   pendingFile = null;
@@ -1000,7 +1015,9 @@ $('btn-reveal').onclick = async () => {
     const pick = $<HTMLSelectElement>('anim-style').value;
     const style = STYLES.find((s) => s === pick) ?? idToStyle(payload.anim);
     const anim = await animModule;
-    if (anim) {
+    if (payload.anim === NO_ANIM) {
+      $('stage-wrap').hidden = true; // the sender asked for no animation: just the message
+    } else if (anim) {
       handle = anim.playReveal({ canvas: $<HTMLCanvasElement>('stage'), source, text, mode, reduceMotion: reducedMotion(), style });
       await handle.done;
     }

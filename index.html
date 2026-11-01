@@ -166,6 +166,7 @@
               </select>
             </div>
           </div>
+          <label class="check" title="Stored inside the encrypted image. The message is shown at once, with no reveal animation."><input id="chk-nonsense" type="checkbox" /> No nonsense: just show the message (no animation)</label>
           <label for="passcode" title="A second way in: the image key is also stored inside the image, locked by this pass code. Not available for fake QR codes.">Recipient pass code <span class="hint">(optional)</span></label>
           <input id="passcode" type="password" autocomplete="off" spellcheck="false" />
           <div id="code-note" class="hint"></div>
@@ -306,6 +307,7 @@
             <option value="icemelt">Image in ice, melted by a blowtorch</option>
             <option value="shaken">Image shaken apart</option>
             <option value="footsmash">Giant foot stamps on the image</option>
+            <option value="builder">Builder and his truck build the message</option>
           </select>
         </div>
         <div id="reveal-status" class="status" role="status"></div>
@@ -353,7 +355,12 @@
           <label for="key-label">Name <span class="hint">(just for you)</span></label>
           <input id="key-label" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Me, work laptop" />
           <label for="key-pass">Passphrase for the key</label>
-          <input id="key-pass" type="password" autocomplete="new-password" spellcheck="false" />
+          <div class="row">
+            <input id="key-pass" type="password" autocomplete="new-password" spellcheck="false" />
+            <button id="key-show" class="ghost" type="button">Show</button>
+            <button id="key-gen" class="ghost" type="button" title="Make a long random passphrase for this key">Generate</button>
+          </div>
+          <div id="key-gen-note" class="hint" hidden></div>
           <label class="check" id="key-weak-row" hidden><input id="key-weak" type="checkbox" /> Use this weak passphrase anyway</label>
           <label for="key-pass2">Type it again</label>
           <input id="key-pass2" type="password" autocomplete="new-password" spellcheck="false" />
@@ -404,7 +411,7 @@
         <ol>
           <li>On <b>Hide a secret</b>, type or paste your text (or choose a file, paste a picture, or read the text from a camera photo) and enter a passphrase, or press Generate.</li>
           <li>Pick an <b>Image style</b>: code art (works almost everywhere), QR code (opens this site when scanned), fake QR code (scans as a decoy) or hidden in a photo (looks like an ordinary picture; the JPEG-safe method survives normal recompression). You can choose your own cover photo.</li>
-          <li>Optionally open <b>More options</b>: a reveal animation (one of 83), a reading time, an expiry from 1 minute to 30 days, and a recipient pass code. With the photo style you can also add up to 3 more messages to the same photo, each with its own passphrase. Or open <b>Send to a public key instead</b> to lock it to someone's public key, so no passphrase has to be shared (they make a key once under <b>My keys and contacts</b> and send you the public half).</li>
+          <li>Optionally open <b>More options</b>: a reveal animation (one of 84), a reading time, an expiry from 1 minute to 30 days, and a recipient pass code. With the photo style you can also add up to 3 more messages to the same photo, each with its own passphrase. Or open <b>Send to a public key instead</b> to lock it to someone's public key, so no passphrase has to be shared (they make a key once under <b>My keys and contacts</b> and send you the public half).</li>
           <li>Press <b>Create image</b>, then <b>Copy message</b> (the image, a link to this site and, for code art and QR, a direct link to the secret) and paste it into an email or chat, or download the image. Give the passphrase to your recipient by a different route.</li>
         </ol>
         <p><b>Receiving</b></p>

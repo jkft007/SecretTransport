@@ -356,6 +356,9 @@ async function onCreateKey() {
     $<HTMLInputElement>('key-label').value = '';
     $<HTMLInputElement>('key-pass').value = '';
     $<HTMLInputElement>('key-pass2').value = '';
+    for (const id of ['key-pass', 'key-pass2']) $<HTMLInputElement>(id).type = 'password';
+    $('key-show').textContent = 'Show';
+    $('key-gen-note').hidden = true;
     await refresh();
     setStatus(status, 'Key made. Now back it up: if this browser\'s data is cleared, anything sent to this key is lost for good. Then share your public key or link.' + passkeyNote);
   } catch (e) {
@@ -406,6 +409,32 @@ export function initKeysUi(d: Deps) {
   $('to-add').onclick = onAddKey;
   $('to-add-contact').onclick = onAddContact;
   $('key-create').onclick = onCreateKey;
+  // A random passphrase for a new key: with a passkey keeping it safe, nobody has to remember or type it.
+  $('key-gen').onclick = () => {
+    const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789'; // no look-alikes
+    const bytes = crypto.getRandomValues(new Uint8Array(24));
+    const pass = (Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('').match(/.{4}/g) ?? []).join('-');
+    for (const id of ['key-pass', 'key-pass2']) {
+      const i = $<HTMLInputElement>(id);
+      i.value = pass;
+      i.type = 'text';
+    }
+    $('key-show').textContent = 'Hide';
+    $('key-pass').dispatchEvent(new Event('input', { bubbles: true }));
+    const note = $('key-gen-note');
+    if (passkeySupported()) {
+      $<HTMLInputElement>('key-passkey').checked = true;
+      note.textContent = 'A random passphrase is filled in, and the passkey box is ticked: a fingerprint, face or PIN will bring it back, so you need not remember it. Also copy it somewhere safe (a password manager): if you lose this device and its passkey, it is the only way to open a restored backup.';
+    } else {
+      note.textContent = 'A random passphrase is filled in. Copy it somewhere safe (a password manager) now: this browser cannot make a passkey to bring it back, so it is the only way into the key.';
+    }
+    note.hidden = false;
+  };
+  $('key-show').onclick = () => {
+    const hide = $<HTMLInputElement>('key-pass').type === 'password';
+    for (const id of ['key-pass', 'key-pass2']) $<HTMLInputElement>(id).type = hide ? 'text' : 'password';
+    $('key-show').textContent = hide ? 'Hide' : 'Show';
+  };
   $('to-manage').onclick = () => deps.showKeysTab();
   $('key-passkey-row').hidden = !passkeySupported();
   $('key-import-btn').onclick = onImport;

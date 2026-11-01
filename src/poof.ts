@@ -146,3 +146,109 @@ export function poofCanvas(canvas: HTMLCanvasElement, ms = 2800, cancelled: () =
     requestAnimationFrame(frame);
   });
 }
+
+/**
+ * What is left behind when the secret has destroyed itself: a bald little doodle with a long nose peeks over a wall and
+ * grips the top with its fingers, with "WALLY WAS HERE" chalked on the wall. It slowly looks about, and stays until the
+ * stage is next used (`canvas.dataset.wally` is cleared by the caller to stop it).
+ */
+export function wallyPeek(canvas: HTMLCanvasElement): void {
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width > 0) { // the stage may have been hidden: size it as it is shown now
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(Math.max(280, rect.width) * dpr);
+    canvas.height = Math.round(Math.max(180, rect.height) * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  if (!ctx || canvas.width < 8 || canvas.height < 8) return;
+  const W = canvas.width;
+  const H = canvas.height;
+  const id = String(Math.random());
+  canvas.dataset.wally = id;
+  const u = Math.min(W, H);
+  const R = u * 0.25; // the head
+  const wallY = H * 0.66;
+  const cx = W / 2;
+  const chalk = '#ece8da';
+  const t0 = performance.now();
+  const frame = (now: number) => {
+    if (canvas.dataset.wally !== id) return;
+    const t = now - t0;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = 'rgb(11,15,20)';
+    ctx.fillRect(0, 0, W, H);
+    const rise = Math.min(1, t / 700);
+    const e = 1 - Math.pow(1 - rise, 3);
+    const lift = (1 - e) * (R * 1.5); // he starts hidden below the wall and peeks up
+    const look = rise < 1 ? 0 : Math.sin((t - 700) / 650) * 0.55; // then glances from side to side
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = chalk;
+    ctx.lineWidth = Math.max(2, u * 0.012);
+    // the head, with its eyes and long nose, behind the wall
+    const hy = wallY + R * 0.18 + lift;
+    ctx.fillStyle = 'rgb(11,15,20)';
+    ctx.beginPath();
+    ctx.arc(cx, hy, R, Math.PI, 0);
+    ctx.fill();
+    ctx.stroke();
+    for (const s of [-1, 1]) {
+      const ex = cx + s * R * 0.4;
+      const ey = hy - R * 0.28;
+      ctx.beginPath();
+      ctx.arc(ex, ey, R * 0.2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = chalk;
+      ctx.beginPath();
+      ctx.arc(ex + look * R * 0.1, ey + R * 0.02, R * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.beginPath(); // the nose: a long droop over the wall
+    ctx.moveTo(cx - R * 0.07, hy - R * 0.45);
+    ctx.bezierCurveTo(cx - R * 0.16, hy - R * 0.05, cx - R * 0.12, hy + R * 0.5, cx + R * 0.1, hy + R * 0.62);
+    ctx.bezierCurveTo(cx + R * 0.22, hy + R * 0.5, cx + R * 0.14, hy - R * 0.05, cx + R * 0.07, hy - R * 0.45);
+    ctx.stroke();
+    ctx.beginPath(); // a little frown line
+    ctx.moveTo(cx - R * 0.55, hy - R * 0.62);
+    ctx.quadraticCurveTo(cx - R * 0.4, hy - R * 0.72, cx - R * 0.22, hy - R * 0.62);
+    ctx.stroke();
+    // his fingers gripping the top of the wall
+    for (const s of [-1, 1]) {
+      for (let k = 0; k < 3; k++) {
+        const fx = cx + s * (R * 1.1 + k * R * 0.2);
+        const top = wallY - R * (0.3 - (k === 1 ? 0.06 : 0)) + lift * 0.6;
+        ctx.fillStyle = 'rgb(11,15,20)';
+        ctx.beginPath();
+        ctx.roundRect(fx - R * 0.08, top, R * 0.16, wallY - top + R * 0.1, R * 0.08);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+    // the wall, which hides the rest of him
+    ctx.fillStyle = 'rgb(23,29,37)';
+    ctx.fillRect(0, wallY, W, H - wallY);
+    ctx.beginPath();
+    ctx.moveTo(0, wallY);
+    ctx.lineTo(W, wallY);
+    ctx.stroke();
+    // the nose hangs down in front of the wall
+    ctx.beginPath();
+    ctx.moveTo(cx - R * 0.12, wallY);
+    ctx.bezierCurveTo(cx - R * 0.14, wallY + R * 0.25, cx - R * 0.1, wallY + R * 0.5 + (hy - wallY - R * 0.18) * 0.3, cx + R * 0.1, wallY + R * 0.62 + (hy - wallY - R * 0.18));
+    ctx.bezierCurveTo(cx + R * 0.2, wallY + R * 0.5, cx + R * 0.16, wallY + R * 0.2, cx + R * 0.12, wallY);
+    ctx.stroke();
+    // chalked on the wall
+    ctx.fillStyle = chalk;
+    ctx.font = `700 ${Math.max(12, Math.round(u * 0.075))}px "Segoe UI", system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 0.9 * Math.min(1, Math.max(0, (t - 500) / 500));
+    ctx.fillText('WALLY WAS HERE', cx, H - (H - wallY) * 0.3);
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
