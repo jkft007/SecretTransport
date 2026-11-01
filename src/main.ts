@@ -33,14 +33,15 @@ function setStatus(el: HTMLElement, msg: string, error = false) {
 }
 
 // ---- tabs -------------------------------------------------------------------
-function showTab(which: 'hide' | 'reveal') {
-  for (const t of ['hide', 'reveal'] as const) {
+function showTab(which: 'hide' | 'reveal' | 'keys') {
+  for (const t of ['hide', 'reveal', 'keys'] as const) {
     $(`tab-${t}`).setAttribute('aria-selected', String(t === which));
     $(`panel-${t}`).hidden = t !== which;
   }
 }
 $('tab-hide').onclick = () => showTab('hide');
 $('tab-reveal').onclick = () => showTab('reveal');
+$('tab-keys').onclick = () => showTab('keys');
 
 // ---- passphrase helpers -----------------------------------------------------
 let generatedPass = ''; // a passphrase made by the Generate button is known to be random
@@ -719,6 +720,7 @@ async function loadBlobs(blobs: Blob[]) {
 
 document.addEventListener('paste', (e) => {
   const files = [...(e.clipboardData?.items ?? [])].filter((i) => i.kind === 'file' && i.type.startsWith('image/')).map((i) => i.getAsFile()).filter((f): f is File => !!f);
+  if (files.length && !$('panel-keys').hidden) return; // no picture is wanted on the keys tab
   if (files.length) {
     e.preventDefault();
     if (!$('panel-hide').hidden) {
@@ -983,7 +985,7 @@ $('btn-reveal').onclick = async () => {
     if (info.slots) {
       identities = await unlockAll(pass);
       if (!identities.length && !hasStoredKeys() && !info.slots.some((s) => s.type === 1)) {
-        throw new NoKeyError('This image was sent to a public key, and there is no key saved on this device. Restore your key from its backup (in "My keys", top right), or open this on the device that has it.');
+        throw new NoKeyError('This image was sent to a public key, and there is no key saved on this device. Restore your key from its backup (in the "My keys" tab), or open this on the device that has it.');
       }
     }
     const payload = await openPayload(asm.packet, info.slots ? pass : openPass, Date.now(), identities);
@@ -1137,6 +1139,7 @@ $('btn-ocr-cancel').onclick = () => {
   setStatus($('ocr-status'), '');
 };
 $('tab-reveal').addEventListener('click', stopOcrCamera);
+$('tab-keys').addEventListener('click', stopOcrCamera);
 document.addEventListener('visibilitychange', () => document.hidden && stopOcrCamera());
 
 syncModeUi();
@@ -1168,7 +1171,7 @@ if (location.hash === '#reveal' || location.hash.startsWith('#q=')) openFromHash
 window.addEventListener('hashchange', openFromHash);
 
 // Public keys: the keys section, the recipient picker, and links like #to=stpub1:… that fill in a recipient.
-initKeysUi({ siteBase, showHideTab: () => showTab('hide') });
+initKeysUi({ siteBase, showHideTab: () => showTab('hide'), showKeysTab: () => showTab('keys') });
 void handleToHash(location.hash);
 window.addEventListener('hashchange', () => void handleToHash(location.hash));
 
@@ -1288,3 +1291,4 @@ $('btn-scan-stop').onclick = () => {
 };
 document.addEventListener('visibilitychange', () => document.hidden && stopScan());
 $('tab-hide').addEventListener('click', stopScan);
+$('tab-keys').addEventListener('click', stopScan);

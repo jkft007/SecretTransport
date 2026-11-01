@@ -141,16 +141,16 @@ legend { font-weight: 600; padding: 0 6px; }
 
 details.about { margin-top: 16px; padding: 12px 20px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; font-size: 15px; }
 details.about summary { cursor: pointer; font-weight: 600; }
-details.about h3, dialog.help h3 { margin: 18px 0 6px; font-size: 15px; }
-details.about ol, details.about ul, dialog.help ol, dialog.help ul { margin: 6px 0; padding-left: 22px; }
-details.about li, dialog.help li { margin: 4px 0; }
+details.about h3, dialog.help h3, #panel-keys h3 { margin: 18px 0 6px; font-size: 15px; }
+details.about ol, details.about ul, dialog.help ol, dialog.help ul, #panel-keys ol, #panel-keys ul { margin: 6px 0; padding-left: 22px; }
+details.about li, dialog.help li, #panel-keys li { margin: 4px 0; }
 .tablewrap { overflow-x: auto; }
 details.about table, dialog.help table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 details.about th, details.about td, dialog.help th, dialog.help td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 footer a { color: inherit; }
 header { position: relative; }
 .header-btns { position: absolute; top: 0; right: 0; display: flex; gap: 6px; }
-dialog.keys .steps { margin: 6px 0 10px; }
+#panel-keys .steps { margin: 6px 0 10px; }
 dialog.help { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0 20px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); font-size: 15px; overflow: auto; }
 dialog.help::backdrop { background: rgba(0, 0, 0, 0.55); }
 .help-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0 10px; background: var(--card); border-bottom: 1px solid var(--line); }
