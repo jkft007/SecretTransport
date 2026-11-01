@@ -216,7 +216,7 @@ export async function runDemo(d: DemoDeps): Promise<void> {
     // 9 ------------------------------------------------------------------------------------------------
     say('The secret is back. Copy it, or save it if it was a file. It clears itself after the reading time, and the recipient can shorten that time but never stretch it.', $('plain'));
     await wait(9000);
-    note('Watch the timer: when the time is up the text burns away and the extracted text disappears.');
+    note('Watch the timer: when the time is up the text goes up in a puff of smoke and a vortex sucks it away, and the extracted text disappears with it.');
     await until(() => $('result').hidden, 60_000, 'the secret to clear');
     await wait(4000);
 

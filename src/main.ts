@@ -20,7 +20,7 @@ import { strength } from './strength';
 import { checkLock, defaultStore, fingerprint, recordFailure, recordSuccess } from './throttle';
 import { getRecipients, handleToHash, hasStoredKeys, initKeysUi, passphraseViaPasskey, storedPublicKeys } from './keysui';
 import { unlockAll } from './keystore';
-import { burnCanvas } from './burn';
+import { poofCanvas } from './poof';
 import { PasskeyError } from './passkey';
 import { photoPassFor } from './pubkey';
 
@@ -826,24 +826,24 @@ $('btn-copy-img').onclick = async () => {
   }
 };
 
-// When the reading time runs out the revealed text burns up on the stage, the extracted text and any picture burn away
-// with it, and then everything is cleared. "Clear now" (and a new reveal) still clears at once.
-let burnToken = 0;
-async function burnAndClear() {
+// When the reading time runs out the revealed text on the stage goes up in a puff of smoke and a vortex sucks it in; the
+// extracted text and any picture are swallowed by the vortex too, and then everything is cleared. "Clear now" (and a new reveal) still clears at once.
+let vanishToken = 0;
+async function vanishAndClear() {
   clearInterval(clearTimer);
   if (reducedMotion()) return clearResult();
-  const mine = ++burnToken;
+  const mine = ++vanishToken;
   $('timer').textContent = 'Time is up.';
-  const burning = ['plain', 'file-meta', 'file-preview'].map((id) => $(id));
-  for (const e of burning) e.classList.add('burning');
-  await burnCanvas($<HTMLCanvasElement>('stage'), 1800, () => mine !== burnToken);
-  for (const e of burning) e.classList.remove('burning');
-  if (mine === burnToken) clearResult();
+  const vanishing = ['plain', 'file-meta', 'file-preview'].map((id) => $(id));
+  for (const e of vanishing) e.classList.add('vanishing');
+  await poofCanvas($<HTMLCanvasElement>('stage'), 2800, () => mine !== vanishToken);
+  for (const e of vanishing) e.classList.remove('vanishing');
+  if (mine === vanishToken) clearResult();
 }
 
 function clearResult() {
-  burnToken++; // stops a burn that is still running
-  for (const id of ['plain', 'file-meta', 'file-preview']) $(id).classList.remove('burning');
+  vanishToken++; // stops a vanish that is still running
+  for (const id of ['plain', 'file-meta', 'file-preview']) $(id).classList.remove('vanishing');
   clearPreview();
   pendingFile = null;
   $('file-meta').textContent = '';
@@ -1018,7 +1018,7 @@ $('btn-reveal').onclick = async () => {
       let left = limit;
       const tick = () => {
         $('timer').textContent = `Clears in ${left}s`;
-        if (left-- <= 0) void burnAndClear();
+        if (left-- <= 0) void vanishAndClear();
       };
       tick();
       clearTimer = window.setInterval(tick, 1000);
