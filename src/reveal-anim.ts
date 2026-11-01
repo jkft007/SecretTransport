@@ -6501,34 +6501,27 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const iceCell = Math.max(5, Math.round(Math.min(fxW, fxH) / 34));
   const iceN = Math.ceil((fxW + icePad * 2) / iceCell);
   const iceM = Math.ceil((fxH + icePad * 2) / iceCell);
-  const ICE_FROM = 0.04; // the torch works from here...
-  const ICE_TO = 0.5; // ...to here, in three rows
-  const iceTorch = (p: number) => {
-    const q = clamp1((p - ICE_FROM) / (ICE_TO - ICE_FROM)) * 3;
-    const row = Math.min(2, Math.floor(q));
-    const f = q - row;
-    const left = ix - icePad;
-    const right = ix + fxW + icePad;
-    const x = row % 2 === 0 ? right - (right - left) * f : left + (right - left) * f;
-    return { x, y: iy + fxH * (0.2 + 0.3 * row), on: p >= ICE_FROM && p <= ICE_TO };
-  };
-  const iceMelt = new Float32Array(iceN * iceM).fill(-1); // when each bit of ice first feels the flame
-  for (let s = 0; s <= 240; s++) {
-    const p = ICE_FROM + ((ICE_TO - ICE_FROM) * s) / 240;
-    const t = iceTorch(p);
-    for (let j = 0; j < iceM; j++) {
-      for (let i = 0; i < iceN; i++) {
-        if (iceMelt[j * iceN + i] >= 0) continue;
-        const cx = ix - icePad + (i + 0.5) * iceCell;
-        const cy = iy - icePad + (j + 0.5) * iceCell;
-        if (Math.hypot(cx - t.x, cy - t.y) < Math.max(46, fxH * 0.26)) iceMelt[j * iceN + i] = p;
-      }
+  const ICE_FROM = 0.04; // the torch lights the ice here...
+  const ICE_TO = 0.5; // ...and the ice is all gone here
+  const icePt = { x: ix - icePad + 3, y: iy + fxH * 0.25 }; // the one place on the side of the block where the flame is held
+  const iceMax = Math.hypot(fxW + icePad * 2, fxH * 0.75 + icePad);
+  const iceMelt = new Float32Array(iceN * iceM); // when the melting reaches each bit of ice: outwards from the flame
+  for (let j = 0; j < iceM; j++) {
+    for (let i = 0; i < iceN; i++) {
+      const cx = ix - icePad + (i + 0.5) * iceCell;
+      const cy = iy - icePad + (j + 0.5) * iceCell;
+      const d = Math.hypot(cx - icePt.x, cy - icePt.y) / iceMax;
+      iceMelt[j * iceN + i] = ICE_FROM + (ICE_TO - ICE_FROM - 0.04) * Math.pow(d, 0.9) + Math.sin(i * 1.7 + j * 2.3) * 0.006;
     }
   }
-  for (let k = 0; k < iceMelt.length; k++) if (iceMelt[k] < 0) iceMelt[k] = ICE_TO - 0.02; // ice the flame never reached lets go with the rest
   const iceThick = (k: number, p: number) => (iceMelt[k] < 0 ? 1 : 1 - clamp1((p - iceMelt[k]) / 0.1));
+  const ICE_SC = 0.76; // the block is drawn a little smaller and to the right, to leave room on the left for the torch and the hand
+  const iceShift = fxW * 0.2;
   const drawIce = (r: number) => {
     fxBg('#1b2530', '#0d1218');
+    ctx.save();
+    ctx.translate(iceShift + (ix + fxW / 2) * (1 - ICE_SC), (iy + fxH / 2) * (1 - ICE_SC));
+    ctx.scale(ICE_SC, ICE_SC);
     const p = fxP(r);
     const al = fxFade(r);
     const bx = ix - icePad;
@@ -6612,43 +6605,98 @@ export function playReveal(o: RevealOptions): RevealHandle {
         ctx.fill();
       }
     }
-    const t = iceTorch(p);
-    if (t.on) { // the blowtorch with its hose, and the flame on the ice
-      const bodyX = t.x + 74;
-      const bodyY = t.y - 34;
-      const aim = Math.atan2(t.y - bodyY, t.x - bodyX);
-      ctx.strokeStyle = '#1a1d22';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(bodyX + 38, bodyY - 10);
-      ctx.bezierCurveTo(bodyX + 80, bodyY - 20, W + 40, bodyY + 40, W + 60, H);
-      ctx.stroke();
+    ctx.restore();
+    const tp = { x: iceShift + (ix + fxW / 2) * (1 - ICE_SC) + icePt.x * ICE_SC, y: (iy + fxH / 2) * (1 - ICE_SC) + icePt.y * ICE_SC }; // where the flame is on the stage
+    if (p >= ICE_FROM - 0.02 && p <= ICE_TO + 0.05) { // a hand-held propane torch, kept in one place against the side of the block
+      const out = clamp1((p - ICE_TO) / 0.05); // snuffed and pulled away once the ice has gone
+      const th = -0.5; // the torch points up and to the right, so the hand and arm trail down to the left
+      const ux = Math.cos(th);
+      const uy = Math.sin(th);
+      const nx = tp.x - ux * 48 - out * 34;
+      const ny = tp.y - uy * 48 + out * 24;
       ctx.save();
-      ctx.translate(bodyX, bodyY);
-      ctx.rotate(aim);
-      ctx.fillStyle = '#7a8591'; // the barrel
-      ctx.fillRect(-2, -7, 48, 14);
-      ctx.fillStyle = '#c7a24a'; // brass nozzle
-      ctx.fillRect(-14, -5, 14, 10);
-      ctx.fillStyle = '#c0392b'; // handle
-      ctx.fillRect(30, 6, 12, 22);
-      const L = Math.hypot(t.x - bodyX, t.y - bodyY) - 14;
-      const flick = 1 + Math.sin(r / 38) * 0.12;
-      const fg = ctx.createLinearGradient(-14, 0, -14 - L, 0);
-      fg.addColorStop(0, 'rgba(120,180,255,.95)');
-      fg.addColorStop(0.5, 'rgba(255,200,90,.85)');
-      fg.addColorStop(1, 'rgba(255,120,30,.0)');
-      ctx.fillStyle = fg;
+      ctx.translate(nx, ny);
+      ctx.rotate(th);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#34495e'; // the sleeve, going off the edge of the stage
+      ctx.lineWidth = 36;
       ctx.beginPath();
-      ctx.moveTo(-14, -4);
-      ctx.quadraticCurveTo(-14 - L * 0.6 * flick, -9, -14 - L * flick, 0);
-      ctx.quadraticCurveTo(-14 - L * 0.6 * flick, 9, -14, 4);
+      ctx.moveTo(-44, 14);
+      ctx.lineTo(-44, 240);
+      ctx.stroke();
+      ctx.fillStyle = '#e8b923'; // the propane bottle, in line with the torch
+      ctx.strokeStyle = '#7a5d10';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-172, -13, 80, 26, 7);
       ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#c0392b';
+      ctx.fillRect(-170, -13, 8, 26);
+      ctx.fillStyle = '#9aa5b1'; // the barrel
+      ctx.fillRect(-80, -5, 68, 10);
+      ctx.fillStyle = '#c7a24a'; // the brass valve block and burner head
+      ctx.fillRect(-94, -9, 14, 18);
+      ctx.beginPath();
+      ctx.moveTo(-14, -8);
+      ctx.lineTo(0, -4.5);
+      ctx.lineTo(0, 4.5);
+      ctx.lineTo(-14, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#b03a2e'; // the gas knob
+      ctx.beginPath();
+      ctx.arc(-87, -14, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#d9742b'; // the gloved hand: fingers wrapped round the bottle, thumb along the top
+      ctx.strokeStyle = '#8a4a18';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.roundRect(-72, -15, 18, 30, 7); // the back of the hand
+      ctx.fill();
+      ctx.stroke();
+      for (let f = 0; f < 4; f++) {
+        ctx.beginPath();
+        ctx.roundRect(-58 + f * 9.5, -17, 10, 34, 5);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.roundRect(-56, -23, 38, 10, 5);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#e8a063'; // the cuff
+      ctx.fillRect(-62, 26, 36, 8);
+      if (out < 1) {
+        const Lf = (48 + 10) * (1 - out);
+        const flick = 1 + Math.sin(r / 31) * 0.1 + Math.sin(r / 13) * 0.05;
+        const fg = ctx.createLinearGradient(0, 0, Lf, 0);
+        fg.addColorStop(0, 'rgba(120,175,255,.95)');
+        fg.addColorStop(0.35, 'rgba(255,225,140,.9)');
+        fg.addColorStop(1, 'rgba(255,120,30,.0)');
+        ctx.fillStyle = fg;
+        ctx.beginPath();
+        ctx.moveTo(0, -4);
+        ctx.quadraticCurveTo(Lf * 0.55 * flick, -13, Lf * flick, 0);
+        ctx.quadraticCurveTo(Lf * 0.55 * flick, 13, 0, 4);
+        ctx.fill();
+      }
       ctx.restore();
-      for (let k = 0; k < 5; k++) { // steam
-        const age = (r * 0.06 + k * 13) % 56;
-        ctx.fillStyle = `rgba(225,238,248,${0.4 * (1 - age / 56)})`;
-        circ(t.x + Math.sin(age / 7 + k * 2) * 10, t.y - age, 5 + age * 0.12);
+      if (out < 1) {
+        const g = ctx.createRadialGradient(tp.x, tp.y, 2, tp.x, tp.y, 34);
+        g.addColorStop(0, 'rgba(255,240,200,.9)');
+        g.addColorStop(0.4, 'rgba(255,170,60,.5)');
+        g.addColorStop(1, 'rgba(255,120,30,0)');
+        ctx.fillStyle = g;
+        circ(tp.x, tp.y, 34);
+        const rm = ICE_SC * iceMax * Math.pow(clamp1((p - ICE_FROM) / (ICE_TO - ICE_FROM - 0.04)), 1.1); // steam off the edge of the melted patch
+        for (let k = 0; k < 6; k++) {
+          const age = (Math.max(0, r) * 0.06 + k * 11) % 56;
+          const a = -1.2 + k * 0.45;
+          ctx.fillStyle = `rgba(225,238,248,${0.4 * (1 - age / 56)})`;
+          circ(tp.x + Math.cos(a) * rm * 0.8 + Math.sin(age / 7 + k * 2) * 8, tp.y + Math.sin(a) * rm * 0.5 - age, 5 + age * 0.12);
+        }
       }
     }
     fxText(0.5 + 0.45 * clamp1((p - 0.78) / 0.2));
