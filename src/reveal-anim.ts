@@ -6771,45 +6771,60 @@ export function playReveal(o: RevealOptions): RevealHandle {
         }
       }
     }
-    // the foot itself: a big pale cut-out with a torn leg, a sole and five toes
-    if (sole > -ftW) {
-      const cx = ix + fxW / 2;
-      const w = ftW;
-      const top = sole - w * 1.1;
-      ctx.fillStyle = '#e7c7a8';
+    // the foot itself: a big pale cut-out of a foot seen from the side, toes to the right, with its leg going up off the stage
+    const L = ftW * 1.3;
+    const cx = ix + fxW / 2;
+    const yTop = Math.min(-0.45, (-14 - sole) / L);
+    if (sole - 0.42 * L > -14 - L) {
+      ctx.save();
+      ctx.translate(cx, sole);
+      ctx.scale(L, L);
+      ctx.lineWidth = 2.5 / L;
+      ctx.lineJoin = 'round';
       ctx.strokeStyle = '#7a5a43';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath(); // leg up out of the top, with a ragged paper edge
-      ctx.moveTo(cx - w * 0.2, -10);
-      ctx.lineTo(cx + w * 0.2, -10);
-      ctx.lineTo(cx + w * 0.22, top + w * 0.2);
-      ctx.bezierCurveTo(cx + w * 0.5, top + w * 0.4, cx + w * 0.52, sole - w * 0.2, cx + w * 0.46, sole - w * 0.1);
-      ctx.lineTo(cx - w * 0.46, sole - w * 0.1);
-      ctx.bezierCurveTo(cx - w * 0.52, sole - w * 0.2, cx - w * 0.5, top + w * 0.4, cx - w * 0.22, top + w * 0.2);
+      ctx.fillStyle = '#e9c9aa';
+      ctx.beginPath();
+      ctx.moveTo(-0.44, 0); // the heel's underside
+      ctx.bezierCurveTo(-0.3, 0.005, -0.18, -0.03, -0.05, -0.035); // the sole, with a slight arch
+      ctx.bezierCurveTo(0.1, -0.035, 0.25, 0, 0.4, 0);
+      ctx.bezierCurveTo(0.5, 0, 0.53, -0.07, 0.47, -0.12); // round the big toe
+      ctx.bezierCurveTo(0.4, -0.17, 0.25, -0.17, 0.12, -0.23); // up the top of the foot
+      ctx.bezierCurveTo(0.08, -0.3, 0.1, -0.36, 0.09, -0.43); // the front of the ankle
+      ctx.lineTo(0.09, yTop); // the leg, up out of sight
+      ctx.lineTo(-0.17, yTop);
+      ctx.lineTo(-0.17, -0.4);
+      ctx.bezierCurveTo(-0.4, -0.33, -0.5, -0.22, -0.5, -0.1); // the back of the heel
+      ctx.bezierCurveTo(-0.5, -0.04, -0.48, 0, -0.44, 0);
       ctx.closePath();
       ctx.fill();
+      ctx.save();
+      ctx.clip();
+      ctx.fillStyle = 'rgba(150,100,70,.28)'; // the underside in shade
+      ctx.fillRect(-0.6, -0.055, 1.2, 0.07);
+      ctx.fillStyle = 'rgba(255,255,255,.22)'; // light on the front of the leg
+      ctx.fillRect(0.0, yTop, 0.09, -yTop - 0.4);
+      ctx.restore();
       ctx.stroke();
-      ctx.fillStyle = '#d3a98a'; // shading down one side
-      ctx.beginPath();
-      ctx.moveTo(cx + w * 0.22, top + w * 0.2);
-      ctx.bezierCurveTo(cx + w * 0.5, top + w * 0.4, cx + w * 0.52, sole - w * 0.2, cx + w * 0.46, sole - w * 0.1);
-      ctx.lineTo(cx + w * 0.3, sole - w * 0.1);
-      ctx.bezierCurveTo(cx + w * 0.34, sole - w * 0.3, cx + w * 0.3, top + w * 0.4, cx + w * 0.22, top + w * 0.2);
-      ctx.fill();
-      const sizes = [0.1, 0.085, 0.075, 0.07, 0.06]; // five toes along the bottom
-      for (let k = 0; k < 5; k++) {
-        const tx = cx - w * 0.36 + k * w * 0.18;
-        const tr = w * sizes[k] * 1.25;
+      for (const [x, y, rx, ry] of [[0.19, -0.2, 0.05, 0.04], [0.27, -0.17, 0.055, 0.045], [0.34, -0.14, 0.06, 0.05]]) { // the smaller toes, lined up behind
         ctx.fillStyle = '#efd2b6';
         ctx.beginPath();
-        ctx.ellipse(tx, sole - tr * 0.2, tr, tr * 1.1, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y, rx, ry, -0.4, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-        ctx.fillStyle = '#f7e6d4'; // toenail
-        ctx.beginPath();
-        ctx.ellipse(tx, sole + tr * 0.55, tr * 0.5, tr * 0.28, 0, 0, Math.PI * 2);
-        ctx.fill();
       }
+      ctx.fillStyle = '#f2d6ba'; // the big toe
+      ctx.beginPath();
+      ctx.ellipse(0.42, -0.07, 0.09, 0.075, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#f9ebdc'; // its toenail
+      ctx.beginPath();
+      ctx.ellipse(0.46, -0.115, 0.036, 0.02, -0.55, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath(); // the ankle bone
+      ctx.arc(-0.02, -0.3, 0.032, Math.PI * 0.2, Math.PI * 1.2);
+      ctx.stroke();
+      ctx.restore();
     }
     ctx.restore();
     fxText(p);

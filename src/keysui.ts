@@ -299,6 +299,15 @@ function renderContacts() {
   $('to-contact-row').hidden = !contacts.length;
 }
 
+/** Reloads the key and contact lists (the guided tour uses this after it removes its own key). */
+export const refreshKeys = () => refresh();
+
+/** Forgets the recipients picked on the Hide tab. */
+export function clearRecipients() {
+  recipients.length = 0;
+  renderRecipients();
+}
+
 async function refresh() {
   try {
     [myKeys, contacts] = await Promise.all([listKeys(), listContacts()]);

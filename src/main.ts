@@ -1182,6 +1182,32 @@ function openHelp() {
 }
 $('help-open').onclick = openHelp;
 $('help-close').onclick = () => helpDialog.close();
+// The guided tour (a separate chunk, fetched only when asked for) drives the page itself, slowly, with a demo secret.
+$('help-demo').onclick = async () => {
+  helpDialog.close();
+  try {
+    const m = await import('./demo');
+    void m.runDemo({
+      showTab,
+      outputToReveal: () => {
+        const c = outs[0];
+        if (!c) return false;
+        const px = c.getContext('2d')!.getImageData(0, 0, c.width, c.height);
+        addImage({ width: c.width, height: c.height, data: px.data });
+        return true;
+      },
+      revealCount: () => images.length,
+      trimReveal: (n) => {
+        images = images.slice(0, n);
+        resetScan();
+        renderTray();
+      },
+      clearResult,
+    });
+  } catch {
+    setStatus($('hide-status'), 'The demo could not be loaded (are you offline?).', true);
+  }
+};
 helpDialog.addEventListener('click', (e) => {
   if (e.target === helpDialog) helpDialog.close(); // a click on the dimmed backdrop
 });
