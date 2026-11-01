@@ -145,7 +145,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const GEN_FLY = 600; // a letter's flight from the genie's hand to its place
   const RA_LT = Math.min(1900, Math.max(900, 7000 / Math.max(1, lineYs.length))); // the formation's pass along one line (a stately pace)
   const RA_GAP = RA_LT + 60; // one pass at a time
-  const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt']; // the styles that destroy the scanned image
+  const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain']; // the styles that destroy the scanned image
   const FX_DUR = 2200; // how long the destruction takes
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
   const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
@@ -6004,7 +6004,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const fxW = fxImg.width;
   const fxH = fxImg.height;
   const fxCols: string[] = []; // the average colour of each 3-pixel column, for sand and drips
-  if (style === 'sandfall' || style === 'melt') {
+  if (style === 'sandfall' || style === 'melt' || style === 'rainwash') {
     try {
       const d = fxImg.getContext('2d')!.getImageData(0, 0, fxW, fxH).data;
       for (let x = 0; x < fxW; x += 3) {
@@ -6388,6 +6388,113 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Rain wash: it starts to rain and the picture's colours run and wash away, streaking down into a puddle.
+  const rwN = Math.ceil(fxW / 3);
+  const rwOff = Array.from({ length: rwN }, () => rnd() * 0.3);
+  const rwLen = Array.from({ length: rwN }, () => 0.35 + rnd() * 0.65);
+  const rwDrops = Array.from({ length: 150 }, () => ({ x: rnd() * W, y: rnd() * H, v: 0.9 + rnd() * 0.7, l: 10 + rnd() * 14 }));
+  const drawRainWash = (r: number) => {
+    fxBg('#1b2634', '#0b1118');
+    const p = fxP(r);
+    const al = fxFade(r);
+    const floor = iy + fxH;
+    ctx.globalAlpha = al;
+    for (let c = 0; c < rwN; c++) {
+      const x = c * 3;
+      const w = Math.min(3, fxW - x);
+      const e = fxH * clamp1((p - rwOff[c]) / 0.6); // how far down this column has been washed
+      if (e < fxH) ctx.drawImage(fxImg, x, e, w, fxH - e, ix + x, iy + e, w, fxH - e);
+      if (e > 0 && e < fxH) { // the colour running down the wet picture
+        const sl = Math.min(e, fxH * rwLen[c] * 0.5);
+        ctx.fillStyle = fxCol(x);
+        for (let k = 0; k < 4; k++) {
+          ctx.globalAlpha = al * (0.14 + 0.18 * k);
+          ctx.fillRect(ix + x, iy + e - sl * (1 - k / 4), w, sl / 4 + 1);
+        }
+        ctx.globalAlpha = al;
+      }
+    }
+    const pool = (1 - clamp1((p - 0.88) / 0.12)) * clamp1(p / 0.5); // the coloured puddle at the bottom
+    for (let x = 0; x < fxW; x += 3) {
+      ctx.globalAlpha = al * 0.65 * pool;
+      ctx.fillStyle = fxCol(x);
+      ctx.fillRect(ix + x, floor - 6 - Math.sin(x / 9 + r / 160) * 1.5, 3, 7 + 6 * pool);
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(175,205,235,.5)'; // the rain
+    ctx.lineWidth = 1;
+    const shown = Math.floor(rwDrops.length * clamp1((r + T_INTRO) / (T_INTRO + 400)));
+    for (let k = 0; k < shown; k++) {
+      const d = rwDrops[k];
+      const y = (((d.y + r * d.v * 0.95) % (H + 30)) + H + 30) % (H + 30) - 15;
+      ctx.beginPath();
+      ctx.moveTo(d.x, y);
+      ctx.lineTo(d.x - 2.5, y + d.l);
+      ctx.stroke();
+    }
+    fxText(p);
+    fadeToFinal(r);
+  };
+
+  // Acid rain: green acid rain eats holes in the picture, which fizz and spread until it has dissolved away in smoke.
+  const acN = 64;
+  const acHoles = Array.from({ length: acN }, (_, i) => ({ x: rnd() * fxW, y: rnd() * fxH, s: (i / acN) * 0.6 + rnd() * 0.06, R: Math.max(fxW, fxH) * (0.1 + rnd() * 0.07) }));
+  const acC = document.createElement('canvas');
+  acC.width = fxW;
+  acC.height = fxH;
+  const acDrops = Array.from({ length: 110 }, () => ({ x: rnd() * W, y: rnd() * H, v: 0.9 + rnd() * 0.7, l: 8 + rnd() * 12 }));
+  const drawAcid = (r: number) => {
+    fxBg('#0f1a12', '#070c08');
+    const p = fxP(r);
+    const al = fxFade(r);
+    const a2 = acC.getContext('2d')!;
+    a2.globalCompositeOperation = 'source-over';
+    a2.clearRect(0, 0, fxW, fxH);
+    a2.drawImage(fxImg, 0, 0);
+    a2.globalCompositeOperation = 'destination-out';
+    a2.fillStyle = '#000';
+    for (const h of acHoles) {
+      const q = clamp1((p - h.s) / 0.3);
+      if (q <= 0) continue;
+      a2.beginPath();
+      a2.arc(h.x, h.y, h.R * ease(q), 0, Math.PI * 2);
+      a2.fill();
+    }
+    ctx.globalAlpha = al * (1 - clamp1((p - 0.9) / 0.1));
+    ctx.drawImage(acC, ix, iy);
+    ctx.globalAlpha = 1;
+    for (const h of acHoles) { // the fizzing green edge of each hole, and the smoke rising from it
+      const q = clamp1((p - h.s) / 0.3);
+      if (q <= 0 || q >= 1) continue;
+      ctx.strokeStyle = `rgba(160,255,70,${0.8 * (1 - q * 0.7)})`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(ix + h.x, iy + h.y, h.R * ease(q) + 1, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    for (const h of acHoles) {
+      const age = (p - h.s) * FX_DUR;
+      if (age <= 0 || age > 1500) continue;
+      for (let k = 0; k < 3; k++) {
+        ctx.fillStyle = `rgba(${150 + k * 20},${190 + k * 10},${140 + k * 10},${0.34 * (1 - age / 1500)})`;
+        circ(ix + h.x + Math.sin(age / 170 + k * 2 + h.x) * 12, iy + h.y - age * 0.05 * (k + 1) - k * 4, 6 + age * 0.012 * (k + 1));
+      }
+    }
+    ctx.strokeStyle = 'rgba(150,255,90,.55)'; // the acid rain
+    ctx.lineWidth = 1.4;
+    const shown = Math.floor(acDrops.length * clamp1((r + T_INTRO) / (T_INTRO + 300)));
+    for (let k = 0; k < shown; k++) {
+      const d = acDrops[k];
+      const y = (((d.y + r * d.v * 0.95) % (H + 30)) + H + 30) % (H + 30) - 15;
+      ctx.beginPath();
+      ctx.moveTo(d.x, y);
+      ctx.lineTo(d.x - 2, y + d.l);
+      ctx.stroke();
+    }
+    fxText(p);
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -6437,6 +6544,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
     burnaway: drawBurn,
     shredder: drawShredder,
     melt: drawMelt,
+    rainwash: drawRainWash,
+    acidrain: drawAcid,
   };
 
   const frame = (now: number) => {
