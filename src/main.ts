@@ -21,6 +21,7 @@ import { checkLock, defaultStore, fingerprint, recordFailure, recordSuccess } fr
 import { getRecipients, handleToHash, hasStoredKeys, initKeysUi, passphraseViaPasskey, storedPublicKeys } from './keysui';
 import { unlockAll } from './keystore';
 import { poofCanvas, wallyPeek } from './poof';
+import { localVoices, speak, speechAvailable, stopSpeaking } from './speech';
 import { PasskeyError } from './passkey';
 import { photoPassFor } from './pubkey';
 
@@ -774,11 +775,50 @@ drop.addEventListener('drop', (e) => {
 
 let pendingFile: { name: string; data: Uint8Array } | null = null;
 
+// ---- reading the secret aloud (with a voice on this device only) -------------------------------------
+let speaking = false;
+function setSpeaking(v: boolean) {
+  speaking = v;
+  $('btn-speak').textContent = v ? '⏹ Stop reading' : '🔊 Read aloud';
+}
+function refreshVoices() {
+  const sel = $<HTMLSelectElement>('speak-voice');
+  const voices = localVoices();
+  const keep = sel.value;
+  sel.replaceChildren(...voices.map((v) => new Option(`${v.name} (${v.lang})`, v.voiceURI)));
+  const mine = (navigator.language || 'en').slice(0, 2).toLowerCase();
+  const pick = voices.find((v) => v.voiceURI === keep) ?? voices.find((v) => v.lang.toLowerCase().startsWith(mine)) ?? voices[0];
+  if (pick) sel.value = pick.voiceURI;
+  const ok = voices.length > 0;
+  sel.hidden = !ok || voices.length < 2;
+  $('auto-speak-row').hidden = !ok;
+  $<HTMLButtonElement>('btn-speak').disabled = !ok;
+}
+function speakSecret() {
+  const voice = localVoices().find((v) => v.voiceURI === $<HTMLSelectElement>('speak-voice').value);
+  const text = $<HTMLTextAreaElement>('plain').value;
+  if (!text || !voice) return;
+  setSpeaking(true);
+  speak(text, voice, () => setSpeaking(false));
+}
+if (speechAvailable()) {
+  refreshVoices();
+  speechSynthesis.addEventListener('voiceschanged', refreshVoices);
+  $('btn-speak').onclick = () => {
+    if (speaking) {
+      stopSpeaking();
+      setSpeaking(false);
+    } else speakSecret();
+  };
+}
+
 function showResult(p: Payload) {
   const isFile = p.kind === 'file';
   $('text-result').hidden = isFile;
   $('file-result').hidden = !isFile;
   $('btn-copy-plain').hidden = isFile;
+  $('btn-speak').hidden = isFile || !speechAvailable();
+  $('speak-note').hidden = isFile || !speechAvailable() || localVoices().length > 0;
   $('btn-save-file').hidden = !isFile;
   clearPreview();
   if (p.kind === 'file') {
@@ -841,6 +881,8 @@ async function vanishAndClear() {
   clearInterval(clearTimer);
   if (reducedMotion()) return clearResult();
   const mine = ++vanishToken;
+  stopSpeaking(); // the time is up: the voice stops too
+  setSpeaking(false);
   $('timer').textContent = 'Time is up.';
   const vanishing = ['plain', 'file-meta', 'file-preview'].map((id) => $(id));
   for (const e of vanishing) e.classList.add('vanishing');
@@ -856,6 +898,8 @@ async function vanishAndClear() {
 
 function clearResult() {
   vanishToken++; // stops a vanish that is still running
+  stopSpeaking();
+  setSpeaking(false);
   $<HTMLCanvasElement>('stage').dataset.wally = ''; // and the doodle left behind by the last one
   $('btn-skip').hidden = false;
   for (const id of ['plain', 'file-meta', 'file-preview']) $(id).classList.remove('vanishing');
@@ -1023,6 +1067,7 @@ $('btn-reveal').onclick = async () => {
     }
     showResult(payload);
     $('result').hidden = false;
+    if (payload.kind === 'text' && $<HTMLInputElement>('chk-autospeak').checked && localVoices().length) speakSecret();
     if (payload.expires) setStatus(status, `Note: the sender set this secret to expire on ${new Date(payload.expires * 1000).toLocaleString()}.`);
 
     // The sender's reading time is a ceiling: the recipient may shorten it but never stretch it.

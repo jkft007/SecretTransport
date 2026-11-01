@@ -83,6 +83,9 @@ Because everything runs in the browser, anyone who copies an image can guess pas
 ## No animation, and what is left behind
 In **More options** the sender can tick **No nonsense: just show the message (no animation)**: the choice is sealed inside the encrypted image, and the recipient's browser then shows the message at once. When the reading time runs out the message goes up in smoke and a vortex takes it, and a doodle with a long nose is left peeking over a wall with "WALLY WAS HERE" chalked on it.
 
+## Reading aloud
+On the Reveal tab the revealed text can be read aloud: tick **Read it aloud** before pressing Reveal, or press **🔊 Read aloud** (and **Stop reading**) beside the secret. It uses the browser's own speech and only voices that run on your device: some browsers' online voices send the text to a server to be spoken, so those are never used, and if there is no on-device voice the feature is switched off. The voice stops when the reading time ends or the secret is cleared. Mind who can hear it.
+
 ## Demo
 The **? Help** button has a **Watch the demo** button: a slow, guided tour that runs the real app on a demo secret, with captions, a highlight on what it is using, and Pause and Stop buttons. It types a secret, generates a passphrase, picks the options, makes a code-art image and opens it (a wrong passphrase first, then the right one, with an animation and the burn-away), makes a QR code, then makes a temporary key, sends a secret to its public key and opens it with the key's passphrase. It uses the non-photo styles, removes its temporary key afterwards and puts your fields back. The passkey is only explained, because it needs a real device prompt.
 

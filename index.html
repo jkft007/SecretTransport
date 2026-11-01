@@ -215,6 +215,7 @@
           <button id="btn-reveal" class="primary">Reveal</button>
           <button id="btn-passkey" type="button" class="ghost" hidden title="Unlock your key with a passkey instead of typing its passphrase">Reveal with passkey</button>
           <label class="check"><input id="chk-motion" type="checkbox" /> Skip animation</label>
+          <label class="check" id="auto-speak-row" hidden title="Uses a voice on this device only; the text is never sent anywhere"><input id="chk-autospeak" type="checkbox" /> Read it aloud</label>
           <select id="read-clear" aria-label="Clear the revealed secret after">
             <option value="0" selected>Clear: as the sender set</option>
             <option value="15">Clear after 15 s</option>
@@ -318,6 +319,7 @@
         </div>
 
         <div id="result" hidden>
+          <div id="speak-note" class="hint" hidden>Reading aloud is off: this browser has no voice that works on this device, and an online voice could send your secret to a server.</div>
           <div id="file-result" hidden>
             <label>Hidden file</label>
             <div id="file-meta" class="filebox"></div>
@@ -330,6 +332,8 @@
           </div>
           <div class="row">
             <button id="btn-copy-plain" class="primary">Copy text</button>
+            <button id="btn-speak" class="ghost" type="button" hidden>🔊 Read aloud</button>
+            <select id="speak-voice" aria-label="Voice for reading aloud" hidden></select>
             <button id="btn-save-file" class="primary" hidden>Save file</button>
             <button id="btn-copy-img" class="ghost" hidden>Copy image</button>
             <button id="btn-clear" class="ghost">Clear now</button>
