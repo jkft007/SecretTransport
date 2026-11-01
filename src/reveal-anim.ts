@@ -145,7 +145,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const GEN_FLY = 600; // a letter's flight from the genie's hand to its place
   const RA_LT = Math.min(1900, Math.max(900, 7000 / Math.max(1, lineYs.length))); // the formation's pass along one line (a stately pace)
   const RA_GAP = RA_LT + 60; // one pass at a time
-  const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt', 'shaken']; // the styles that destroy the scanned image
+  const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt', 'shaken', 'footsmash']; // the styles that destroy the scanned image
   const FX_DUR = 2200; // how long the destruction takes
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
   const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
@@ -6709,6 +6709,113 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Foot: a giant cartoon cut-out foot drops out of the sky and stamps the picture flat, then lifts away.
+  const ftW = Math.max(150, fxW * 0.85);
+  const ftHit = 0.4; // the moment of the stomp
+  const ftChips = Array.from({ length: 18 }, () => ({ a: -Math.PI * (0.1 + rnd() * 0.8), v: 3 + rnd() * 6, s: 2 + rnd() * 4 }));
+  const ftSole = (p: number) => { // the height of the foot's toe line
+    const hi = -30;
+    const lo = iy + fxH;
+    if (p < ftHit) return hi + (lo - hi) * (clamp1(p / ftHit) ** 2.2);
+    if (p < 0.58) return lo;
+    return lo + (hi - lo) * ease(clamp1((p - 0.58) / 0.27));
+  };
+  const drawFoot = (r: number) => {
+    fxBg('#1d1a2a', '#0e0c16');
+    const p = fxP(r);
+    const al = fxFade(r);
+    const sole = ftSole(p);
+    const bottom = iy + fxH;
+    const since = clamp1((p - ftHit) / 0.12);
+    ctx.save();
+    if (p >= ftHit && p < ftHit + 0.14) { // the whole stage jolts at the impact
+      const k = (1 - (p - ftHit) / 0.14) * 9;
+      ctx.translate(Math.sin(r / 13) * k, Math.cos(r / 9) * k);
+    }
+    // the picture: squashed under the sole, bulging out at the sides, and left a flat stain that fades
+    const pressed = Math.max(0.05, (bottom - Math.max(iy, sole)) / fxH);
+    const stain = 1 - clamp1((p - 0.72) / 0.2);
+    ctx.globalAlpha = al * stain;
+    const sq = p < ftHit ? pressed : 0.05;
+    const bulge = 1 + (1 - sq) * 0.14 * (p < ftHit ? 1 : 1 + since * 0.6);
+    ctx.save();
+    ctx.translate(ix + fxW / 2, bottom);
+    ctx.scale(bulge, sq);
+    ctx.drawImage(fxImg, -fxW / 2, -fxH);
+    ctx.restore();
+    if (p >= ftHit && stain > 0) { // cracks splitting out across the flattened picture
+      ctx.strokeStyle = 'rgba(255,255,255,.55)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let k = 0; k < 7; k++) {
+        const a = Math.PI * (k / 6);
+        ctx.moveTo(ix + fxW / 2, bottom - 2);
+        ctx.lineTo(ix + fxW / 2 - Math.cos(a) * fxW * 0.55 * since, bottom - 2 - Math.sin(a) * 6 * since);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // chips and dust thrown out from under the foot
+    if (p >= ftHit && p < 0.8) {
+      const q = clamp1((p - ftHit) / 0.3);
+      for (const c of ftChips) {
+        ctx.fillStyle = `rgba(210,210,225,${0.8 * (1 - q)})`;
+        const cx = ix + fxW / 2 + Math.cos(c.a) * c.v * q * 40;
+        const cy = bottom + Math.sin(c.a) * c.v * q * 40 + 90 * q * q;
+        ctx.fillRect(cx, cy, c.s, c.s);
+      }
+      for (let side = -1; side <= 1; side += 2) {
+        for (let k = 0; k < 4; k++) {
+          ctx.fillStyle = `rgba(170,165,185,${0.4 * (1 - q)})`;
+          circ(ix + fxW / 2 + side * (fxW * 0.45 + q * (30 + k * 18)), bottom - q * (8 + k * 9), Math.max(0, 6 + k * 3 + q * 14));
+        }
+      }
+    }
+    // the foot itself: a big pale cut-out with a torn leg, a sole and five toes
+    if (sole > -ftW) {
+      const cx = ix + fxW / 2;
+      const w = ftW;
+      const top = sole - w * 1.1;
+      ctx.fillStyle = '#e7c7a8';
+      ctx.strokeStyle = '#7a5a43';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); // leg up out of the top, with a ragged paper edge
+      ctx.moveTo(cx - w * 0.2, -10);
+      ctx.lineTo(cx + w * 0.2, -10);
+      ctx.lineTo(cx + w * 0.22, top + w * 0.2);
+      ctx.bezierCurveTo(cx + w * 0.5, top + w * 0.4, cx + w * 0.52, sole - w * 0.2, cx + w * 0.46, sole - w * 0.1);
+      ctx.lineTo(cx - w * 0.46, sole - w * 0.1);
+      ctx.bezierCurveTo(cx - w * 0.52, sole - w * 0.2, cx - w * 0.5, top + w * 0.4, cx - w * 0.22, top + w * 0.2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#d3a98a'; // shading down one side
+      ctx.beginPath();
+      ctx.moveTo(cx + w * 0.22, top + w * 0.2);
+      ctx.bezierCurveTo(cx + w * 0.5, top + w * 0.4, cx + w * 0.52, sole - w * 0.2, cx + w * 0.46, sole - w * 0.1);
+      ctx.lineTo(cx + w * 0.3, sole - w * 0.1);
+      ctx.bezierCurveTo(cx + w * 0.34, sole - w * 0.3, cx + w * 0.3, top + w * 0.4, cx + w * 0.22, top + w * 0.2);
+      ctx.fill();
+      const sizes = [0.1, 0.085, 0.075, 0.07, 0.06]; // five toes along the bottom
+      for (let k = 0; k < 5; k++) {
+        const tx = cx - w * 0.36 + k * w * 0.18;
+        const tr = w * sizes[k] * 1.25;
+        ctx.fillStyle = '#efd2b6';
+        ctx.beginPath();
+        ctx.ellipse(tx, sole - tr * 0.2, tr, tr * 1.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#f7e6d4'; // toenail
+        ctx.beginPath();
+        ctx.ellipse(tx, sole + tr * 0.55, tr * 0.5, tr * 0.28, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+    fxText(p);
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -6762,6 +6869,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     acidrain: drawAcid,
     icemelt: drawIce,
     shaken: drawShaken,
+    footsmash: drawFoot,
   };
 
   const frame = (now: number) => {
