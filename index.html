@@ -394,6 +394,7 @@
         <label class="check" id="key-weak-row" hidden><input id="key-weak" type="checkbox" /> Use this weak passphrase anyway</label>
         <label for="key-pass2">Type it again</label>
         <input id="key-pass2" type="password" autocomplete="new-password" spellcheck="false" />
+        <label class="check" id="key-passkey-row" hidden><input id="key-passkey" type="checkbox" /> Also keep the passphrase safe with a passkey (fingerprint, face or PIN)</label>
         <div class="row"><button id="key-create" class="primary" type="button">Make my key</button></div>
         <div id="key-status" class="status" role="status"></div>
         <p class="hint"><b>Back the key up.</b> If this browser's data is cleared or you switch device, anything sent to the key is lost for good unless you have the backup file <i>and</i> its passphrase. The passphrase is also asked for whenever you open a message sent to your key, unless you add a <b>passkey</b> to the key (the <b>Add passkey</b> button on its card): then a fingerprint, face or PIN brings the passphrase back through <b>Reveal with passkey</b>. The passphrase still works. A passkey stays on the device that made it, so it is not in the backup.</p>

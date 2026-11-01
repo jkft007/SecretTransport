@@ -199,6 +199,8 @@ img.burning { animation-name: burnImg; }
   100% { filter: brightness(0) blur(3px); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .burning { animation: none; } }
+.passkeybox { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.passkeybox .row { margin-top: 6px; }
 .recip { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 8px 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
 .keycard { margin: 12px 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
 .keycard input { margin-top: 8px; font: 12.5px ui-monospace, Consolas, monospace; }

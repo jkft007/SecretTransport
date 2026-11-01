@@ -186,17 +186,23 @@ function download(name: string, text: string) {
 
 // A passkey as a second way to unlock the key: it keeps the passphrase safe, so a fingerprint, face or PIN can bring it back.
 function passkeyRow(k: StoredKey): HTMLElement {
+  const box = el('div', '', 'passkeybox');
+  box.append(el('b', 'Passkey for this key'));
   const wrap = el('div', '', 'row');
+  box.append(wrap);
   if (k.pk) {
     wrap.append(
-      el('span', 'Passkey on: Reveal with passkey unlocks this key.', 'hint'),
+      el('span', 'On. Press "Reveal with passkey" on the Reveal tab to unlock this key with your fingerprint, face or PIN.', 'hint'),
       confirmButton('Remove passkey', async () => {
         await saveKey(removePasskeyLock(k)).catch(() => undefined);
         await refresh();
         setStatus($('key-status'), 'Passkey removed from this key. The passphrase still opens it.');
       }),
     );
-  } else if (passkeySupported()) {
+  } else if (!passkeySupported()) {
+    wrap.append(el('span', 'This browser cannot make passkeys here (it needs a secure https page and a recent Chrome, Edge or Safari).', 'hint'));
+  } else {
+    box.append(el('div', 'Keep the passphrase of this key safe with a passkey, so a fingerprint, face or PIN can bring it back instead of typing it. The passphrase still works.', 'hint'));
     const pass = el('input');
     pass.type = 'password';
     pass.autocomplete = 'off';
@@ -218,8 +224,9 @@ function passkeyRow(k: StoredKey): HTMLElement {
         }
       }),
     );
+    box.append(wrap);
   }
-  return wrap;
+  return box;
 }
 
 async function renderMyKeys() {
@@ -321,14 +328,25 @@ async function onCreateKey() {
   setStatus(status, 'Making the key… (protecting it takes about a second)');
   try {
     const pair = await generateKeyPair(await preferredKeyType());
-    const stored = await protectKey(pair, label, pass);
+    let stored = await protectKey(pair, label, pass);
+    const wantPasskey = $<HTMLInputElement>('key-passkey').checked;
+    let passkeyNote = '';
+    if (wantPasskey) {
+      try {
+        setStatus(status, 'Follow the prompt on your device to make the passkey…');
+        const made = await createPasskey(label);
+        stored = await addPasskeyLock(stored, pass, made.credId, made.prfSalt, made.prf);
+      } catch (e) {
+        passkeyNote = ` The passkey was not added (${e instanceof Error ? e.message : 'it failed'}); you can add it later from the key's card.`;
+      }
+    }
     await saveKey(stored);
     void navigator.storage?.persist?.(); // ask the browser not to clear it when space runs low
     $<HTMLInputElement>('key-label').value = '';
     $<HTMLInputElement>('key-pass').value = '';
     $<HTMLInputElement>('key-pass2').value = '';
     await refresh();
-    setStatus(status, 'Key made. Now back it up: if this browser\'s data is cleared, anything sent to this key is lost for good. Then share your public key or link.');
+    setStatus(status, 'Key made. Now back it up: if this browser\'s data is cleared, anything sent to this key is lost for good. Then share your public key or link.' + passkeyNote);
   } catch (e) {
     setStatus(status, (e as Error).message, true);
   } finally {
@@ -377,6 +395,7 @@ export function initKeysUi(d: Deps) {
   $('to-add').onclick = onAddKey;
   $('to-add-contact').onclick = onAddContact;
   $('key-create').onclick = onCreateKey;
+  $('key-passkey-row').hidden = !passkeySupported();
   $('key-import-btn').onclick = onImport;
   $('key-pass').addEventListener('input', () => {
     const { level } = strength($<HTMLInputElement>('key-pass').value);
