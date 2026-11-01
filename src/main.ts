@@ -7,7 +7,7 @@ import { ExpiredError, NEVER_CLEAR, openPayload, sealPayload, WrongPassphraseErr
 import { encodedLength } from './ecc';
 import { byteCapacity } from './qr';
 import { fakeQrCapacity } from './qrmodes';
-import { MAX_PARTS, MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, PART_OVERHEAD, parseFrame } from './packet';
+import { MAX_PARTS, MODE_CODEART, MODE_DCT, MODE_FAKEQR, MODE_QR, MODE_STEGO, PART_OVERHEAD, parseFrame, parsePacket } from './packet';
 import { assemble, splitPacket } from './split';
 import { extract } from './stego';
 import { blobToRgba, copyImage, copyMessage, download, generateCover, rgbaToCanvas } from './imageio';
@@ -18,6 +18,9 @@ import { startPreview, type Preview } from './capture';
 import { readText } from './ocr';
 import { strength } from './strength';
 import { checkLock, defaultStore, fingerprint, recordFailure, recordSuccess } from './throttle';
+import { getRecipients, handleToHash, hasStoredKeys, initKeysUi, storedPublicKeys } from './keysui';
+import { unlockAll } from './keystore';
+import { photoPassFor } from './pubkey';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches || $<HTMLInputElement>('chk-motion').checked;
@@ -233,8 +236,10 @@ function readExtras(): ExtraRow[] {
   }));
 }
 
+let pkPhotoCount = 0; // messages in a photo sent to public keys (one per way in), while it is being made
 function currentPhotoLayout() {
   if (currentMode() !== 'photo') return { nMsg: 1, nLoc: 0 };
+  if (pkPhotoCount > 0) return photoLayout(Array.from({ length: pkPhotoCount }, () => ({})));
   return photoLayout([{ passcode: $<HTMLInputElement>('passcode').value }, ...readExtras()]);
 }
 
@@ -340,7 +345,7 @@ const MAX_OPEN_LINK = 1900;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const partName = (i: number, n: number) => (n > 1 ? `secret-part-${i + 1}-of-${n}.png` : 'secret.png');
 
-async function renderFrame(frame: Uint8Array, mode: Mode, kind: 'dct' | 'lsb', pass: string, cover: Rgba | null, passcode = '', extras: PhotoMessage[] = []): Promise<Rgba> {
+async function renderFrame(frame: Uint8Array, mode: Mode, kind: 'dct' | 'lsb', pass: string, cover: Rgba | null, passcode = '', extras: PhotoMessage[] = [], lead?: PhotoMessage[]): Promise<Rgba> {
   if (mode === 'codeart') return encodeCodeArt(frame);
   if (mode === 'qr') return encodePlainQr(frame, siteBase());
   if (mode === 'fakeqr') {
@@ -349,6 +354,7 @@ async function renderFrame(frame: Uint8Array, mode: Mode, kind: 'dct' | 'lsb', p
     return encodeFakeQr(frame, decoy, pass);
   }
   const c = cover ?? generateCover(); // a fresh cover per part unless you chose one
+  if (lead) return hidePhoto(kind, c, lead);
   return hidePhoto(kind, c, [{ pass, passcode, packet: frame }, ...extras]);
 }
 
@@ -410,7 +416,8 @@ $('btn-create').onclick = async () => {
     if (!text) return setStatus(status, 'Enter some text to hide.', true);
     payload = { kind: 'text', text };
   }
-  if (!pass) return setStatus(status, 'Enter a passphrase (or press Generate).', true);
+  const recips = await getRecipients();
+  if (!pass && !recips.length) return setStatus(status, 'Enter a passphrase (or press Generate), or add a public key to send to.', true);
   if (passStrength().level === 'weak' && !$<HTMLInputElement>('chk-weak').checked) {
     return setStatus(status, 'That passphrase is too easy to guess. Press Generate for a strong one, make it longer, or tick "Use it anyway".', true);
   }
@@ -425,6 +432,19 @@ $('btn-create').onclick = async () => {
   if (passcode && currentMode() === 'fakeqr') {
     $<HTMLDetailsElement>('more-opts').open = true;
     return setStatus(status, 'A recipient pass code does not work with fake QR codes, whose data can only be found with the main passphrase. Clear the pass code or choose another style.', true);
+  }
+
+  if (recips.length) {
+    const opts = (id: string) => ($<HTMLDetailsElement>(id).open = true);
+    if (passcode) {
+      opts('more-opts');
+      return setStatus(status, 'A recipient pass code does not combine with public keys. Clear the pass code, or remove the public keys.', true);
+    }
+    if (currentMode() === 'fakeqr') return setStatus(status, 'Fake QR codes cannot be sent to public keys (their data can only be found with a passphrase). Pick another style.', true);
+    if (currentMode() === 'photo' && readExtras().length) {
+      opts('multi');
+      return setStatus(status, 'Extra messages in one photo are not combined with public keys. Remove them, or send the photo without public keys.', true);
+    }
   }
 
   // Extra messages in the same photo, each with its own passphrase and optional pass code.
@@ -461,8 +481,21 @@ $('btn-create').onclick = async () => {
     const ttl = Number($<HTMLSelectElement>('expiry').value); // seconds, 0 = never
     const expiresAt = ttl > 0 ? Math.floor(Date.now() / 1000) + ttl : 0;
     const anim = chosen ? styleToId(chosen) : 0;
+    // A photo for public keys holds one message per way in (each recipient, and the passphrase if there is one), each placed
+    // by a key the recipient can work out for themselves.
+    let photoLead: PhotoMessage[] | undefined;
+    pkPhotoCount = 0;
+    if (recips.length && mode === 'photo') {
+      photoLead = [];
+      for (const r of recips) photoLead.push({ pass: photoPassFor(r), packet: await sealPayload(payload, '', packetMode, undefined, anim, expiresAt, '', readSecs, [r]) });
+      if (pass) photoLead.push({ pass, packet: await sealPayload(payload, pass, packetMode, undefined, anim, expiresAt, '', readSecs) });
+      if (photoLead.length > MAX_MESSAGES) throw new Error(`A photo can hold ${MAX_MESSAGES} ways in. Choose fewer recipients, or leave out the passphrase.`);
+      pkPhotoCount = photoLead.length;
+    }
     // Photo images find a pass code through a locator record, so their packets carry no key slot.
-    const packet = await sealPayload(payload, pass, packetMode, undefined, anim, expiresAt, mode === 'photo' ? '' : passcode, readSecs);
+    const packet = photoLead
+      ? photoLead[0].packet
+      : await sealPayload(payload, pass, packetMode, undefined, anim, expiresAt, mode === 'photo' ? '' : passcode, readSecs, recips);
     const extras: PhotoMessage[] = [];
     for (const x of extraRows) {
       extras.push({ pass: x.pass, passcode: x.passcode, packet: await sealPayload({ kind: 'text', text: x.text }, x.pass, packetMode, undefined, anim, expiresAt, '', readSecs) });
@@ -477,8 +510,8 @@ $('btn-create').onclick = async () => {
       }
     }
     const maxFrame = frameCapacity(cover ?? undefined);
-    const split = $<HTMLInputElement>('chk-split').checked && extras.length === 0;
-    if (!split && [packet, ...extras.map((x) => x.packet)].some((p) => p.length > maxFrame)) {
+    const split = $<HTMLInputElement>('chk-split').checked && extras.length === 0 && !photoLead;
+    if (!split && [packet, ...extras.map((x) => x.packet), ...(photoLead ?? []).map((x) => x.packet)].some((p) => p.length > maxFrame)) {
       throw new Error(`Too much data for one image (about ${fmt(Math.max(0, maxFrame - FRAMING))} is the most for this style). Turn on splitting, pick a roomier style, or hide less.`);
     }
     const frames = split ? splitPacket(packet, maxFrame) : [packet];
@@ -487,10 +520,11 @@ $('btn-create').onclick = async () => {
     for (let i = 0; i < frames.length; i++) {
       setStatus(status, frames.length > 1 ? `Creating image ${i + 1} of ${frames.length}…` : 'Creating image…');
       await sleep(0); // let the status paint
-      imgs.push(await renderFrame(frames[i], mode, kind, pass, cover, passcode, i === 0 ? extras : []));
+      imgs.push(await renderFrame(frames[i], mode, kind, pass, cover, passcode, i === 0 ? extras : [], i === 0 ? photoLead : undefined));
     }
 
     const notes: string[] = [];
+    if (recips.length) notes.push(`Locked to ${recips.length} public key${recips.length > 1 ? 's' : ''}: there is no passphrase to send${pass ? ' (the passphrase you entered also opens it)' : ''}. Only the owner of a matching private key can open it.`);
     if (frames.length > 1) notes.push(`This secret is split across ${frames.length} images. Send all of them (the recipient adds them all on the Reveal tab, in any order).`);
     if (mode === 'codeart') {
       if (packet.length > 8000 && frames.length === 1) notes.push('This is a large image. Some apps shrink big images, which can make it unreadable.');
@@ -514,6 +548,7 @@ $('btn-create').onclick = async () => {
   } catch (e) {
     setStatus(status, (e as Error).message, true);
   } finally {
+    pkPhotoCount = 0;
     btn.disabled = false;
   }
 };
@@ -761,6 +796,7 @@ $('btn-copy-plain').onclick = async () => {
 };
 
 class NoSecretError extends Error {}
+class NoKeyError extends Error {}
 const attemptStore = defaultStore();
 let lockTimer: number | undefined;
 
@@ -785,7 +821,7 @@ function showLockout(ms: number) {
 }
 
 /** `pass` in the result is the passphrase that opens the packet: a photo's pass code resolves to the passphrase behind it. */
-async function decodeImage(img: Rgba, pass: string): Promise<{ frame: Uint8Array; mode: 'codeart' | 'stego'; pass: string } | null> {
+async function decodeImage(img: Rgba, pass: string, pkPasses: string[] = []): Promise<{ frame: Uint8Array; mode: 'codeart' | 'stego'; pass: string } | null> {
   const attempts: [() => Promise<Uint8Array | { frame: Uint8Array; pass: string }> | Uint8Array, 'codeart' | 'stego'][] = [
     [() => decodePlainQr(img), 'codeart'],
     [() => decodeCodeArt(img), 'codeart'],
@@ -796,6 +832,11 @@ async function decodeImage(img: Rgba, pass: string): Promise<{ frame: Uint8Array
     [() => decodeFakeQr(img, pass, undefined, true), 'codeart'],
     [() => extractDct(img, pass, true), 'stego'],
     [() => extract(img, pass, true), 'stego'],
+    // photos sent to one of my public keys are placed by a key made from that public key
+    ...pkPasses.flatMap((pp): typeof attempts => [
+      [() => findPhoto('dct', img, pp, (f) => void parseFrame(f)), 'stego'],
+      [() => findPhoto('lsb', img, pp, (f) => void parseFrame(f)), 'stego'],
+    ]),
   ];
   for (const [fn, mode] of attempts) {
     try {
@@ -828,8 +869,9 @@ $('btn-reveal').onclick = async () => {
     let mode: 'codeart' | 'stego' = 'codeart';
     let unreadable = 0;
     let openPass = pass;
+    const pkPasses = storedPublicKeys().map(photoPassFor);
     for (const im of images) {
-      const r = await decodeImage(im.rgba, pass);
+      const r = await decodeImage(im.rgba, pass, pkPasses);
       if (r) {
         frames.push(r.frame);
         mode = r.mode;
@@ -855,7 +897,17 @@ $('btn-reveal').onclick = async () => {
     // The animation code is loaded now, while the key is derived, so it is ready by the time the secret opens. If it
     // cannot be fetched (offline), the secret is simply shown without the animation.
     const animModule = import('./reveal-anim').catch(() => null);
-    const payload = await openPayload(asm.packet, openPass);
+    // An image addressed to public keys: my stored keys are unlocked with the typed passphrase (which may also be the
+    // sender's passphrase, if they added one).
+    const info = parsePacket(asm.packet);
+    let identities: Awaited<ReturnType<typeof unlockAll>> = [];
+    if (info.slots) {
+      identities = await unlockAll(pass);
+      if (!identities.length && !hasStoredKeys() && !info.slots.some((s) => s.type === 1)) {
+        throw new NoKeyError('This image was sent to a public key, and there is no key saved on this device. Restore your key from its backup (under "My keys and contacts"), or open this on the device that has it.');
+      }
+    }
+    const payload = await openPayload(asm.packet, info.slots ? pass : openPass, Date.now(), identities);
     recordSuccess(attemptStore, fp);
     const text = payload.kind === 'text' ? payload.text : `📄 ${payload.name}\n${fmt(payload.data.length)}`;
 
@@ -1035,6 +1087,11 @@ const openFromHash = () => {
 };
 if (location.hash === '#reveal' || location.hash.startsWith('#q=')) openFromHash();
 window.addEventListener('hashchange', openFromHash);
+
+// Public keys: the keys section, the recipient picker, and links like #to=stpub1:… that fill in a recipient.
+initKeysUi({ siteBase, showHideTab: () => showTab('hide') });
+void handleToHash(location.hash);
+window.addEventListener('hashchange', () => void handleToHash(location.hash));
 
 // The landing page's Outlook add-in note: open the install steps, and copy the manifest link.
 $('outlook-how').onclick = () => {

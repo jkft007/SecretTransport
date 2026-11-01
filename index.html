@@ -60,7 +60,7 @@
         </div>
         <div id="limit-hint" class="hint"></div>
 
-        <label for="pass">Passphrase <span class="hint">(send it to your recipient a different way)</span></label>
+        <label for="pass">Passphrase <span class="hint" id="pass-hint">(send it to your recipient a different way)</span></label>
         <div class="row">
           <input id="pass" type="password" autocomplete="off" spellcheck="false" />
           <button id="pass-toggle" class="ghost" type="button">Show</button>
@@ -69,6 +69,25 @@
         <div class="meter"><i id="pass-meter"></i></div>
         <div id="pass-note" class="hint"></div>
         <label class="check" id="weak-row" hidden><input id="chk-weak" type="checkbox" /> Use this weak passphrase anyway</label>
+
+        <details class="more" id="to-keys">
+          <summary>Send to a public key instead <span class="hint" id="to-summary">(none)</span></summary>
+          <p class="hint">Lock this to one or more people's <b>public keys</b>. Nobody has to share a passphrase: only the owner of a matching private key can open it. You can still add a passphrase above as a second way in. Works with every image style except fake QR codes; for photos the hidden position comes from the recipient's public key, so it hides the message less secretly than a passphrase would.</p>
+          <div id="to-list"></div>
+          <label for="to-input">Add someone's public key</label>
+          <div class="row">
+            <input id="to-input" type="text" placeholder="stpub1:… (or the link they sent)" spellcheck="false" autocomplete="off" />
+            <input id="to-label" type="text" placeholder="Name (saves them as a contact)" maxlength="60" autocomplete="off" />
+            <button id="to-add" class="ghost" type="button">Add</button>
+          </div>
+          <div class="row" id="to-contact-row" hidden>
+            <select id="to-contact" aria-label="Saved contacts"></select>
+            <button id="to-add-contact" class="ghost small" type="button">Add contact</button>
+          </div>
+          <label class="check" id="to-self-row" hidden><input id="to-self" type="checkbox" checked /> Also lock it to my own key, so I can open it too</label>
+          <div id="to-note" class="hint"></div>
+          <div id="to-status" class="status" role="status"></div>
+        </details>
 
         <label for="mode">Image style</label>
         <select id="mode">
@@ -184,6 +203,7 @@
 
         <label for="pass2">Passphrase or pass code</label>
         <input id="pass2" type="password" autocomplete="off" spellcheck="false" />
+        <div id="key-reveal-hint" class="hint" hidden>If the image was sent to your public key, type your key's passphrase here.</div>
 
         <div class="row">
           <button id="btn-reveal" class="primary">Reveal</button>
@@ -323,7 +343,7 @@
         <ol>
           <li>On <b>Hide a secret</b>, type or paste your text (or choose a file, paste a picture, or read the text from a camera photo) and enter a passphrase, or press Generate.</li>
           <li>Pick an <b>Image style</b>: code art (works almost everywhere), QR code (opens this site when scanned), fake QR code (scans as a decoy) or hidden in a photo (looks like an ordinary picture; the JPEG-safe method survives normal recompression). You can choose your own cover photo.</li>
-          <li>Optionally open <b>More options</b>: a reveal animation (one of 80), a reading time, an expiry from 1 minute to 30 days, and a recipient pass code. With the photo style you can also add up to 3 more messages to the same photo, each with its own passphrase.</li>
+          <li>Optionally open <b>More options</b>: a reveal animation (one of 80), a reading time, an expiry from 1 minute to 30 days, and a recipient pass code. With the photo style you can also add up to 3 more messages to the same photo, each with its own passphrase. Or open <b>Send to a public key instead</b> to lock it to someone's public key, so no passphrase has to be shared (they make a key once under <b>My keys and contacts</b> and send you the public half).</li>
           <li>Press <b>Create image</b>, then <b>Copy message</b> (the image, a link to this site and, for code art and QR, a direct link to the secret) and paste it into an email or chat, or download the image. Give the passphrase to your recipient by a different route.</li>
         </ol>
         <p><b>Receiving</b></p>
@@ -356,6 +376,29 @@
           </table>
         </div>
         <p class="hint">In practice: attachments and "send as file/document" options (email, Telegram, WhatsApp, Signal) generally deliver the original. Sending as a normal photo in most chat and social apps (WhatsApp, iMessage, Messenger, Instagram, and Telegram or Signal photo mode) re-compresses it and may shrink it, so use Code art or a JPEG-safe photo there. Pasting inline into an email usually works but some mail programs resize large pictures. Apps differ and change their behaviour between versions, and not every app has been tested: send yourself a test image first.</p>
+      </details>
+
+      <details class="about" id="keys">
+        <summary>My keys and contacts (public-key encryption)</summary>
+        <p>With a passphrase, you have to get the passphrase to your recipient safely. With <b>public keys</b> you don't: the person you want to hear from makes a key once, shares the <b>public</b> half freely, and keeps the private half on their device, locked by a passphrase. Anyone can then lock a secret to that public key, and only that person can open it. Everything happens in your browser, and the private key never leaves this device.</p>
+        <div id="my-keys"></div>
+        <h3>Make a key</h3>
+        <label for="key-label">Name <span class="hint">(just for you)</span></label>
+        <input id="key-label" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Me, work laptop" />
+        <label for="key-pass">Passphrase for the key</label>
+        <input id="key-pass" type="password" autocomplete="new-password" spellcheck="false" />
+        <label class="check" id="key-weak-row" hidden><input id="key-weak" type="checkbox" /> Use this weak passphrase anyway</label>
+        <label for="key-pass2">Type it again</label>
+        <input id="key-pass2" type="password" autocomplete="new-password" spellcheck="false" />
+        <div class="row"><button id="key-create" class="primary" type="button">Make my key</button></div>
+        <div id="key-status" class="status" role="status"></div>
+        <p class="hint"><b>Back the key up.</b> If this browser's data is cleared or you switch device, anything sent to the key is lost for good unless you have the backup file <i>and</i> its passphrase. The passphrase is also asked for whenever you open a message sent to your key.</p>
+        <h3>Restore a key from a backup</h3>
+        <input id="key-import-file" type="file" accept=".json,application/json,text/plain" />
+        <textarea id="key-import" rows="3" placeholder="…or paste the backup text here" spellcheck="false"></textarea>
+        <div class="row"><button id="key-import-btn" class="ghost" type="button">Restore</button></div>
+        <h3>Contacts</h3>
+        <div id="contacts"></div>
       </details>
 
       <details class="about" id="outlook">
