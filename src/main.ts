@@ -18,9 +18,10 @@ import { startPreview, type Preview } from './capture';
 import { readText } from './ocr';
 import { strength } from './strength';
 import { checkLock, defaultStore, fingerprint, recordFailure, recordSuccess } from './throttle';
-import { getRecipients, handleToHash, hasStoredKeys, initKeysUi, storedPublicKeys } from './keysui';
+import { getRecipients, handleToHash, hasStoredKeys, initKeysUi, passphraseViaPasskey, storedPublicKeys } from './keysui';
 import { unlockAll } from './keystore';
 import { burnCanvas } from './burn';
+import { PasskeyError } from './passkey';
 import { photoPassFor } from './pubkey';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -915,9 +916,23 @@ async function decodeImage(img: Rgba, pass: string, pkPasses: string[] = []): Pr
   return null;
 }
 
+let passkeyPass = ''; // the key passphrase a passkey just handed back, for the next Reveal only
+$('btn-passkey').onclick = async () => {
+  const status = $('reveal-status');
+  try {
+    setStatus(status, 'Follow the prompt on your device (fingerprint, face or PIN)…');
+    passkeyPass = await passphraseViaPasskey();
+    setStatus(status, '');
+    $('btn-reveal').click();
+  } catch (e) {
+    setStatus(status, e instanceof PasskeyError ? e.message : 'The passkey could not be used.', true);
+  }
+};
+
 $('btn-reveal').onclick = async () => {
   const status = $('reveal-status');
-  const pass = $<HTMLInputElement>('pass2').value;
+  const pass = $<HTMLInputElement>('pass2').value || passkeyPass; // the passkey's passphrase is used once
+  passkeyPass = '';
   if (!images.length) return setStatus(status, 'Paste or choose the image first.', true);
   if (!pass) return setStatus(status, 'Enter the passphrase.', true);
   const fp = await fingerprint(images.map((i) => i.rgba));

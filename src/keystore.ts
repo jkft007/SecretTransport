@@ -22,6 +22,8 @@ export interface StoredKey {
   iv: Uint8Array;
   ct: Uint8Array; // the PKCS#8 private key, encrypted
   created: number;
+  /** A passkey that keeps the passphrase safe as well (this device only; not part of the backup). */
+  pk?: { credId: Uint8Array; prfSalt: Uint8Array; iv: Uint8Array; wrapped: Uint8Array };
 }
 
 /** Someone else's public key, saved with a name so it can be picked later. */
@@ -67,6 +69,48 @@ export async function unprotectKey(s: StoredKey, passphrase: string): Promise<Id
   } catch {
     return null;
   }
+}
+
+// ---- passkey: the key's passphrase, kept safe by a passkey as well --------------------
+// A passkey (WebAuthn with the PRF extension) gives a secret that only that passkey can produce, after a fingerprint, face or
+// PIN check. That secret locks a copy of the key's passphrase, so the passkey can hand the passphrase back instead of it being
+// typed. The passphrase still works, and the key's own encryption (and its backup) is unchanged.
+const pkAad = (s: StoredKey) => {
+  const a = aad(s.type, s.pub);
+  const t = utf8('|passkey');
+  const out = new Uint8Array(a.length + t.length);
+  out.set(a);
+  out.set(t, a.length);
+  return out;
+};
+
+async function prfWrapKey(prf: Uint8Array): Promise<CryptoKey> {
+  const base = await subtle.importKey('raw', bs(prf), 'HKDF', false, ['deriveKey']);
+  return subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: utf8('SecretTransport passkey wrap v1') }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+
+/** Adds a passkey to a stored key. The passphrase has to be right: it is checked before it is locked away. */
+export async function addPasskeyLock(s: StoredKey, passphrase: string, credId: Uint8Array, prfSalt: Uint8Array, prf: Uint8Array): Promise<StoredKey> {
+  if (!(await unprotectKey(s, passphrase))) throw new KeyStoreError("That is not this key's passphrase.");
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const wrapped = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv: bs(iv), additionalData: bs(pkAad(s)) }, await prfWrapKey(prf), bs(utf8(passphrase))));
+  return { ...s, pk: { credId, prfSalt, iv, wrapped } };
+}
+
+/** The passphrase a passkey was keeping safe, or null if this is not that passkey's secret. */
+export async function passphraseFromPasskey(s: StoredKey, prf: Uint8Array): Promise<string | null> {
+  if (!s.pk) return null;
+  try {
+    const plain = await subtle.decrypt({ name: 'AES-GCM', iv: bs(s.pk.iv), additionalData: bs(pkAad(s)) }, await prfWrapKey(prf), bs(s.pk.wrapped));
+    return new TextDecoder().decode(plain);
+  } catch {
+    return null;
+  }
+}
+
+export function removePasskeyLock(s: StoredKey): StoredKey {
+  const { pk: _pk, ...rest } = s;
+  return rest;
 }
 
 // ---- the backup file ---------------------------------------------------------------

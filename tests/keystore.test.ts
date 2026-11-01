@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { openPayload, sealPayload } from '../src/crypto';
-import { KeyStoreError, exportBackup, parseBackup, protectKey, unprotectKey } from '../src/keystore';
+import { KeyStoreError, addPasskeyLock, exportBackup, parseBackup, passphraseFromPasskey, protectKey, removePasskeyLock, unprotectKey } from '../src/keystore';
 import { MODE_CODEART } from '../src/packet';
 import { generateKeyPair, keyId, photoPassFor } from '../src/pubkey';
 
@@ -57,5 +57,38 @@ describe('photo position for a public key', () => {
     const b = await generateKeyPair('x25519');
     expect(photoPassFor(a)).toBe(photoPassFor({ type: a.type, raw: a.raw }));
     expect(photoPassFor(a)).not.toBe(photoPassFor(b));
+  });
+});
+
+describe('passkey as a second way to unlock a key', () => {
+  const prf = crypto.getRandomValues(new Uint8Array(32));
+  const credId = crypto.getRandomValues(new Uint8Array(16));
+  const salt = crypto.getRandomValues(new Uint8Array(32));
+
+  it('hands the passphrase back for the right passkey secret, and it opens the key', async () => {
+    const k = await generateKeyPair('x25519');
+    const stored = await protectKey(k, 'Me', 'a long phrase for the key 4417');
+    const withPk = await addPasskeyLock(stored, 'a long phrase for the key 4417', credId, salt, prf);
+    const pass = await passphraseFromPasskey(withPk, prf);
+    expect(pass).toBe('a long phrase for the key 4417');
+    expect(await unprotectKey(withPk, pass!)).not.toBeNull();
+    expect(await unprotectKey(withPk, 'a long phrase for the key 4417')).not.toBeNull(); // the passphrase still works
+  });
+
+  it('gives nothing for another passkey, and refuses a wrong passphrase when adding', async () => {
+    const k = await generateKeyPair('p256');
+    const stored = await protectKey(k, 'Me', 'another long phrase 9021');
+    await expect(addPasskeyLock(stored, 'not it', credId, salt, prf)).rejects.toBeInstanceOf(KeyStoreError);
+    const withPk = await addPasskeyLock(stored, 'another long phrase 9021', credId, salt, prf);
+    expect(await passphraseFromPasskey(withPk, crypto.getRandomValues(new Uint8Array(32)))).toBeNull();
+    expect(await passphraseFromPasskey(stored, prf)).toBeNull();
+  });
+
+  it('is not written into the backup, and can be removed', async () => {
+    const k = await generateKeyPair('x25519');
+    const withPk = await addPasskeyLock(await protectKey(k, 'Me', 'yet another long phrase 33'), 'yet another long phrase 33', credId, salt, prf);
+    expect(exportBackup(withPk)).not.toContain('wrapped');
+    expect((await parseBackup(exportBackup(withPk))).pk).toBeUndefined();
+    expect(removePasskeyLock(withPk).pk).toBeUndefined();
   });
 });

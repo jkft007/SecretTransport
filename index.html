@@ -207,6 +207,7 @@
 
         <div class="row">
           <button id="btn-reveal" class="primary">Reveal</button>
+          <button id="btn-passkey" type="button" class="ghost" hidden title="Unlock your key with a passkey instead of typing its passphrase">Reveal with passkey</button>
           <label class="check"><input id="chk-motion" type="checkbox" /> Skip animation</label>
           <select id="read-clear" aria-label="Clear the revealed secret after">
             <option value="0" selected>Clear: as the sender set</option>
@@ -395,7 +396,7 @@
         <input id="key-pass2" type="password" autocomplete="new-password" spellcheck="false" />
         <div class="row"><button id="key-create" class="primary" type="button">Make my key</button></div>
         <div id="key-status" class="status" role="status"></div>
-        <p class="hint"><b>Back the key up.</b> If this browser's data is cleared or you switch device, anything sent to the key is lost for good unless you have the backup file <i>and</i> its passphrase. The passphrase is also asked for whenever you open a message sent to your key.</p>
+        <p class="hint"><b>Back the key up.</b> If this browser's data is cleared or you switch device, anything sent to the key is lost for good unless you have the backup file <i>and</i> its passphrase. The passphrase is also asked for whenever you open a message sent to your key, unless you add a <b>passkey</b> to the key (the <b>Add passkey</b> button on its card): then a fingerprint, face or PIN brings the passphrase back through <b>Reveal with passkey</b>. The passphrase still works. A passkey stays on the device that made it, so it is not in the backup.</p>
         <h3>Restore a key from a backup</h3>
         <input id="key-import-file" type="file" accept=".json,application/json,text/plain" />
         <textarea id="key-import" rows="3" placeholder="…or paste the backup text here" spellcheck="false"></textarea>

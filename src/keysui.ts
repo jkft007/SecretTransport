@@ -2,18 +2,22 @@
 import { rgbaToCanvas } from './imageio';
 import {
   KeyStoreError,
+  addPasskeyLock,
   deleteContact,
   deleteKey,
   exportBackup,
   listContacts,
   listKeys,
   parseBackup,
+  passphraseFromPasskey,
   protectKey,
+  removePasskeyLock,
   saveContact,
   saveKey,
   type Contact,
   type StoredKey,
 } from './keystore';
+import { PasskeyError, createPasskey, passkeyPrf, passkeySupported } from './passkey';
 import { PubKeyError, canUse, decodePublicKey, encodePublicKey, fingerprintWords, generateKeyPair, keyId, preferredKeyType, publicKeyLink, type PublicKey } from './pubkey';
 import { encodeQr } from './qr';
 import { qrToRgba } from './qrmodes';
@@ -180,6 +184,44 @@ function download(name: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
+// A passkey as a second way to unlock the key: it keeps the passphrase safe, so a fingerprint, face or PIN can bring it back.
+function passkeyRow(k: StoredKey): HTMLElement {
+  const wrap = el('div', '', 'row');
+  if (k.pk) {
+    wrap.append(
+      el('span', 'Passkey on: Reveal with passkey unlocks this key.', 'hint'),
+      confirmButton('Remove passkey', async () => {
+        await saveKey(removePasskeyLock(k)).catch(() => undefined);
+        await refresh();
+        setStatus($('key-status'), 'Passkey removed from this key. The passphrase still opens it.');
+      }),
+    );
+  } else if (passkeySupported()) {
+    const pass = el('input');
+    pass.type = 'password';
+    pass.autocomplete = 'off';
+    pass.placeholder = "This key's passphrase";
+    wrap.append(
+      pass,
+      button('Add passkey', async () => {
+        const status = $('key-status');
+        try {
+          if (!pass.value) return setStatus(status, "Type this key's passphrase first: the passkey will keep it safe.", true);
+          setStatus(status, 'Follow the prompt on your device to make the passkey…');
+          const made = await createPasskey(k.label);
+          await saveKey(await addPasskeyLock(k, pass.value, made.credId, made.prfSalt, made.prf));
+          pass.value = '';
+          await refresh();
+          setStatus(status, 'Passkey added. Next time press "Reveal with passkey" instead of typing the passphrase. The passphrase still works, and keep the backup: a passkey stays on this device and is not part of it.');
+        } catch (e) {
+          setStatus(status, e instanceof KeyStoreError || e instanceof PasskeyError ? e.message : 'Could not add the passkey.', true);
+        }
+      }),
+    );
+  }
+  return wrap;
+}
+
 async function renderMyKeys() {
   const box = $('my-keys');
   box.replaceChildren();
@@ -223,7 +265,7 @@ async function renderMyKeys() {
         setStatus($('key-status'), 'Key deleted from this device. Anything sent to it can no longer be opened here unless you restore a backup.');
       }),
     );
-    card.append(field, row, qrBox);
+    card.append(field, row, passkeyRow(k), qrBox);
     box.append(card);
   }
 }
@@ -261,6 +303,7 @@ async function refresh() {
   renderContacts();
   renderRecipients();
   $('key-reveal-hint').hidden = myKeys.length === 0;
+  $('btn-passkey').hidden = !myKeys.some((k) => k.pk);
 }
 
 async function onCreateKey() {
@@ -314,6 +357,20 @@ async function onImport() {
 /** The stored keys' public halves, for finding photos that were sent to them. */
 export const storedPublicKeys = (): PublicKey[] => myKeys.map((k) => ({ type: k.type, raw: k.pub }));
 export const hasStoredKeys = () => myKeys.length > 0;
+
+const same = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((v, i) => v === b[i]);
+/** Asks for a passkey (fingerprint, face or PIN) and gives back the key passphrase it was keeping safe. */
+export async function passphraseViaPasskey(): Promise<string> {
+  const locked = myKeys.filter((k) => k.pk);
+  if (!locked.length) throw new PasskeyError('No key on this device has a passkey yet. Add one under "My keys and contacts".');
+  const { credId, prf } = await passkeyPrf(locked.map((k) => k.pk!));
+  for (const k of locked) {
+    if (!same(k.pk!.credId, credId)) continue;
+    const p = await passphraseFromPasskey(k, prf);
+    if (p) return p;
+  }
+  throw new PasskeyError('That passkey did not open a key here.');
+}
 
 export function initKeysUi(d: Deps) {
   deps = d;
