@@ -166,8 +166,8 @@ export function wallyPeek(canvas: HTMLCanvasElement): void {
   const id = String(Math.random());
   canvas.dataset.wally = id;
   const u = Math.min(W, H);
-  const R = u * 0.25; // the head
-  const wallY = H * 0.66;
+  const R = u * 0.11; // the head
+  const wallY = H * 0.87;
   const cx = W / 2;
   const chalk = '#ece8da';
   const t0 = performance.now();
@@ -187,7 +187,7 @@ export function wallyPeek(canvas: HTMLCanvasElement): void {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = chalk;
-    ctx.lineWidth = Math.max(2, u * 0.012);
+    ctx.lineWidth = Math.max(1.5, u * 0.007);
     // the head, with its eyes and long nose, behind the wall
     const hy = wallY + R * 0.18 + lift;
     ctx.fillStyle = 'rgb(11,15,20)';
@@ -242,11 +242,11 @@ export function wallyPeek(canvas: HTMLCanvasElement): void {
     ctx.stroke();
     // chalked on the wall
     ctx.fillStyle = chalk;
-    ctx.font = `700 ${Math.max(12, Math.round(u * 0.075))}px "Segoe UI", system-ui, sans-serif`;
+    ctx.font = `700 ${Math.max(9, Math.round(u * 0.05))}px "Segoe UI", system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.globalAlpha = 0.9 * Math.min(1, Math.max(0, (t - 500) / 500));
-    ctx.fillText('WALLY WAS HERE', cx, H - (H - wallY) * 0.3);
+    ctx.fillText('WALLY WAS HERE', cx, H - (H - wallY) * 0.38);
     ctx.globalAlpha = 1;
     requestAnimationFrame(frame);
   };
