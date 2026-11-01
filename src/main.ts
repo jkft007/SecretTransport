@@ -609,7 +609,53 @@ function thumbOf(rgba: Rgba): HTMLCanvasElement {
   return t;
 }
 
+// When the loaded image is addressed to a public key, the passphrase box is for the key's passphrase: say so. Only
+// images that can be read without a passphrase (code art, QR) can be recognised; a photo keeps the general wording.
+const frameCache = new Map<number, Uint8Array | null>();
+let labelToken = 0;
+async function updateRevealLabel() {
+  const mine = ++labelToken;
+  const frames: Uint8Array[] = [];
+  for (const im of images) {
+    if (!frameCache.has(im.id)) {
+      let frame: Uint8Array | null = null;
+      for (const read of [() => decodePlainQr(im.rgba), () => decodeCodeArt(im.rgba)]) {
+        try {
+          frame = read();
+          parseFrame(frame);
+          break;
+        } catch {
+          frame = null;
+        }
+      }
+      frameCache.set(im.id, frame);
+    }
+    const f = frameCache.get(im.id);
+    if (f) frames.push(f);
+  }
+  if (mine !== labelToken) return;
+  let slots: ReturnType<typeof parsePacket>['slots'];
+  try {
+    const asm = assemble(frames);
+    if (asm.state === 'single' || asm.state === 'complete') slots = parsePacket(asm.packet).slots;
+  } catch {
+    slots = undefined;
+  }
+  const hint = $('key-reveal-hint');
+  if (slots) {
+    $('pass2-label').textContent = "Your key's passphrase";
+    const alsoPass = slots.some((s) => s.type === 1);
+    hint.textContent = `This image was sent to a public key. Type the passphrase of your key, the one you chose when you made it (not a shared secret).${alsoPass ? " If the sender also gave you a passphrase, that works too." : ''}`;
+    hint.hidden = false;
+  } else {
+    $('pass2-label').textContent = 'Passphrase or pass code';
+    hint.textContent = "If the image was sent to your public key, type your key's passphrase here.";
+    hint.hidden = !hasStoredKeys();
+  }
+}
+
 function renderTray() {
+  void updateRevealLabel();
   const tray = $('tray');
   tray.replaceChildren();
   for (const im of images) {
