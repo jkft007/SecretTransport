@@ -1079,7 +1079,7 @@ $('btn-reveal').onclick = async () => {
     } else {
       let left = limit;
       const tick = () => {
-        $('timer').textContent = `Clears in ${left}s`;
+        $('timer').textContent = `Message will self destruct in ${left}s`;
         if (left-- <= 0) void vanishAndClear();
       };
       tick();

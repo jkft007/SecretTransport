@@ -216,12 +216,12 @@
           <button id="btn-passkey" type="button" class="ghost" hidden title="Unlock your key with a passkey instead of typing its passphrase">Reveal with passkey</button>
           <label class="check"><input id="chk-motion" type="checkbox" /> Skip animation</label>
           <label class="check" id="auto-speak-row" hidden title="Uses a voice on this device only; the text is never sent anywhere"><input id="chk-autospeak" type="checkbox" /> Read it aloud</label>
-          <select id="read-clear" aria-label="Clear the revealed secret after">
-            <option value="0" selected>Clear: as the sender set</option>
-            <option value="15">Clear after 15 s</option>
-            <option value="30">Clear after 30 s</option>
-            <option value="60">Clear after 1 min</option>
-            <option value="300">Clear after 5 min</option>
+          <select id="read-clear" aria-label="Self-destruct the revealed secret after">
+            <option value="0" selected>Self-destruct: as the sender set</option>
+            <option value="15">Self-destruct after 15 s</option>
+            <option value="30">Self-destruct after 30 s</option>
+            <option value="60">Self-destruct after 1 min</option>
+            <option value="300">Self-destruct after 5 min</option>
           </select>
           <select id="anim-style" aria-label="Reveal animation">
             <option value="auto" selected>Animation: Auto (sender's choice, else random)</option>
@@ -421,7 +421,7 @@
         <p><b>Receiving</b></p>
         <ol>
           <li>Open the link, use the <b>Reveal secret</b> button of the Outlook add-in, or use this page's <b>Reveal a secret</b> tab: paste (Ctrl+V), drop or choose the image, or scan a QR code with the camera. If the secret was split, add every part.</li>
-          <li>Type the passphrase (or the pass code) and press <b>Reveal</b>. If the secret was sent to <i>your public key</i>, the box changes to <b>Your key's passphrase</b>: type the passphrase you chose when you made your key (not a shared secret). Your key has to be saved on this device, or restored first from its backup in the <b>My keys</b> tab. Watch the animation (or press Skip), read the secret, copy it or save the file. It clears itself after the reading time: when the time is up the revealed text goes up in a puff of smoke on screen and a vortex sucks it away, and the extracted text and any picture are swallowed with it. (Clear now clears at once.)</li>
+          <li>Type the passphrase (or the pass code) and press <b>Reveal</b>. If the secret was sent to <i>your public key</i>, the box changes to <b>Your key's passphrase</b>: type the passphrase you chose when you made your key (not a shared secret). Your key has to be saved on this device, or restored first from its backup in the <b>My keys</b> tab. Watch the animation (or press Skip), read the secret, copy it or save the file. It self-destructs after the reading time: when the time is up the revealed text goes up in a puff of smoke on screen and a vortex sucks it away, and the extracted text and any picture are swallowed with it. (Clear now clears at once.)</li>
         </ol>
 
         <p><b>Public keys</b></p>
