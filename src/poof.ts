@@ -1,4 +1,4 @@
-// The end of the reading time: the revealed text on the stage goes up in a "POOF!" of smoke, and then a vortex spins up and sucks
+// The end of the reading time: the revealed text on the stage goes up in a puff of smoke, and then a vortex spins up and sucks
 // what is left in. Purely presentational; the caller clears the secret itself afterwards.
 
 /** Where the lit pixels are (the text or picture on the stage): the middle of the vortex. */
@@ -93,7 +93,7 @@ export function poofCanvas(canvas: HTMLCanvasElement, ms = 2800, cancelled: () =
         ctx.drawImage(snap, b.bx, b.by, Math.min(S, W - b.bx), Math.min(S, H - b.by), -S / 2, -S / 2, Math.min(S, W - b.bx), Math.min(S, H - b.by));
         ctx.restore();
       }
-      // the POOF: a bright flash, then puffs of smoke billowing out and thinning
+      // the poof: a bright flash, then puffs of smoke billowing out and thinning
       if (p < 0.5) {
         const flash = Math.max(0, 1 - p / 0.1);
         if (flash > 0) {
@@ -116,23 +116,6 @@ export function poofCanvas(canvas: HTMLCanvasElement, ms = 2800, cancelled: () =
           ctx.beginPath();
           ctx.arc(px, py, rad, 0, Math.PI * 2);
           ctx.fill();
-        }
-        const pop = clamp(p / 0.07) * (1 - clamp((p - 0.16) / 0.12)); // the word itself, popping in
-        if (pop > 0) {
-          const size = Math.max(22, Math.min(W, H) * 0.16) * (0.6 + 0.6 * pop);
-          ctx.save();
-          ctx.translate(c.x, c.y - c.h * 0.7 - size * 0.4);
-          ctx.rotate(-0.1);
-          ctx.globalAlpha = pop;
-          ctx.font = `italic 900 ${size}px "Segoe UI", system-ui, sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.lineWidth = size * 0.12;
-          ctx.strokeStyle = '#2b2b33';
-          ctx.fillStyle = '#fff6c8';
-          ctx.strokeText('POOF!', 0, 0);
-          ctx.fillText('POOF!', 0, 0);
-          ctx.restore();
         }
       }
       // the vortex: a dark core and grey smoke spiralling round it and in

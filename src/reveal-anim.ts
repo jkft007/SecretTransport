@@ -6622,7 +6622,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.strokeStyle = '#34495e'; // the sleeve, going off the edge of the stage
       ctx.lineWidth = 36;
       ctx.beginPath();
-      ctx.moveTo(-44, 14);
+      ctx.moveTo(-44, 70);
       ctx.lineTo(-44, 240);
       ctx.stroke();
       ctx.fillStyle = '#e8b923'; // the propane bottle, in line with the torch
@@ -6649,25 +6649,86 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath();
       ctx.arc(-87, -14, 5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#d9742b'; // the gloved hand: fingers wrapped round the bottle, thumb along the top
-      ctx.strokeStyle = '#8a4a18';
-      ctx.lineWidth = 1.8;
+      ctx.fillStyle = '#2c3038'; // the rubber grip the hand holds
       ctx.beginPath();
-      ctx.roundRect(-72, -15, 18, 30, 7); // the back of the hand
+      ctx.roundRect(-76, -8.5, 52, 17, 4);
+      ctx.fill();
+      const skin = (x0: number, x1: number) => { // skin shaded across a part: light on one side, darker on the other
+        const g = ctx.createLinearGradient(x0, 0, x1, 0);
+        g.addColorStop(0, '#d9a47c');
+        g.addColorStop(0.35, '#efc3a0');
+        g.addColorStop(1, '#c48a63');
+        return g;
+      };
+      ctx.strokeStyle = '#8c5a3c';
+      ctx.lineWidth = 1.3;
+      ctx.fillStyle = skin(-72, -26); // the forearm and the back of the hand
+      ctx.beginPath();
+      ctx.moveTo(-60, 70);
+      ctx.bezierCurveTo(-63, 40, -76, 28, -73, 6);
+      ctx.lineTo(-27, 6);
+      ctx.bezierCurveTo(-25, 28, -31, 40, -30, 70);
+      ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      for (let f = 0; f < 4; f++) {
+      ctx.strokeStyle = 'rgba(140,90,60,.35)'; // tendons on the back of the hand
+      ctx.lineWidth = 1;
+      for (const tx of [-60, -50, -40]) {
         ctx.beginPath();
-        ctx.roundRect(-58 + f * 9.5, -17, 10, 34, 5);
-        ctx.fill();
+        ctx.moveTo(tx, 14);
+        ctx.quadraticCurveTo(tx + 1, 38, tx - (tx + 50) * 0.08, 52);
         ctx.stroke();
       }
+      ctx.fillStyle = '#3d5a80'; // the rolled sleeve
+      ctx.strokeStyle = '#243850';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(-56, -23, 38, 10, 5);
+      ctx.roundRect(-70, 62, 46, 16, 5);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = '#e8a063'; // the cuff
-      ctx.fillRect(-62, 26, 36, 8);
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      ctx.fillRect(-68, 64, 42, 4);
+      const fingers: [number, number, number, number][] = [[-71, 9.5, -16, 16], [-61.5, 10.5, -19, 18], [-51, 11, -20, 19], [-40, 11, -19, 18]]; // pinky to index: x, width, top, bottom
+      for (const [fx, fw, ft, fb] of fingers) { // four fingers wrapped round the grip, with their joints
+        ctx.fillStyle = skin(fx, fx + fw);
+        ctx.strokeStyle = '#8c5a3c';
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.roundRect(fx, ft, fw, fb - ft, fw / 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(120,70,45,.55)';
+        ctx.lineWidth = 1;
+        for (const f of [0.34, 0.66]) {
+          const cy = ft + (fb - ft) * f;
+          ctx.beginPath();
+          ctx.moveTo(fx + 1.5, cy);
+          ctx.quadraticCurveTo(fx + fw / 2, cy + 1.6, fx + fw - 1.5, cy);
+          ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(255,238,220,.45)'; // the knuckle catching the light
+        ctx.beginPath();
+        ctx.ellipse(fx + fw * 0.4, fb - 5, fw * 0.28, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = skin(-62, -26); // the thumb along the top of the grip, with its nail
+      ctx.strokeStyle = '#8c5a3c';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.roundRect(-64, -29, 40, 12, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#f7ddcb';
+      ctx.strokeStyle = 'rgba(140,90,60,.6)';
+      ctx.beginPath();
+      ctx.ellipse(-30, -23, 6, 3.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(120,70,45,.5)';
+      ctx.beginPath();
+      ctx.moveTo(-47, -28);
+      ctx.quadraticCurveTo(-46, -23, -47, -18);
+      ctx.stroke();
       if (out < 1) {
         const Lf = (48 + 10) * (1 - out);
         const flick = 1 + Math.sin(r / 31) * 0.1 + Math.sin(r / 13) * 0.05;
@@ -6819,7 +6880,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
         }
       }
     }
-    // the foot itself: a big pale cut-out of a foot seen from the side, toes to the right, with its leg going up off the stage
+    // the foot itself: a big foot seen from the side, toes to the right, shaded like skin, with its leg going up off the stage
     const L = ftW * 1.3;
     const cx = ix + fxW / 2;
     const yTop = Math.min(-0.45, (-14 - sole) / L);
@@ -6827,10 +6888,15 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.save();
       ctx.translate(cx, sole);
       ctx.scale(L, L);
-      ctx.lineWidth = 2.5 / L;
+      ctx.lineWidth = 2 / L;
       ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#7a5a43';
-      ctx.fillStyle = '#e9c9aa';
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#7a4f38';
+      const body = ctx.createLinearGradient(0, -0.3, 0, 0.01); // lit from above, in shade underneath
+      body.addColorStop(0, '#f1cfb2');
+      body.addColorStop(0.55, '#e3b690');
+      body.addColorStop(1, '#bf8660');
+      ctx.fillStyle = body;
       ctx.beginPath();
       ctx.moveTo(-0.44, 0); // the heel's underside
       ctx.bezierCurveTo(-0.3, 0.005, -0.18, -0.03, -0.05, -0.035); // the sole, with a slight arch
@@ -6847,28 +6913,77 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.fill();
       ctx.save();
       ctx.clip();
-      ctx.fillStyle = 'rgba(150,100,70,.28)'; // the underside in shade
-      ctx.fillRect(-0.6, -0.055, 1.2, 0.07);
-      ctx.fillStyle = 'rgba(255,255,255,.22)'; // light on the front of the leg
-      ctx.fillRect(0.0, yTop, 0.09, -yTop - 0.4);
+      const leg = ctx.createLinearGradient(-0.17, 0, 0.09, 0); // the leg is rounder: lit in the middle, dark at the edges
+      leg.addColorStop(0, 'rgba(120,70,45,.3)');
+      leg.addColorStop(0.45, 'rgba(255,240,225,.28)');
+      leg.addColorStop(1, 'rgba(120,70,45,.3)');
+      ctx.fillStyle = leg;
+      ctx.fillRect(-0.17, yTop, 0.26, -yTop - 0.55);
+      for (let k = 0; k < 8; k++) { // the shading fades out where the leg meets the foot
+        ctx.globalAlpha = 1 - k / 8;
+        ctx.fillRect(-0.17, -0.55 + k * 0.025, 0.26, 0.026);
+      }
+      ctx.globalAlpha = 1;
+      const heel = ctx.createRadialGradient(-0.38, -0.08, 0.01, -0.38, -0.08, 0.16); // the heel's curve and shadow
+      heel.addColorStop(0, 'rgba(255,235,215,.3)');
+      heel.addColorStop(0.7, 'rgba(120,70,45,.12)');
+      heel.addColorStop(1, 'rgba(120,70,45,0)');
+      ctx.fillStyle = heel;
+      ctx.fillRect(-0.55, -0.25, 0.3, 0.27);
+      ctx.fillStyle = 'rgba(100,60,40,.3)'; // the shadow under the sole
+      ctx.fillRect(-0.6, -0.022, 1.2, 0.03);
       ctx.restore();
       ctx.stroke();
-      for (const [x, y, rx, ry] of [[0.19, -0.2, 0.05, 0.04], [0.27, -0.17, 0.055, 0.045], [0.34, -0.14, 0.06, 0.05]]) { // the smaller toes, lined up behind
-        ctx.fillStyle = '#efd2b6';
+      ctx.strokeStyle = 'rgba(122,79,56,.5)'; // the Achilles tendon, the ankle's creases and the tendons across the instep
+      ctx.lineWidth = 1.2 / L;
+      ctx.beginPath();
+      ctx.moveTo(-0.15, -0.38);
+      ctx.quadraticCurveTo(-0.2, -0.2, -0.3, -0.1);
+      ctx.moveTo(0.085, -0.36);
+      ctx.quadraticCurveTo(0.06, -0.34, 0.03, -0.36);
+      ctx.moveTo(0.085, -0.31);
+      ctx.quadraticCurveTo(0.06, -0.29, 0.04, -0.31);
+      for (const dy of [0, 0.02, 0.04]) {
+        ctx.moveTo(0.1, -0.22 + dy);
+        ctx.quadraticCurveTo(0.22, -0.2 + dy * 1.2, 0.34, -0.16 + dy * 0.6);
+      }
+      ctx.stroke();
+      ctx.strokeStyle = '#7a4f38';
+      ctx.lineWidth = 2 / L;
+      const toe = (x: number, y: number, rx: number, ry: number, rot: number, big: boolean) => {
+        const g = ctx.createRadialGradient(x - rx * 0.3, y - ry * 0.4, rx * 0.1, x, y, rx * 1.2);
+        g.addColorStop(0, '#f7dcc2');
+        g.addColorStop(0.6, '#e8bd98');
+        g.addColorStop(1, '#c58f68');
+        ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.ellipse(x, y, rx, ry, -0.4, 0, Math.PI * 2);
+        ctx.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-      }
-      ctx.fillStyle = '#f2d6ba'; // the big toe
+        ctx.fillStyle = '#f8e4d4'; // the toenail, with a glint
+        ctx.strokeStyle = 'rgba(122,79,56,.65)';
+        ctx.lineWidth = 1.2 / L;
+        ctx.beginPath();
+        ctx.ellipse(x + rx * 0.3, y - ry * 0.45, rx * (big ? 0.42 : 0.5), ry * (big ? 0.3 : 0.34), rot - 0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,.7)';
+        ctx.beginPath();
+        ctx.ellipse(x + rx * 0.22, y - ry * 0.52, rx * 0.12, ry * 0.07, rot - 0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#7a4f38';
+        ctx.lineWidth = 2 / L;
+      };
+      toe(0.17, -0.2, 0.045, 0.036, -0.5, false); // the small toes, lined up behind the big one
+      toe(0.25, -0.18, 0.05, 0.04, -0.45, false);
+      toe(0.32, -0.15, 0.055, 0.045, -0.4, false);
+      toe(0.42, -0.07, 0.092, 0.077, 0, true);
+      ctx.strokeStyle = 'rgba(122,79,56,.5)'; // the crease at the big toe's joint
+      ctx.lineWidth = 1.2 / L;
       ctx.beginPath();
-      ctx.ellipse(0.42, -0.07, 0.09, 0.075, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(0.35, -0.115);
+      ctx.quadraticCurveTo(0.34, -0.07, 0.36, -0.02);
       ctx.stroke();
-      ctx.fillStyle = '#f9ebdc'; // its toenail
-      ctx.beginPath();
-      ctx.ellipse(0.46, -0.115, 0.036, 0.02, -0.55, 0, Math.PI * 2);
-      ctx.fill();
       ctx.beginPath(); // the ankle bone
       ctx.arc(-0.02, -0.3, 0.032, Math.PI * 0.2, Math.PI * 1.2);
       ctx.stroke();
