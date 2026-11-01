@@ -336,10 +336,10 @@
 
         <h3>How it works</h3>
         <ol>
-          <li><b>Encrypt.</b> Your browser encrypts the secret (text, a file or a pasted picture) with your passphrase: AES-256-GCM, with a key from Argon2id, which is deliberately slow and memory-hungry so that guessing is expensive. Your choices (reveal animation, reading time, expiry) are sealed inside the same encrypted data. An optional recipient pass code is a second way in.</li>
+          <li><b>Encrypt.</b> Your browser encrypts the secret (text, a file or a pasted picture) with your passphrase: AES-256-GCM, with a key from Argon2id, which is deliberately slow and memory-hungry so that guessing is expensive. Your choices (reveal animation, reading time, expiry) are sealed inside the same encrypted data. Instead of a shared passphrase it can be locked to one or more <b>public keys</b>: the same random key is wrapped once for each recipient, so only the holder of a matching private key can open it, and the passphrase never has to travel. An optional recipient pass code is a second way in.</li>
           <li><b>Hide.</b> The encrypted bytes, with error correction added, are drawn into an image: a code-art mosaic, a QR code (a phone camera opens this page with the secret ready for the passphrase), a fake QR code (it scans as a harmless decoy while the real data hides in the error-correction budget) or an ordinary-looking photo. One photo can hold up to 4 messages, each with its own passphrase and pass code, and a secret that is too big is split across several images.</li>
           <li><b>Send.</b> You send the image like any picture: pasted, attached or scanned.</li>
-          <li><b>Reveal.</b> The recipient pastes, drops, picks or scans the image on the Reveal tab and types the passphrase (or pass code). The original comes back with an animation, and clears itself from the screen after the reading time. Nothing is uploaded: there is no server.</li>
+          <li><b>Reveal.</b> The recipient pastes, drops, picks or scans the image on the Reveal tab and types the passphrase (or pass code), or, for an image sent to their public key, the passphrase of their own key (or a passkey, if they added one). The original comes back with an animation, and clears itself from the screen after the reading time. Nothing is uploaded: there is no server.</li>
         </ol>
 
         <h3>How to use</h3>
@@ -356,9 +356,17 @@
           <li>Type the passphrase (or the pass code) and press <b>Reveal</b>. If the secret was sent to <i>your public key</i>, the box changes to <b>Your key's passphrase</b>: type the passphrase you chose when you made your key (not a shared secret). Your key has to be saved on this device, or restored first from its backup under <b>My keys and contacts</b>. Watch the animation (or press Skip), read the secret, copy it or save the file. It clears itself after the reading time: when the time is up the revealed text burns away on screen, and the extracted text and any picture burn away with it. (Clear now clears at once.)</li>
         </ol>
 
+        <p><b>Public keys</b></p>
+        <ol>
+          <li>Open <b>My keys and contacts</b> and <b>Make a key</b>: choose a name and a passphrase for it (and, if your device supports it, tick <b>Also keep the passphrase safe with a passkey</b>). The private half stays on your device.</li>
+          <li>Back the key up, then give people your <b>public key</b>, its QR code or the <b>"send me a secret" link</b>. Compare the nine-word fingerprint with them by a call or in person, so you know nobody swapped the key.</li>
+          <li>To send to someone, open <b>Send to a public key instead</b> on the Hide tab, paste their public key (or open their link) and create the image as usual. No passphrase has to be shared.</li>
+          <li>To open one sent to you, add the image on the Reveal tab and type your key's passphrase, or press <b>Reveal with passkey</b>. On a new device, restore the key from its backup first.</li>
+        </ol>
+
         <h3>When to use this</h3>
         <ul>
-          <li><b>Good for:</b> sending a password, API key, recovery phrase or private note over a channel you do not fully trust (email, chat), when you can give the passphrase by a different route (a phone call, in person). Also for hiding text in plain sight inside a photo.</li>
+          <li><b>Good for:</b> sending a password, API key, recovery phrase or private note over a channel you do not fully trust (email, chat), when you can give the passphrase by a different route (a phone call, in person), or, with public keys, when the recipient has made a key and sent you the public half. Also for hiding text in plain sight inside a photo.</li>
           <li><b>Not for:</b> anything that must stay safe against someone who gets the image and can guess the passphrase. They can try guesses offline for as long as they like, so use a long random passphrase (the Generate button makes one).</li>
           <li><b>Not for:</b> long-term storage or anything you cannot afford to lose: there is no recovery if the passphrase is forgotten. It is also no replacement for an end-to-end encrypted messenger or a password manager, and an expiry is a courtesy rather than a lock.</li>
         </ul>
