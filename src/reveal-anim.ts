@@ -145,7 +145,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const GEN_FLY = 600; // a letter's flight from the genie's hand to its place
   const RA_LT = Math.min(1900, Math.max(900, 7000 / Math.max(1, lineYs.length))); // the formation's pass along one line (a stately pace)
   const RA_GAP = RA_LT + 60; // one pass at a time
-  const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt']; // the styles that destroy the scanned image
+  const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt', 'shaken']; // the styles that destroy the scanned image
   const FX_DUR = 2200; // how long the destruction takes
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
   const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
@@ -6655,6 +6655,60 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Shaken apart: the picture judders harder and harder, loosening into pieces that drop away and tumble off.
+  const skG = fxGrid(Math.max(6, Math.round(Math.min(fxW, fxH) / 22)));
+  const skT = Array.from({ length: skG.n * skG.m }, () => ({ at: 0.34 + rnd() * 0.36, vx: (rnd() - 0.5) * 5, vy: -1 + rnd() * 1.5, sp: (rnd() - 0.5) * 0.5 }));
+  const drawShaken = (r: number) => {
+    fxBg('#161a22', '#0b0d12');
+    const p = fxP(r);
+    const al = fxFade(r);
+    const S = skG.size;
+    const amp = 2 + 16 * clamp1(p / 0.5);
+    const shk = p < 0.75 ? 1 : 0;
+    const jx = Math.sin(r / 23) * amp * shk;
+    const jy = Math.cos(r / 17) * amp * 0.6 * shk;
+    ctx.globalAlpha = al;
+    for (let j = 0; j < skG.m; j++) {
+      for (let i = 0; i < skG.n; i++) {
+        const t = skT[j * skG.n + i];
+        const bx = i * S;
+        const by = j * S;
+        const bw = Math.min(S, fxW - bx);
+        const bh = Math.min(S, fxH - by);
+        const rel = (p - t.at) / 0.3;
+        if (rel >= 1) continue;
+        let dx = ix + bx + jx + Math.sin(r / 9 + i * 3 + j) * amp * 0.25;
+        let dy = iy + by + jy + Math.cos(r / 11 + j * 2 + i) * amp * 0.25;
+        let ang = 0;
+        if (rel > 0) { // let go: fall and tumble
+          const f = rel * 24;
+          dx += t.vx * f;
+          dy += t.vy * f + 0.5 * 0.55 * f * f;
+          ang = t.sp * f;
+        }
+        ctx.save();
+        ctx.globalAlpha = al * (1 - clamp1((rel - 0.55) / 0.45));
+        ctx.translate(dx + bw / 2, dy + bh / 2);
+        ctx.rotate(ang);
+        ctx.drawImage(fxImg, bx, by, bw, bh, -bw / 2, -bh / 2, bw, bh);
+        if (rel <= 0 && p > 0.15) { // hairline cracks between the tiles as the strain builds
+          ctx.strokeStyle = `rgba(10,10,14,${Math.min(0.55, (p - 0.15) * 1.4)})`;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(-bw / 2 + 0.5, -bh / 2 + 0.5, bw - 1, bh - 1);
+        }
+        ctx.restore();
+      }
+    }
+    ctx.globalAlpha = 1;
+    for (let k = 0; k < 6 && p < 0.7; k++) { // dust shaken loose from the base
+      const age = (r * 0.05 + k * 17) % 40;
+      ctx.fillStyle = `rgba(190,190,200,${0.35 * (1 - age / 40) * clamp1(p / 0.3)})`;
+      circ(ix + ((k * 97) % fxW), iy + fxH + age * 0.6, 2 + age * 0.08);
+    }
+    fxText(p);
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -6707,6 +6761,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     rainwash: drawRainWash,
     acidrain: drawAcid,
     icemelt: drawIce,
+    shaken: drawShaken,
   };
 
   const frame = (now: number) => {
