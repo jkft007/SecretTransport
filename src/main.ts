@@ -1174,9 +1174,8 @@ window.addEventListener('hashchange', () => void handleToHash(location.hash));
 
 // The landing page's Outlook add-in note: open the install steps, and copy the manifest link.
 $('outlook-how').onclick = () => {
-  const d = $<HTMLDetailsElement>('outlook');
-  d.open = true;
-  d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $<HTMLDetailsElement>('about').open = true; // the install steps are in the "How it works" section
+  $('outlook').scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 $('manifest-url').addEventListener('focus', (e) => (e.target as HTMLInputElement).select());
 $('btn-copy-manifest').onclick = async () => {

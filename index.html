@@ -364,6 +364,21 @@
           <li>To open one sent to you, add the image on the Reveal tab and type your key's passphrase, or press <b>Reveal with passkey</b>. On a new device, restore the key from its backup first.</li>
         </ol>
 
+        <h3 id="outlook">Use it inside Outlook (add-in)</h3>
+        <p>An email program cannot run the decryption itself, so SecretTransport has an Outlook add-in: a <b>Reveal secret</b> button that opens a pane beside the email, picks up its image attachment (or secret link) and asks for the passphrase. Everything runs on your device.</p>
+        <p>Add-in manifest link:</p>
+        <div class="row">
+          <input id="manifest-url" type="text" readonly value="https://jkft007.github.io/SecretTransport/outlook/manifest.xml" spellcheck="false" />
+          <button id="btn-copy-manifest" class="ghost small" type="button">Copy</button>
+          <a id="btn-dl-manifest" class="btn-like" href="outlook/manifest.xml" download="manifest.xml">Download file</a>
+        </div>
+        <ol>
+          <li>In Outlook choose <b>Get Add-ins</b> (or <b>Manage add-ins</b>), then <b>My add-ins</b>, then <b>Add a custom add-in</b>, then <b>Add from URL</b>.</li>
+          <li>Paste the manifest link above and confirm. If your Outlook does not accept a link, press <b>Download file</b> instead and choose <b>Add from file</b> (browse to the downloaded <code>manifest.xml</code>).</li>
+          <li>Open an email that holds a secret image or link and click <b>Reveal secret</b> on its toolbar. Type the passphrase in the pane. Click the pin icon at the top of the pane to keep it open: it then follows you from email to email.</li>
+        </ol>
+        <p class="hint">A Microsoft 365 admin can add the same manifest under <b>Integrated apps</b> for a whole team. The pane loads Microsoft's office.js (Outlook needs it); this page loads nothing from third parties. The add-in has been tested with a stand-in for Outlook, not yet inside every real Outlook, and some organisations block custom add-ins.</p>
+
         <h3>When to use this</h3>
         <ul>
           <li><b>Good for:</b> sending a password, API key, recovery phrase or private note over a channel you do not fully trust (email, chat), when you can give the passphrase by a different route (a phone call, in person), or, with public keys, when the recipient has made a key and sent you the public half. Also for hiding text in plain sight inside a photo.</li>
@@ -412,23 +427,6 @@
         <div class="row"><button id="key-import-btn" class="ghost" type="button">Restore</button></div>
         <h3>Contacts</h3>
         <div id="contacts"></div>
-      </details>
-
-      <details class="about" id="outlook">
-        <summary>Use it inside Outlook (add-in)</summary>
-        <p>An email program cannot run the decryption itself, so SecretTransport has an Outlook add-in: a <b>Reveal secret</b> button that opens a pane beside the email, picks up its image attachment (or secret link) and asks for the passphrase. Everything runs on your device.</p>
-        <p>Add-in manifest link:</p>
-        <div class="row">
-          <input id="manifest-url" type="text" readonly value="https://jkft007.github.io/SecretTransport/outlook/manifest.xml" spellcheck="false" />
-          <button id="btn-copy-manifest" class="ghost small" type="button">Copy</button>
-          <a id="btn-dl-manifest" class="btn-like" href="outlook/manifest.xml" download="manifest.xml">Download file</a>
-        </div>
-        <ol>
-          <li>In Outlook choose <b>Get Add-ins</b> (or <b>Manage add-ins</b>), then <b>My add-ins</b>, then <b>Add a custom add-in</b>, then <b>Add from URL</b>.</li>
-          <li>Paste the manifest link above and confirm. If your Outlook does not accept a link, press <b>Download file</b> instead and choose <b>Add from file</b> (browse to the downloaded <code>manifest.xml</code>).</li>
-          <li>Open an email that holds a secret image or link and click <b>Reveal secret</b> on its toolbar. Type the passphrase in the pane. Click the pin icon at the top of the pane to keep it open: it then follows you from email to email.</li>
-        </ol>
-        <p class="hint">A Microsoft 365 admin can add the same manifest under <b>Integrated apps</b> for a whole team. The pane loads Microsoft's office.js (Outlook needs it); this page loads nothing from third parties. The add-in has been tested with a stand-in for Outlook, not yet inside every real Outlook, and some organisations block custom add-ins.</p>
       </details>
 
       <footer>
