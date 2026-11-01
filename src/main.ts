@@ -983,7 +983,7 @@ $('btn-reveal').onclick = async () => {
     if (info.slots) {
       identities = await unlockAll(pass);
       if (!identities.length && !hasStoredKeys() && !info.slots.some((s) => s.type === 1)) {
-        throw new NoKeyError('This image was sent to a public key, and there is no key saved on this device. Restore your key from its backup (under "My keys and contacts"), or open this on the device that has it.');
+        throw new NoKeyError('This image was sent to a public key, and there is no key saved on this device. Restore your key from its backup (in "My keys", top right), or open this on the device that has it.');
       }
     }
     const payload = await openPayload(asm.packet, info.slots ? pass : openPass, Date.now(), identities);
@@ -1172,10 +1172,21 @@ initKeysUi({ siteBase, showHideTab: () => showTab('hide') });
 void handleToHash(location.hash);
 window.addEventListener('hashchange', () => void handleToHash(location.hash));
 
+// The Help panel (how it works, how to use it) opens from the button at the top right of either tab.
+const helpDialog = $<HTMLDialogElement>('about');
+function openHelp() {
+  if (!helpDialog.open) helpDialog.showModal();
+}
+$('help-open').onclick = openHelp;
+$('help-close').onclick = () => helpDialog.close();
+helpDialog.addEventListener('click', (e) => {
+  if (e.target === helpDialog) helpDialog.close(); // a click on the dimmed backdrop
+});
+
 // The landing page's Outlook add-in note: open the install steps, and copy the manifest link.
 $('outlook-how').onclick = () => {
-  $<HTMLDetailsElement>('about').open = true; // the install steps are in the "How it works" section
-  $('outlook').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  openHelp(); // the install steps are in the Help panel
+  $('outlook').scrollIntoView({ block: 'start' });
 };
 $('manifest-url').addEventListener('focus', (e) => (e.target as HTMLInputElement).select());
 $('btn-copy-manifest').onclick = async () => {

@@ -9,6 +9,10 @@
   <body>
     <main>
       <header>
+        <div class="header-btns">
+          <button id="keys-open" class="ghost small" type="button" aria-haspopup="dialog" title="Make and manage your keys and contacts">🔑 My keys</button>
+          <button id="help-open" class="ghost small" type="button" aria-haspopup="dialog" title="How it works, how to use it and when to use it">? Help</button>
+        </div>
         <h1>Secret<span>Transport</span></h1>
         <p>Turn any text into an image you can paste into a message or email. Only someone with the passphrase can turn it back. Everything happens in your browser: nothing is uploaded.</p>
         <p class="hint" id="outlook-note">Using Outlook? <a href="outlook/manifest.xml" download="manifest.xml">Download the Outlook add-in manifest</a> · <button id="outlook-how" class="link" type="button">how to install it</button></p>
@@ -73,6 +77,7 @@
         <details class="more" id="to-keys">
           <summary>Send to a public key instead <span class="hint" id="to-summary">(none)</span></summary>
           <p class="hint">Lock this to one or more people's <b>public keys</b>. Nobody has to share a passphrase: only the owner of a matching private key can open it. You can still add a passphrase above as a second way in. Works with every image style except fake QR codes; for photos the hidden position comes from the recipient's public key, so it hides the message less secretly than a passphrase would.</p>
+          <div class="row"><button id="to-manage" class="ghost small" type="button">Manage my keys and contacts</button></div>
           <div id="to-list"></div>
           <label for="to-input">Add someone's public key</label>
           <div class="row">
@@ -331,8 +336,11 @@
         </div>
       </section>
 
-      <details class="about" id="about">
-        <summary>How it works, when to use it, and which apps keep the image</summary>
+      <dialog id="about" class="help" aria-labelledby="help-title">
+        <div class="help-head">
+          <h2 id="help-title">Help: how it works, when to use it, and which apps keep the image</h2>
+          <button id="help-close" class="ghost small" type="button">Close</button>
+        </div>
 
         <h3>How it works</h3>
         <ol>
@@ -353,12 +361,12 @@
         <p><b>Receiving</b></p>
         <ol>
           <li>Open the link, use the <b>Reveal secret</b> button of the Outlook add-in, or use this page's <b>Reveal a secret</b> tab: paste (Ctrl+V), drop or choose the image, or scan a QR code with the camera. If the secret was split, add every part.</li>
-          <li>Type the passphrase (or the pass code) and press <b>Reveal</b>. If the secret was sent to <i>your public key</i>, the box changes to <b>Your key's passphrase</b>: type the passphrase you chose when you made your key (not a shared secret). Your key has to be saved on this device, or restored first from its backup under <b>My keys and contacts</b>. Watch the animation (or press Skip), read the secret, copy it or save the file. It clears itself after the reading time: when the time is up the revealed text burns away on screen, and the extracted text and any picture burn away with it. (Clear now clears at once.)</li>
+          <li>Type the passphrase (or the pass code) and press <b>Reveal</b>. If the secret was sent to <i>your public key</i>, the box changes to <b>Your key's passphrase</b>: type the passphrase you chose when you made your key (not a shared secret). Your key has to be saved on this device, or restored first from its backup in <b>🔑 My keys</b>. Watch the animation (or press Skip), read the secret, copy it or save the file. It clears itself after the reading time: when the time is up the revealed text burns away on screen, and the extracted text and any picture burn away with it. (Clear now clears at once.)</li>
         </ol>
 
         <p><b>Public keys</b></p>
         <ol>
-          <li>Open <b>My keys and contacts</b> and <b>Make a key</b>: choose a name and a passphrase for it (and, if your device supports it, tick <b>Also keep the passphrase safe with a passkey</b>). The private half stays on your device.</li>
+          <li>Press <b>🔑 My keys</b> (top right) and <b>Make a new key</b>: choose a name and a passphrase for it (and, if your device supports it, tick <b>Also keep the passphrase safe with a passkey</b>). The private half stays on your device.</li>
           <li>Back the key up, then give people your <b>public key</b>, its QR code or the <b>"send me a secret" link</b>. Compare the nine-word fingerprint with them by a call or in person, so you know nobody swapped the key.</li>
           <li>To send to someone, open <b>Send to a public key instead</b> on the Hide tab, paste their public key (or open their link) and create the image as usual. No passphrase has to be shared.</li>
           <li>To open one sent to you, add the image on the Reveal tab and type your key's passphrase, or press <b>Reveal with passkey</b>. On a new device, restore the key from its backup first.</li>
@@ -403,31 +411,55 @@
           </table>
         </div>
         <p class="hint">In practice: attachments and "send as file/document" options (email, Telegram, WhatsApp, Signal) generally deliver the original. Sending as a normal photo in most chat and social apps (WhatsApp, iMessage, Messenger, Instagram, and Telegram or Signal photo mode) re-compresses it and may shrink it, so use Code art or a JPEG-safe photo there. Pasting inline into an email usually works but some mail programs resize large pictures. Apps differ and change their behaviour between versions, and not every app has been tested: send yourself a test image first.</p>
-      </details>
+      </dialog>
 
-      <details class="about" id="keys">
-        <summary>My keys and contacts (public-key encryption)</summary>
-        <p>With a passphrase, you have to get the passphrase to your recipient safely. With <b>public keys</b> you don't: the person you want to hear from makes a key once, shares the <b>public</b> half freely, and keeps the private half on their device, locked by a passphrase. Anyone can then lock a secret to that public key, and only that person can open it. Everything happens in your browser, and the private key never leaves this device.</p>
-        <div id="my-keys"></div>
-        <h3>Make a key</h3>
-        <label for="key-label">Name <span class="hint">(just for you)</span></label>
-        <input id="key-label" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Me, work laptop" />
-        <label for="key-pass">Passphrase for the key</label>
-        <input id="key-pass" type="password" autocomplete="new-password" spellcheck="false" />
-        <label class="check" id="key-weak-row" hidden><input id="key-weak" type="checkbox" /> Use this weak passphrase anyway</label>
-        <label for="key-pass2">Type it again</label>
-        <input id="key-pass2" type="password" autocomplete="new-password" spellcheck="false" />
-        <label class="check" id="key-passkey-row" hidden><input id="key-passkey" type="checkbox" /> Also keep the passphrase safe with a passkey (fingerprint, face or PIN)</label>
-        <div class="row"><button id="key-create" class="primary" type="button">Make my key</button></div>
+      <dialog id="keys" class="help keys" aria-labelledby="keys-title">
+        <div class="help-head">
+          <h2 id="keys-title">My keys</h2>
+          <button id="keys-close" class="ghost small" type="button">Close</button>
+        </div>
+        <p>A key lets people send you a secret <b>without sharing a passphrase</b>. Everything stays in your browser, and the private half never leaves this device.</p>
+        <ol class="steps">
+          <li><b>Make a key</b> below (once).</li>
+          <li><b>Share its public half</b> (text, QR or link): anyone can have it.</li>
+          <li><b>Open what they send</b> on the Reveal tab with your key's passphrase, or a passkey.</li>
+        </ol>
         <div id="key-status" class="status" role="status"></div>
-        <p class="hint"><b>Back the key up.</b> If this browser's data is cleared or you switch device, anything sent to the key is lost for good unless you have the backup file <i>and</i> its passphrase. The passphrase is also asked for whenever you open a message sent to your key, unless you add a <b>passkey</b> to the key (the <b>Add passkey</b> button on its card): then a fingerprint, face or PIN brings the passphrase back through <b>Reveal with passkey</b>. The passphrase still works. A passkey stays on the device that made it, so it is not in the backup.</p>
-        <h3>Restore a key from a backup</h3>
-        <input id="key-import-file" type="file" accept=".json,application/json,text/plain" />
-        <textarea id="key-import" rows="3" placeholder="…or paste the backup text here" spellcheck="false"></textarea>
-        <div class="row"><button id="key-import-btn" class="ghost" type="button">Restore</button></div>
-        <h3>Contacts</h3>
+
+        <h3>Your keys</h3>
+        <div id="my-keys"></div>
+
+        <details class="more" id="key-make">
+          <summary>Make a new key</summary>
+          <label for="key-label">Name <span class="hint">(just for you)</span></label>
+          <input id="key-label" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Me, work laptop" />
+          <label for="key-pass">Passphrase for the key</label>
+          <input id="key-pass" type="password" autocomplete="new-password" spellcheck="false" />
+          <label class="check" id="key-weak-row" hidden><input id="key-weak" type="checkbox" /> Use this weak passphrase anyway</label>
+          <label for="key-pass2">Type it again</label>
+          <input id="key-pass2" type="password" autocomplete="new-password" spellcheck="false" />
+          <label class="check" id="key-passkey-row" hidden><input id="key-passkey" type="checkbox" /> Also keep the passphrase safe with a passkey (fingerprint, face or PIN)</label>
+          <div class="row"><button id="key-create" class="primary" type="button">Make my key</button></div>
+        </details>
+
+        <h3>People you send to</h3>
+        <p class="hint">Public keys you saved under a name. Pick them on the Hide tab, under <b>Send to a public key instead</b>.</p>
         <div id="contacts"></div>
-      </details>
+
+        <details class="more">
+          <summary>Restore a key from a backup</summary>
+          <input id="key-import-file" type="file" accept=".json,application/json,text/plain" />
+          <textarea id="key-import" rows="3" placeholder="…or paste the backup text here" spellcheck="false"></textarea>
+          <div class="row"><button id="key-import-btn" class="ghost" type="button">Restore</button></div>
+        </details>
+
+        <h3>Good to know</h3>
+        <ul>
+          <li><b>Back each key up</b> with its <b>Back up</b> button. If this browser's data is cleared or you change device, anything sent to the key is lost unless you have the backup file <i>and</i> its passphrase.</li>
+          <li>A <b>passkey</b> (button on the key's card) lets a fingerprint, face or PIN bring the passphrase back, through <b>Reveal with passkey</b>. The passphrase still works. A passkey stays on the device that made it and is not in the backup.</li>
+          <li>Keys do not sync between browsers or devices. Use the backup to move one.</li>
+        </ul>
+      </dialog>
 
       <footer>
         AES-256-GCM, with the key derived from your passphrase by Argon2id (64 MiB of memory per guess, so mass guessing is expensive). The image proves nothing about its content, but its size hints at the message length.

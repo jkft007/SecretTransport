@@ -1,4 +1,4 @@
-// The public-key parts of the page: the "My keys and contacts" section, and the recipient picker on the Hide tab.
+// The public-key parts of the page: the "My keys" panel, and the recipient picker on the Hide tab.
 import { rgbaToCanvas } from './imageio';
 import {
   KeyStoreError,
@@ -311,6 +311,7 @@ async function refresh() {
   renderRecipients();
   $('key-reveal-hint').hidden = myKeys.length === 0;
   $('btn-passkey').hidden = !myKeys.some((k) => k.pk);
+  $<HTMLDetailsElement>('key-make').open = myKeys.length === 0; // with no key yet, the form is the first thing to see
 }
 
 async function onCreateKey() {
@@ -380,7 +381,7 @@ const same = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every(
 /** Asks for a passkey (fingerprint, face or PIN) and gives back the key passphrase it was keeping safe. */
 export async function passphraseViaPasskey(): Promise<string> {
   const locked = myKeys.filter((k) => k.pk);
-  if (!locked.length) throw new PasskeyError('No key on this device has a passkey yet. Add one under "My keys and contacts".');
+  if (!locked.length) throw new PasskeyError('No key on this device has a passkey yet. Add one in "My keys" (top right).');
   const { credId, prf } = await passkeyPrf(locked.map((k) => k.pk!));
   for (const k of locked) {
     if (!same(k.pk!.credId, credId)) continue;
@@ -395,6 +396,16 @@ export function initKeysUi(d: Deps) {
   $('to-add').onclick = onAddKey;
   $('to-add-contact').onclick = onAddContact;
   $('key-create').onclick = onCreateKey;
+  const dlg = $<HTMLDialogElement>('keys');
+  const open = () => {
+    if (!dlg.open) dlg.showModal();
+  };
+  $('keys-open').onclick = open;
+  $('to-manage').onclick = open;
+  $('keys-close').onclick = () => dlg.close();
+  dlg.addEventListener('click', (e) => {
+    if (e.target === dlg) dlg.close();
+  });
   $('key-passkey-row').hidden = !passkeySupported();
   $('key-import-btn').onclick = onImport;
   $('key-pass').addEventListener('input', () => {
