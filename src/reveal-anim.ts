@@ -145,7 +145,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const GEN_FLY = 600; // a letter's flight from the genie's hand to its place
   const RA_LT = Math.min(1900, Math.max(900, 7000 / Math.max(1, lineYs.length))); // the formation's pass along one line (a stately pace)
   const RA_GAP = RA_LT + 60; // one pass at a time
-  const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain']; // the styles that destroy the scanned image
+  const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt']; // the styles that destroy the scanned image
   const FX_DUR = 2200; // how long the destruction takes
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
   const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
@@ -6495,6 +6495,166 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Ice: the picture is frozen in a block of ice. A blowtorch sweeps across it in rows, melting the ice into drips and a
+  // puddle, and the freed picture flops forward and slides away, leaving the message.
+  const icePad = 10;
+  const iceCell = Math.max(5, Math.round(Math.min(fxW, fxH) / 34));
+  const iceN = Math.ceil((fxW + icePad * 2) / iceCell);
+  const iceM = Math.ceil((fxH + icePad * 2) / iceCell);
+  const ICE_FROM = 0.04; // the torch works from here...
+  const ICE_TO = 0.5; // ...to here, in three rows
+  const iceTorch = (p: number) => {
+    const q = clamp1((p - ICE_FROM) / (ICE_TO - ICE_FROM)) * 3;
+    const row = Math.min(2, Math.floor(q));
+    const f = q - row;
+    const left = ix - icePad;
+    const right = ix + fxW + icePad;
+    const x = row % 2 === 0 ? right - (right - left) * f : left + (right - left) * f;
+    return { x, y: iy + fxH * (0.2 + 0.3 * row), on: p >= ICE_FROM && p <= ICE_TO };
+  };
+  const iceMelt = new Float32Array(iceN * iceM).fill(-1); // when each bit of ice first feels the flame
+  for (let s = 0; s <= 240; s++) {
+    const p = ICE_FROM + ((ICE_TO - ICE_FROM) * s) / 240;
+    const t = iceTorch(p);
+    for (let j = 0; j < iceM; j++) {
+      for (let i = 0; i < iceN; i++) {
+        if (iceMelt[j * iceN + i] >= 0) continue;
+        const cx = ix - icePad + (i + 0.5) * iceCell;
+        const cy = iy - icePad + (j + 0.5) * iceCell;
+        if (Math.hypot(cx - t.x, cy - t.y) < Math.max(46, fxH * 0.26)) iceMelt[j * iceN + i] = p;
+      }
+    }
+  }
+  for (let k = 0; k < iceMelt.length; k++) if (iceMelt[k] < 0) iceMelt[k] = ICE_TO - 0.02; // ice the flame never reached lets go with the rest
+  const iceThick = (k: number, p: number) => (iceMelt[k] < 0 ? 1 : 1 - clamp1((p - iceMelt[k]) / 0.1));
+  const drawIce = (r: number) => {
+    fxBg('#1b2530', '#0d1218');
+    const p = fxP(r);
+    const al = fxFade(r);
+    const bx = ix - icePad;
+    const by = iy - icePad;
+    const bW = fxW + icePad * 2;
+    const bH = fxH + icePad * 2;
+    let thickSum = 0;
+    for (let k = 0; k < iceN * iceM; k++) thickSum += iceThick(k, p);
+    const avg = thickSum / (iceN * iceM);
+    const bottom = iy + fxH;
+    // the puddle spreading from the melting block
+    const pool = clamp1(1 - avg) * (1 - clamp1((p - 0.9) / 0.1));
+    if (pool > 0) {
+      ctx.fillStyle = `rgba(140,195,240,${0.55 * pool})`;
+      ctx.beginPath();
+      ctx.ellipse(W / 2, bottom + icePad * 0.5, (bW / 2) * (0.5 + 0.55 * pool), 5 + 7 * pool, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // the picture: stays put until the ice is gone, then flops forward onto its face and slides away
+    const fl = clamp1((p - 0.58) / 0.34);
+    ctx.globalAlpha = al * (1 - clamp1((fl - 0.78) / 0.22));
+    if (fl <= 0) {
+      ctx.drawImage(fxImg, ix, iy);
+    } else {
+      const th = (Math.PI / 2) * Math.min(1, fl * fl * 1.15);
+      ctx.save();
+      ctx.translate(ix + fxW / 2, bottom + fl * fl * 18);
+      ctx.rotate(Math.sin(fl * 16) * 0.05 * (1 - fl));
+      ctx.scale(1 - 0.12 * Math.sin(th), Math.max(0.03, Math.cos(th)));
+      ctx.drawImage(fxImg, -fxW / 2, -fxH);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    if (avg > 0.002) {
+      ctx.globalAlpha = al;
+      for (let j = 0; j < iceM; j++) {
+        for (let i = 0; i < iceN; i++) {
+          const th = iceThick(j * iceN + i, p);
+          if (th <= 0.01) continue;
+          const x = bx + i * iceCell;
+          const y = by + j * iceCell;
+          const w = Math.min(iceCell, bx + bW - x);
+          const h = Math.min(iceCell, by + bH - y);
+          if (w <= 0 || h <= 0) continue;
+          ctx.fillStyle = `rgba(${150 + 40 * (1 - th)},${205 + 20 * (1 - th)},255,${0.12 + 0.4 * th})`;
+          ctx.fillRect(x, y, w + 0.5, h + 0.5);
+          if (th < 0.6) { // wet, glistening edges as it thins
+            ctx.fillStyle = `rgba(235,248,255,${0.35 * (1 - th)})`;
+            ctx.fillRect(x, y, w, 1.2);
+          }
+        }
+      }
+      ctx.strokeStyle = `rgba(230,246,255,${0.6 * avg})`; // the block's edge, gloss and cracks
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bx + 1, by + 1, bW - 2, bH - 2);
+      ctx.strokeStyle = `rgba(255,255,255,${0.3 * avg})`;
+      ctx.lineWidth = 1;
+      for (const [x1, y1, x2, y2] of [[0.15, 0, 0.35, 0.4], [0.35, 0.4, 0.28, 0.75], [0.7, 0.1, 0.62, 0.5], [0.62, 0.5, 0.8, 0.9]]) {
+        ctx.beginPath();
+        ctx.moveTo(bx + x1 * bW, by + y1 * bH);
+        ctx.lineTo(bx + x2 * bW, by + y2 * bH);
+        ctx.stroke();
+      }
+      ctx.fillStyle = `rgba(255,255,255,${0.12 * avg})`;
+      ctx.beginPath();
+      ctx.moveTo(bx + bW * 0.08, by);
+      ctx.lineTo(bx + bW * 0.28, by);
+      ctx.lineTo(bx + bW * 0.05, by + bH);
+      ctx.lineTo(bx, by + bH);
+      ctx.lineTo(bx, by + bH * 0.5);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      for (let i = 0; i < iceN; i++) { // drips running off the melted bottom edge
+        const th = iceThick((iceM - 1) * iceN + i, p);
+        if (th > 0.7 || th <= 0) continue;
+        const dx = bx + (i + 0.5) * iceCell;
+        const ph = (r * 0.18 + i * 53) % 46;
+        ctx.fillStyle = 'rgba(170,215,250,.75)';
+        ctx.beginPath();
+        ctx.ellipse(dx, bottom + icePad + ph, 1.7, 2.8 + ph * 0.05, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    const t = iceTorch(p);
+    if (t.on) { // the blowtorch with its hose, and the flame on the ice
+      const bodyX = t.x + 74;
+      const bodyY = t.y - 34;
+      const aim = Math.atan2(t.y - bodyY, t.x - bodyX);
+      ctx.strokeStyle = '#1a1d22';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(bodyX + 38, bodyY - 10);
+      ctx.bezierCurveTo(bodyX + 80, bodyY - 20, W + 40, bodyY + 40, W + 60, H);
+      ctx.stroke();
+      ctx.save();
+      ctx.translate(bodyX, bodyY);
+      ctx.rotate(aim);
+      ctx.fillStyle = '#7a8591'; // the barrel
+      ctx.fillRect(-2, -7, 48, 14);
+      ctx.fillStyle = '#c7a24a'; // brass nozzle
+      ctx.fillRect(-14, -5, 14, 10);
+      ctx.fillStyle = '#c0392b'; // handle
+      ctx.fillRect(30, 6, 12, 22);
+      const L = Math.hypot(t.x - bodyX, t.y - bodyY) - 14;
+      const flick = 1 + Math.sin(r / 38) * 0.12;
+      const fg = ctx.createLinearGradient(-14, 0, -14 - L, 0);
+      fg.addColorStop(0, 'rgba(120,180,255,.95)');
+      fg.addColorStop(0.5, 'rgba(255,200,90,.85)');
+      fg.addColorStop(1, 'rgba(255,120,30,.0)');
+      ctx.fillStyle = fg;
+      ctx.beginPath();
+      ctx.moveTo(-14, -4);
+      ctx.quadraticCurveTo(-14 - L * 0.6 * flick, -9, -14 - L * flick, 0);
+      ctx.quadraticCurveTo(-14 - L * 0.6 * flick, 9, -14, 4);
+      ctx.fill();
+      ctx.restore();
+      for (let k = 0; k < 5; k++) { // steam
+        const age = (r * 0.06 + k * 13) % 56;
+        ctx.fillStyle = `rgba(225,238,248,${0.4 * (1 - age / 56)})`;
+        circ(t.x + Math.sin(age / 7 + k * 2) * 10, t.y - age, 5 + age * 0.12);
+      }
+    }
+    fxText(0.5 + 0.45 * clamp1((p - 0.78) / 0.2));
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -6546,6 +6706,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     melt: drawMelt,
     rainwash: drawRainWash,
     acidrain: drawAcid,
+    icemelt: drawIce,
   };
 
   const frame = (now: number) => {
