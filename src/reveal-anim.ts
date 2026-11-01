@@ -6701,7 +6701,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     }
     ctx.globalAlpha = 1;
     for (let k = 0; k < 6 && p < 0.7; k++) { // dust shaken loose from the base
-      const age = (r * 0.05 + k * 17) % 40;
+      const age = (Math.max(0, r) * 0.05 + k * 17) % 40;
       ctx.fillStyle = `rgba(190,190,200,${0.35 * (1 - age / 40) * clamp1(p / 0.3)})`;
       circ(ix + ((k * 97) % fxW), iy + fxH + age * 0.6, 2 + age * 0.08);
     }
