@@ -145,8 +145,10 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const GEN_FLY = 600; // a letter's flight from the genie's hand to its place
   const RA_LT = Math.min(1900, Math.max(900, 7000 / Math.max(1, lineYs.length))); // the formation's pass along one line (a stately pace)
   const RA_GAP = RA_LT + 60; // one pass at a time
+  const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt']; // the styles that destroy the scanned image
+  const FX_DUR = 2200; // how long the destruction takes
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies'].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -207,6 +209,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'earthquake' ? Math.max(T_RESOLVE, 1700) + 1100
     : style === 'volcano' ? Math.max(T_RESOLVE, 1800) + 900 + 300
     : style === 'emoji' ? Math.max(T_RESOLVE, 1800) + 600
+    : IMG_FX.includes(style) ? FX_DUR + 300
     : style === 'sharks' ? Math.max(T_RESOLVE, 1600) + 1400 + 300
     : style === 'broomball' ? Math.max(T_RESOLVE, 1500) + 700 + 400 + 200
     : style === 'zombies' ? Math.max(T_RESOLVE, 1700) + 800 + 600 + 150
@@ -5992,6 +5995,399 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Image destroyers: the scanned image / QR code is shown, then goes in one of several dramatic ways, and the
+  // message is left in the middle of the screen.
+  const fxImg = document.createElement('canvas');
+  fxImg.width = Math.max(1, Math.round(iw));
+  fxImg.height = Math.max(1, Math.round(ih));
+  if (IMG_FX.includes(style)) fxImg.getContext('2d')!.drawImage(o.source, 0, 0, fxImg.width, fxImg.height);
+  const fxW = fxImg.width;
+  const fxH = fxImg.height;
+  const fxCols: string[] = []; // the average colour of each 3-pixel column, for sand and drips
+  if (style === 'sandfall' || style === 'melt') {
+    try {
+      const d = fxImg.getContext('2d')!.getImageData(0, 0, fxW, fxH).data;
+      for (let x = 0; x < fxW; x += 3) {
+        let rr = 0;
+        let gg = 0;
+        let bb = 0;
+        let n = 0;
+        for (let y = 0; y < fxH; y += 5) {
+          const k = (y * fxW + x) * 4;
+          rr += d[k];
+          gg += d[k + 1];
+          bb += d[k + 2];
+          n++;
+        }
+        fxCols.push(`rgb(${Math.round(rr / n)},${Math.round(gg / n)},${Math.round(bb / n)})`);
+      }
+    } catch {
+      /* a tainted image cannot be sampled: a sandy colour is used instead */
+    }
+  }
+  const fxCol = (x: number) => fxCols[Math.min(fxCols.length - 1, Math.floor(x / 3))] ?? '#d8c08a';
+  const fxP = (r: number) => clamp1(r / FX_DUR);
+  const fxFade = (r: number) => clamp1((r + T_INTRO) / T_INTRO);
+  const fxBg = (a: string, b: string) => {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, a);
+    g.addColorStop(1, b);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  };
+  const fxText = (p: number) => { // the message comes up in the middle as the image goes
+    const a = ease(clamp1((p - 0.5) / 0.45));
+    if (a <= 0) return;
+    ctx.font = `${fs}px ${FONT}`;
+    for (const c of visible) textLit(c, '#e8fff4', 'rgba(80,255,190,.55)', 5, c.x, c.y, a);
+  };
+  const fxGrid = (size: number) => ({ n: Math.ceil(fxW / size), m: Math.ceil(fxH / size), size });
+
+  // Dissolve: the picture breaks into little squares that each lift off as dust on the wind.
+  const dsG = fxGrid(Math.max(5, Math.round(Math.min(fxW, fxH) / 38)));
+  const dsT = Array.from({ length: dsG.n * dsG.m }, () => rnd());
+  const drawDissolve = (r: number) => {
+    fxBg('#121820', '#0b0f14');
+    const p = fxP(r);
+    const al = fxFade(r);
+    const S = dsG.size;
+    for (let j = 0; j < dsG.m; j++) {
+      for (let i = 0; i < dsG.n; i++) {
+        const t = dsT[j * dsG.n + i];
+        const q = (p - t * 0.72) / 0.28;
+        if (q >= 1) continue;
+        const bx = i * S;
+        const by = j * S;
+        const bw = Math.min(S, fxW - bx);
+        const bh = Math.min(S, fxH - by);
+        if (q < 0) {
+          ctx.globalAlpha = al;
+          ctx.drawImage(fxImg, bx, by, bw, bh, ix + bx, iy + by, bw, bh);
+        } else {
+          ctx.globalAlpha = (1 - q) * al;
+          const k = 1 - q * 0.5;
+          ctx.drawImage(fxImg, bx, by, bw, bh, ix + bx + q * q * 70 * (0.6 + t), iy + by - q * 40 * t, bw * k, bh * k);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+    fxText(p);
+    fadeToFinal(r);
+  };
+
+  // Sand: the picture pours away from the top down like sand through an hourglass, grains streaming down into a heap.
+  const sdN = Math.ceil(fxW / 3);
+  const sdOff = Array.from({ length: sdN }, () => rnd() * 0.3);
+  const sdSp = Array.from({ length: sdN }, () => 0.6 + rnd() * 0.8);
+  const drawSand = (r: number) => {
+    fxBg('#1a1812', '#0d0c09');
+    const p = fxP(r);
+    const al = fxFade(r);
+    const floor = iy + fxH;
+    ctx.globalAlpha = al;
+    for (let c = 0; c < sdN; c++) {
+      const x = c * 3;
+      const e = fxH * clamp1((p - sdOff[c]) / 0.62);
+      if (e < fxH) ctx.drawImage(fxImg, x, e, Math.min(3, fxW - x), fxH - e, ix + x, iy + e, Math.min(3, fxW - x), fxH - e);
+      if (e > 0 && e < fxH) { // grains streaming down from where the sand has gone
+        ctx.fillStyle = fxCol(x);
+        const top = iy + e;
+        for (let k = 0; k < 3; k++) {
+          const span = Math.max(8, floor - top);
+          const y = top + (((r * 0.42 * sdSp[c] + k * 53 + c * 11) % span) + span) % span;
+          ctx.fillRect(ix + x, y, 2, 3);
+        }
+      }
+    }
+    const heap = fxH * 0.2 * clamp1(p / 0.8) * (1 - clamp1((p - 0.86) / 0.14));
+    for (let x = 0; x < fxW; x += 3) { // the heap at the bottom
+      const u = (x - fxW / 2) / (fxW * 0.3);
+      const h = heap * Math.exp(-u * u);
+      ctx.fillStyle = fxCol(x);
+      ctx.fillRect(ix + x, floor - h, 3, h);
+    }
+    ctx.globalAlpha = 1;
+    fxText(p);
+    fadeToFinal(r);
+  };
+
+  // Black hole: a hole opens in the middle and the picture is torn into a spiral and swallowed.
+  const bhStars = Array.from({ length: 50 }, () => ({ x: rnd() * W, y: rnd() * H, s: 0.5 + rnd() * 1.2 }));
+  const drawBlackHole = (r: number) => {
+    fxBg('#06040e', '#0b0a1c');
+    ctx.fillStyle = 'rgba(255,255,255,.6)';
+    for (const s of bhStars) circ(s.x, s.y, s.s);
+    const p = fxP(r);
+    const al = fxFade(r);
+    const cx = W / 2;
+    const cy = H / 2;
+    const R = Math.hypot(fxW, fxH) / 2;
+    const N = 16;
+    const sc2 = Math.max(0, 1 - p * 1.2);
+    ctx.globalAlpha = al;
+    if (sc2 > 0.01) {
+      for (let k = 0; k < N; k++) {
+        const r0 = (R * k) / N;
+        const r1 = (R * (k + 1)) / N;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r1, 0, Math.PI * 2);
+        ctx.arc(cx, cy, r0, 0, Math.PI * 2, true);
+        ctx.clip();
+        ctx.translate(cx, cy);
+        ctx.rotate(p * 7 * Math.pow(1 - k / N, 1.3));
+        ctx.scale(sc2, sc2);
+        ctx.drawImage(fxImg, -fxW / 2, -fxH / 2);
+        ctx.restore();
+      }
+    }
+    ctx.globalAlpha = 1;
+    const hr = p < 0.86 ? 8 + 44 * ease(p / 0.86) : 52 * (1 - (p - 0.86) / 0.14);
+    if (hr > 1) {
+      const disk = ctx.createRadialGradient(cx, cy, hr * 0.8, cx, cy, hr * 2.2);
+      disk.addColorStop(0, 'rgba(255,170,60,.85)');
+      disk.addColorStop(0.5, 'rgba(180,70,220,.4)');
+      disk.addColorStop(1, 'rgba(180,70,220,0)');
+      ctx.fillStyle = disk;
+      ctx.fillRect(cx - hr * 2.4, cy - hr * 2.4, hr * 4.8, hr * 4.8);
+      ctx.fillStyle = '#000';
+      circ(cx, cy, hr);
+      ctx.strokeStyle = `rgba(255,200,120,${0.7})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, hr * 1.5, hr * 0.5, r / 400, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    fxText(p);
+    fadeToFinal(r);
+  };
+
+  // Hammer smash: a huge hammer slams down on the picture, it cracks and bursts into pieces that fly in every direction.
+  const hsG = fxGrid(Math.max(10, Math.round(Math.min(fxW, fxH) / 9)));
+  const hsT = Array.from({ length: hsG.n * hsG.m }, (_, k) => {
+    const i = k % hsG.n;
+    const j = Math.floor(k / hsG.n);
+    const dx = (i + 0.5) * hsG.size - fxW / 2;
+    const dy = (j + 0.5) * hsG.size - fxH / 2;
+    const d = Math.hypot(dx, dy) || 1;
+    return { vx: (dx / d) * (1.2 + rnd() * 3.2) + (rnd() - 0.5), vy: (dy / d) * (1.2 + rnd() * 3.2) - 2.2 - rnd() * 2, rot: (rnd() - 0.5) * 0.35 };
+  });
+  const HS_AT = 0.3; // the moment of impact
+  const drawHammerSmash = (r: number) => {
+    fxBg('#161318', '#0c0a0e');
+    const p = fxP(r);
+    const al = fxFade(r);
+    const rI = HS_AT * FX_DUR;
+    const tt = Math.max(0, r - rI) / 16; // frames since impact
+    const shake = r > rI && r < rI + 320 ? (1 - (r - rI) / 320) * 7 : 0;
+    ctx.save();
+    ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+    ctx.globalAlpha = al;
+    const S = hsG.size;
+    for (let j = 0; j < hsG.m; j++) {
+      for (let i = 0; i < hsG.n; i++) {
+        const t = hsT[j * hsG.n + i];
+        const bx = i * S;
+        const by = j * S;
+        const bw = Math.min(S, fxW - bx);
+        const bh = Math.min(S, fxH - by);
+        if (r < rI) {
+          ctx.drawImage(fxImg, bx, by, bw, bh, ix + bx, iy + by, bw, bh);
+          continue;
+        }
+        const a2 = 1 - clamp1((tt * 16 - 1000) / 450);
+        if (a2 <= 0) continue;
+        ctx.save();
+        ctx.globalAlpha = al * a2;
+        ctx.translate(ix + bx + bw / 2 + t.vx * tt, iy + by + bh / 2 + t.vy * tt + 0.5 * 0.13 * tt * tt);
+        ctx.rotate(t.rot * tt);
+        ctx.drawImage(fxImg, bx, by, bw, bh, -bw / 2, -bh / 2, bw, bh);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    const cx = W / 2;
+    const cy = H / 2;
+    if (r >= 0 && r < rI + 500) { // the hammer swings in, hits and lifts away
+      const q = clamp1(r / rI);
+      const out = r > rI + 150 ? clamp1((r - rI - 150) / 350) : 0;
+      const hx = W * 0.92 + (cx - W * 0.92) * q * q * (1 - 0) + out * 40;
+      const hy = -50 + (cy - 22 + 50) * q * q - out * (cy + 80);
+      hammer(hx, hy, Math.PI + (1 - q) * 1.0, Math.min(3.4, Math.max(2, H / 100)));
+    }
+    if (r > rI && r < rI + 260) { // the flash and the cracks
+      const f = 1 - (r - rI) / 260;
+      ctx.fillStyle = `rgba(255,255,255,${0.5 * f})`;
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = `rgba(255,255,255,${f})`;
+      ctx.lineWidth = 2;
+      for (let k = 0; k < 9; k++) {
+        const a = (k / 9) * Math.PI * 2 + 0.3;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        let px = cx;
+        let py = cy;
+        for (let s = 1; s <= 6; s++) {
+          px += Math.cos(a + Math.sin(k * 7 + s) * 0.4) * Math.min(fxW, fxH) * 0.09;
+          py += Math.sin(a + Math.sin(k * 7 + s) * 0.4) * Math.min(fxW, fxH) * 0.09;
+          ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      }
+    }
+    fxText(p);
+    fadeToFinal(r);
+  };
+
+  // Shatter: cracks race across the picture like glass, then every triangular shard drops away.
+  const shN = 7;
+  const shPts = Array.from({ length: (shN + 1) * (shN + 1) }, (_, k) => {
+    const i = k % (shN + 1);
+    const j = Math.floor(k / (shN + 1));
+    const edge = i === 0 || j === 0 || i === shN || j === shN;
+    return { x: (i / shN) * fxW + (edge ? 0 : (rnd() - 0.5) * (fxW / shN) * 0.6), y: (j / shN) * fxH + (edge ? 0 : (rnd() - 0.5) * (fxH / shN) * 0.6) };
+  });
+  const shHit = { x: fxW * (0.35 + rnd() * 0.3), y: fxH * (0.35 + rnd() * 0.3) };
+  const shTris: { a: { x: number; y: number }; b: { x: number; y: number }; c: { x: number; y: number }; d: number; vx: number; sp: number }[] = [];
+  for (let j = 0; j < shN; j++) {
+    for (let i = 0; i < shN; i++) {
+      const p00 = shPts[j * (shN + 1) + i];
+      const p10 = shPts[j * (shN + 1) + i + 1];
+      const p01 = shPts[(j + 1) * (shN + 1) + i];
+      const p11 = shPts[(j + 1) * (shN + 1) + i + 1];
+      for (const [a, b, c] of [[p00, p10, p01], [p10, p11, p01]]) {
+        const mx = (a.x + b.x + c.x) / 3;
+        const my = (a.y + b.y + c.y) / 3;
+        shTris.push({ a, b, c, d: Math.hypot(mx - shHit.x, my - shHit.y) / Math.hypot(fxW, fxH), vx: (rnd() - 0.5) * 2.4, sp: (rnd() - 0.5) * 0.12 });
+      }
+    }
+  }
+  const drawShatter = (r: number) => {
+    fxBg('#10161e', '#0a0d12');
+    const p = fxP(r);
+    const al = fxFade(r);
+    for (const t of shTris) {
+      const rel = (p - 0.16 - t.d * 0.3) / 0.45; // each shard lets go in a wave from the impact point
+      if (rel >= 1) continue;
+      const mx = (t.a.x + t.b.x + t.c.x) / 3;
+      const my = (t.a.y + t.b.y + t.c.y) / 3;
+      const fall = Math.max(0, rel) * (FX_DUR * 0.45) / 16;
+      ctx.save();
+      ctx.globalAlpha = al * (1 - clamp1((rel - 0.6) / 0.4));
+      ctx.translate(ix + mx + t.vx * fall, iy + my + 0.5 * 0.1 * fall * fall);
+      ctx.rotate(t.sp * fall);
+      ctx.translate(-mx, -my);
+      ctx.beginPath();
+      ctx.moveTo(t.a.x, t.a.y);
+      ctx.lineTo(t.b.x, t.b.y);
+      ctx.lineTo(t.c.x, t.c.y);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(fxImg, 0, 0);
+      if (rel < 0) { // the cracks, spreading out from the impact point
+        const reach = clamp1(p / 0.16);
+        if (t.d < reach * 0.9) {
+          ctx.strokeStyle = 'rgba(255,255,255,.8)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    fxText(p);
+    fadeToFinal(r);
+  };
+
+  // Burn away: a fire creeps across the picture from one corner, charring it to ash.
+  const bnG = fxGrid(Math.max(5, Math.round(Math.min(fxW, fxH) / 38)));
+  const bnT = Array.from({ length: bnG.n * bnG.m }, (_, k) => {
+    const i = k % bnG.n;
+    const j = Math.floor(k / bnG.n);
+    return ((1 - j / bnG.m) * 0.5 + (i / bnG.n) * 0.5) * 0.74 + rnd() * 0.1;
+  });
+  const drawBurn = (r: number) => {
+    fxBg('#1a1210', '#0c0807');
+    const p = fxP(r);
+    const al = fxFade(r);
+    const S = bnG.size;
+    for (let j = 0; j < bnG.m; j++) {
+      for (let i = 0; i < bnG.n; i++) {
+        const q = (p - bnT[j * bnG.n + i]) / 0.2;
+        if (q >= 1) continue;
+        const bx = i * S;
+        const by = j * S;
+        const bw = Math.min(S, fxW - bx);
+        const bh = Math.min(S, fxH - by);
+        ctx.globalAlpha = al;
+        ctx.drawImage(fxImg, bx, by, bw, bh, ix + bx, iy + by, bw, bh);
+        if (q > 0) {
+          ctx.fillStyle = `rgba(20,12,8,${Math.min(0.92, q * 1.6)})`; // charring
+          ctx.fillRect(ix + bx, iy + by, bw, bh);
+          if (q < 0.5) {
+            ctx.fillStyle = `rgba(255,${Math.round(150 + 80 * (q * 2))},40,${0.85 * (1 - q * 2)})`; // the glowing edge
+            ctx.fillRect(ix + bx, iy + by, bw, bh);
+            ctx.fillStyle = `rgba(255,${Math.round(200 - 60 * q)},60,${0.7 * (1 - q * 2)})`; // a flame
+            circ(ix + bx + bw / 2 + Math.sin(r / 80 + i) * 2, iy + by - q * 22, 2.4 + 2 * (1 - q));
+          }
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+    fxText(p);
+    fadeToFinal(r);
+  };
+
+  // Shredder: the picture is cut into strips that are pulled down through a slot at the bottom, one after another.
+  const rdN = Math.max(12, Math.round(fxW / 8));
+  const rdW = fxW / rdN;
+  const rdT = Array.from({ length: rdN }, (_, k) => (k / rdN) * 0.5 + rnd() * 0.06);
+  const drawShredder = (r: number) => {
+    fxBg('#14181e', '#0b0d11');
+    const p = fxP(r);
+    const al = fxFade(r);
+    ctx.globalAlpha = al;
+    for (let k = 0; k < rdN; k++) {
+      const q = (p - rdT[k]) / 0.4;
+      if (q >= 1) continue;
+      const off = q > 0 ? q * q * (fxH + 40) : 0;
+      const sway = q > 0 ? Math.sin(q * 9 + k) * 4 * q : 0;
+      ctx.drawImage(fxImg, k * rdW, 0, rdW, fxH, ix + k * rdW + sway, iy + off, rdW - 0.5, fxH);
+    }
+    ctx.globalAlpha = 1;
+    const slot = H - 10;
+    ctx.fillStyle = '#05070a'; // the shredder's blade housing
+    ctx.fillRect(0, slot, W, H - slot);
+    ctx.fillStyle = '#7d8793';
+    for (let x = 0; x < W; x += 9) ctx.fillRect(x, slot - 3, 5, 3);
+    fxText(p);
+    fadeToFinal(r);
+  };
+
+  // Melt: the picture droops and runs down in drips and pools at the bottom.
+  const mtN = Math.ceil(fxW / 3);
+  const mtK = Array.from({ length: mtN }, (_, c) => 0.45 + 0.55 * Math.abs(Math.sin(c * 0.37) * Math.cos(c * 0.11)) + rnd() * 0.25);
+  const drawMelt = (r: number) => {
+    fxBg('#1a1420', '#0e0a12');
+    const p = fxP(r);
+    const al = fxFade(r) * (1 - clamp1((p - 0.84) / 0.16));
+    const floor = iy + fxH;
+    ctx.globalAlpha = al;
+    for (let c = 0; c < mtN; c++) {
+      const x = c * 3;
+      const d = Math.pow(clamp1(p / 0.88), 1.7) * fxH * mtK[c];
+      const h = Math.max(0, fxH - d * 0.6);
+      if (h > 0) ctx.drawImage(fxImg, x, 0, Math.min(3, fxW - x), fxH, ix + x, iy + d, Math.min(3, fxW - x), Math.min(h + d * 0.2, floor + 10 - iy - d));
+      ctx.fillStyle = fxCol(x); // the drips and the puddle
+      const pool = Math.min(14, 2 + d * 0.06);
+      ctx.fillRect(ix + x, floor - pool, 3, pool);
+    }
+    ctx.globalAlpha = 1;
+    fxText(p);
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -6033,6 +6429,14 @@ export function playReveal(o: RevealOptions): RevealHandle {
     sharks: drawSharks,
     broomball: drawBroomball,
     zombies: drawZombies,
+    dissolve: drawDissolve,
+    sandfall: drawSand,
+    blackhole: drawBlackHole,
+    hammersmash: drawHammerSmash,
+    shatter: drawShatter,
+    burnaway: drawBurn,
+    shredder: drawShredder,
+    melt: drawMelt,
   };
 
   const frame = (now: number) => {
