@@ -8,9 +8,9 @@
 
   <Id>5d0b9c1e-7a34-4f6b-9c2d-3e8a1f4b6a70</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>SecretTransport</ProviderName>
+  <ProviderName>VielVia messaging</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="SecretTransport"/>
+  <DisplayName DefaultValue="VielVia messaging"/>
   <Description DefaultValue="Reveal a secret hidden in an image or link in an email, right inside Outlook. Everything runs on your device."/>
   <IconUrl DefaultValue="https://jkft007.github.io/SecretTransport/outlook/icon-64.png"/>
   <HighResolutionIconUrl DefaultValue="https://jkft007.github.io/SecretTransport/outlook/icon-128.png"/>
@@ -92,7 +92,7 @@
         <bt:Url id="TaskpaneUrl" DefaultValue="https://jkft007.github.io/SecretTransport/outlook/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GroupLabel" DefaultValue="SecretTransport"/>
+        <bt:String id="GroupLabel" DefaultValue="VielVia messaging"/>
         <bt:String id="ButtonLabel" DefaultValue="Reveal secret"/>
       </bt:ShortStrings>
       <bt:LongStrings>
@@ -145,7 +145,7 @@
           <bt:Url id="TaskpaneUrl" DefaultValue="https://jkft007.github.io/SecretTransport/outlook/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
-          <bt:String id="GroupLabel" DefaultValue="SecretTransport"/>
+          <bt:String id="GroupLabel" DefaultValue="VielVia messaging"/>
           <bt:String id="ButtonLabel" DefaultValue="Reveal secret"/>
         </bt:ShortStrings>
         <bt:LongStrings>
