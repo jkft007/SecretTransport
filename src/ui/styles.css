@@ -223,6 +223,7 @@ button.primary:hover { border-color: #8a7de2; background: #6959ca; }
 button.ghost { background: transparent; }
 button.small, .btn-like { min-height: 32px; padding: 5px 10px; font-size: 13px; }
 button:disabled { opacity: .48; cursor: progress; }
+select:disabled, input:disabled, textarea:disabled { opacity: .58; cursor: not-allowed; }
 
 .meter { height: 3px; margin-top: 9px; overflow: hidden; border-radius: 2px; background: var(--border); }
 .meter i { display: block; width: 0; height: 100%; background: var(--critical); transition: width 240ms ease, background 240ms ease; }

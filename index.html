@@ -151,6 +151,7 @@
                 <option value="900">15 minutes</option>
                 <option value="65535">Until cleared</option>
               </select>
+              <label class="check" title="Prevents the recipient from changing this reading time."><input id="chk-lock-read-time" type="checkbox" checked /> Lock (recipient cannot change)</label>
             </div>
             <div title="The reveal step refuses to show the secret after this time. Enforced by this app and the recipient's clock, so it is a courtesy, not a lock.">
               <label for="expiry">Expires</label>
@@ -172,7 +173,7 @@
           <input id="passcode" type="password" autocomplete="off" spellcheck="false" />
           <div id="code-note" class="hint"></div>
           <label class="check" id="weak-code-row" hidden><input id="chk-weak-code" type="checkbox" /> Use this weak pass code anyway</label>
-          <p class="hint">The animation, reading time and expiry are stored inside the encrypted image. Expiry is a courtesy enforced by this app, not a lock. A pass code is a second way in (the image key is stored in the image, locked by it), so the image is only as strong as the weaker of the passphrase and the pass code. Hover over a setting for details.</p>
+          <p class="hint">The animation, reading time and expiry are stored inside the encrypted image. The recipient can shorten the reading time unless you lock it. Expiry is a courtesy enforced by this app, not a lock. A pass code is a second way in (the image key is stored in the image, locked by it), so the image is only as strong as the weaker of the passphrase and the pass code. Hover over a setting for details.</p>
         </details>
 
         <label class="check split"><input id="chk-split" type="checkbox" checked /> Split across several images when it does not fit in one</label>
@@ -224,6 +225,7 @@
             <option value="60">Self-destruct after 1 min</option>
             <option value="300">Self-destruct after 5 min</option>
           </select>
+          <span id="read-lock-note" class="hint" hidden>Locked by sender</span>
           <select id="anim-style" aria-label="Reveal animation">
             <option value="auto" selected>Animation: Auto (sender's choice, else random)</option>
             <option value="matrix">Matrix rain</option>
@@ -416,7 +418,7 @@
         <ol>
           <li>On <b>Hide a secret</b>, type or paste your text (or choose a file, paste a picture, or read the text from a camera photo) and enter a passphrase, or press Generate.</li>
           <li>Pick an <b>Image style</b>: code art (works almost everywhere), QR code (opens this site when scanned), fake QR code (scans as a decoy) or hidden in a photo (looks like an ordinary picture; the JPEG-safe method survives normal recompression). You can choose your own cover photo.</li>
-          <li>Optionally open <b>More options</b>: a reveal animation (one of 84), a reading time, an expiry from 1 minute to 30 days, and a recipient pass code. With the photo style you can also add up to 3 more messages to the same photo, each with its own passphrase. Or open <b>Send to a public key instead</b> to lock it to someone's public key, so no passphrase has to be shared (they make a key once under <b>My keys and contacts</b> and send you the public half).</li>
+          <li>Optionally open <b>More options</b>: a reveal animation (one of 84), a reading time (which you can lock so the recipient cannot change it), an expiry from 1 minute to 30 days, and a recipient pass code. With the photo style you can also add up to 3 more messages to the same photo, each with its own passphrase. Or open <b>Send to a public key instead</b> to lock it to someone's public key, so no passphrase has to be shared (they make a key once under <b>My keys and contacts</b> and send you the public half).</li>
           <li>Press <b>Create image</b>, then <b>Copy message</b> (the image, a link to this site and, for code art and QR, a direct link to the secret) and paste it into an email or chat, or download the image. Give the passphrase to your recipient by a different route.</li>
         </ol>
         <p><b>Receiving</b></p>

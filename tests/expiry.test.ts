@@ -27,6 +27,15 @@ describe('reading time stored with the image', () => {
     expect((await openPayload(none, 'pw', NOW)).readSecs).toBeUndefined();
   });
 
+  it('stores a locked reading time while keeping unlocked messages compatible', async () => {
+    const locked = await sealPayload({ kind: 'text', text: 'fixed time' }, 'pw', MODE_CODEART, undefined, 0, 0, '', 30, [], true);
+    expect(await openPayload(locked, 'pw', NOW)).toMatchObject({ text: 'fixed time', readSecs: 30, readLocked: true });
+
+    const unlocked = await sealPayload({ kind: 'text', text: 'adjustable time' }, 'pw', MODE_CODEART, undefined, 0, 0, '', 30);
+    expect(await openPayload(unlocked, 'pw', NOW)).toMatchObject({ text: 'adjustable time', readSecs: 30 });
+    expect((await openPayload(unlocked, 'pw', NOW)).readLocked).toBeUndefined();
+  });
+
   it('cannot be stretched by editing the header: the flag is authenticated', async () => {
     const pkt = await sealPayload({ kind: 'text', text: 'x' }, 'pw', MODE_CODEART, undefined, 0, 0, '', 10);
     const t = pkt.slice();

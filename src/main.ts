@@ -89,11 +89,13 @@ function updateOptSummary() {
   if ($<HTMLInputElement>('chk-nonsense').checked) parts.push('no animation');
   else if ($<HTMLSelectElement>('anim-pick').value !== 'auto') parts.push(text('anim-pick'));
   if ($<HTMLSelectElement>('read-time').value !== '60') parts.push(`reading ${text('read-time').toLowerCase()}`);
+  if ($<HTMLInputElement>('chk-lock-read-time').checked) parts.push('reading time locked');
   if ($<HTMLSelectElement>('expiry').value !== '0') parts.push(`expires ${text('expiry').toLowerCase()}`);
   if ($<HTMLInputElement>('passcode').value) parts.push('pass code');
   $('opt-summary').textContent = parts.length ? `(${parts.join(' · ')})` : '(defaults)';
 }
-for (const id of ['anim-pick', 'read-time', 'expiry', 'passcode']) $(id).addEventListener('input', updateOptSummary);
+for (const id of ['anim-pick', 'read-time', 'expiry', 'passcode', 'chk-lock-read-time']) $(id).addEventListener('input', updateOptSummary);
+for (const id of ['anim-pick', 'read-time', 'expiry', 'passcode', 'chk-lock-read-time']) $(id).addEventListener('change', updateOptSummary);
 // "No nonsense": the secret is shown at once, with no animation, and the animation menu is not used.
 for (const ev of ['change', 'input']) {
   $('chk-nonsense').addEventListener(ev, () => {
@@ -489,7 +491,8 @@ $('btn-create').onclick = async () => {
     const packetMode = { codeart: MODE_CODEART, qr: MODE_QR, fakeqr: MODE_FAKEQR, photo: kind === 'dct' ? MODE_DCT : MODE_STEGO }[mode];
     const chosen = STYLES.find((s) => s === $<HTMLSelectElement>('anim-pick').value);
     const readTime = Number($<HTMLSelectElement>('read-time').value); // the 60 s default is not stored
-    const readSecs = readTime === 60 ? 0 : readTime;
+    const readLocked = $<HTMLInputElement>('chk-lock-read-time').checked;
+    const readSecs = readTime === 60 && !readLocked ? 0 : readTime;
     const ttl = Number($<HTMLSelectElement>('expiry').value); // seconds, 0 = never
     const expiresAt = ttl > 0 ? Math.floor(Date.now() / 1000) + ttl : 0;
     const anim = $<HTMLInputElement>('chk-nonsense').checked ? NO_ANIM : chosen ? styleToId(chosen) : 0;
@@ -499,18 +502,18 @@ $('btn-create').onclick = async () => {
     pkPhotoCount = 0;
     if (recips.length && mode === 'photo') {
       photoLead = [];
-      for (const r of recips) photoLead.push({ pass: photoPassFor(r), packet: await sealPayload(payload, '', packetMode, undefined, anim, expiresAt, '', readSecs, [r]) });
-      if (pass) photoLead.push({ pass, packet: await sealPayload(payload, pass, packetMode, undefined, anim, expiresAt, '', readSecs) });
+      for (const r of recips) photoLead.push({ pass: photoPassFor(r), packet: await sealPayload(payload, '', packetMode, undefined, anim, expiresAt, '', readSecs, [r], readLocked) });
+      if (pass) photoLead.push({ pass, packet: await sealPayload(payload, pass, packetMode, undefined, anim, expiresAt, '', readSecs, [], readLocked) });
       if (photoLead.length > MAX_MESSAGES) throw new Error(`A photo can hold ${MAX_MESSAGES} ways in. Choose fewer recipients, or leave out the passphrase.`);
       pkPhotoCount = photoLead.length;
     }
     // Photo images find a pass code through a locator record, so their packets carry no key slot.
     const packet = photoLead
       ? photoLead[0].packet
-      : await sealPayload(payload, pass, packetMode, undefined, anim, expiresAt, mode === 'photo' ? '' : passcode, readSecs, recips);
+      : await sealPayload(payload, pass, packetMode, undefined, anim, expiresAt, mode === 'photo' ? '' : passcode, readSecs, recips, readLocked);
     const extras: PhotoMessage[] = [];
     for (const x of extraRows) {
-      extras.push({ pass: x.pass, passcode: x.passcode, packet: await sealPayload({ kind: 'text', text: x.text }, x.pass, packetMode, undefined, anim, expiresAt, '', readSecs) });
+      extras.push({ pass: x.pass, passcode: x.passcode, packet: await sealPayload({ kind: 'text', text: x.text }, x.pass, packetMode, undefined, anim, expiresAt, '', readSecs, [], readLocked) });
     }
 
     let cover: Rgba | null = null;
@@ -912,6 +915,8 @@ function clearResult() {
   $('result').hidden = true;
   $('stage-wrap').hidden = true;
   $('timer').textContent = '';
+  $<HTMLSelectElement>('read-clear').disabled = false;
+  $('read-lock-note').hidden = true;
   handle?.skip();
 }
 $('btn-clear').onclick = clearResult;
@@ -1072,7 +1077,9 @@ $('btn-reveal').onclick = async () => {
 
     // The sender's reading time is a ceiling: the recipient may shorten it but never stretch it.
     const senderLimit = payload.readSecs === undefined ? 60 : payload.readSecs === NEVER_CLEAR ? Infinity : payload.readSecs;
-    const myLimit = Number($<HTMLSelectElement>('read-clear').value) || Infinity;
+    $<HTMLSelectElement>('read-clear').disabled = !!payload.readLocked;
+    $('read-lock-note').hidden = !payload.readLocked;
+    const myLimit = payload.readLocked ? Infinity : Number($<HTMLSelectElement>('read-clear').value) || Infinity;
     const limit = Math.min(senderLimit, myLimit);
     if (limit === Infinity) {
       $('timer').textContent = 'Stays on screen until you press Clear now.';

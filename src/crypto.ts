@@ -73,6 +73,7 @@ export type Opened = Payload & {
   anim?: number; // reveal animation (1-based id)
   expires?: number; // Unix seconds after which the reveal step refuses to show it
   readSecs?: number; // how long the revealed secret stays on screen (NEVER_CLEAR = until cleared by hand)
+  readLocked?: boolean; // whether the recipient may change the reading time
 };
 
 /** The stored reading time that means "do not clear automatically". */
@@ -101,12 +102,14 @@ export async function sealPayload(
   passcode = '',
   readSecs = 0,
   recipients: PublicKey[] = [],
+  readLocked = false,
 ): Promise<Uint8Array> {
   let data = encodePayload(payload);
   const hasAnim = anim > 0 && anim < 256;
   const hasExpiry = expiresAt > 0 && expiresAt < 2 ** 32;
   const hasRead = readSecs > 0 && readSecs <= NEVER_CLEAR;
-  const metaLen = (hasAnim ? 1 : 0) + (hasExpiry ? 4 : 0) + (hasRead ? 2 : 0);
+  if (readLocked && !hasRead) throw new Error('A locked reading time must be set');
+  const metaLen = (hasAnim ? 1 : 0) + (hasExpiry ? 4 : 0) + (hasRead ? (readLocked ? 4 : 2) : 0);
   if (metaLen) {
     const tagged = new Uint8Array(metaLen + data.length);
     let o = 0;
@@ -116,6 +119,10 @@ export async function sealPayload(
       o += 4;
     }
     if (hasRead) {
+      if (readLocked) {
+        new DataView(tagged.buffer).setUint16(o, 0); // zero is reserved as the lock marker; valid reading times are nonzero
+        o += 2;
+      }
       new DataView(tagged.buffer).setUint16(o, Math.floor(readSecs));
       o += 2;
     }
@@ -277,6 +284,7 @@ async function finishOpen(plain: Uint8Array, p: Packet, now: number): Promise<Op
   let anim: number | undefined;
   let expires: number | undefined;
   let readSecs: number | undefined;
+  let readLocked = false;
   if (p.hasAnim) {
     if (plain.length < 1) throw new Error('Damaged data');
     anim = plain[0];
@@ -291,13 +299,21 @@ async function finishOpen(plain: Uint8Array, p: Packet, now: number): Promise<Op
   }
   if (p.hasRead) {
     if (plain.length < 2) throw new Error('Damaged data');
-    readSecs = new DataView(plain.buffer, plain.byteOffset).getUint16(0);
+    const view = new DataView(plain.buffer, plain.byteOffset);
+    readSecs = view.getUint16(0);
     plain = plain.subarray(2);
+    if (readSecs === 0) {
+      if (plain.length < 2) throw new Error('Damaged data');
+      readLocked = true;
+      readSecs = new DataView(plain.buffer, plain.byteOffset).getUint16(0);
+      plain = plain.subarray(2);
+    }
   }
   const tag = {
     ...(anim === undefined ? {} : { anim }),
     ...(expires === undefined ? {} : { expires }),
     ...(readSecs === undefined ? {} : { readSecs }),
+    ...(readLocked ? { readLocked: true } : {}),
   };
   if (p.isFile) return { ...decodeFile(plain), ...tag };
   return { kind: 'text', text: new TextDecoder('utf-8', { fatal: true }).decode(plain), ...tag };
