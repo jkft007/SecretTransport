@@ -6,14 +6,31 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://appsforoffice.microsoft.com; script-src 'self' https://appsforoffice.microsoft.com; style-src 'self' 'unsafe-inline'; frame-src 'self'; img-src 'self' data: blob:" />
     <title>VielVia messaging for Outlook</title>
     <style>
-      :root { --bg: #f4f6f8; --text: #17202a; --muted: #5f6b78; --err: #c0392b; --line: #d5dbe1; }
-      @media (prefers-color-scheme: dark) { :root { --bg: #0b0f14; --text: #e6edf3; --muted: #8b98a5; --err: #ff7b6b; --line: #26313c; } }
+      :root {
+        color-scheme: dark;
+        --canvas: #0b0f14;
+        --surface: #131923;
+        --surface-secondary: #19212c;
+        --border: #252d38;
+        --text: #f1f4f7;
+        --text-secondary: #a3adb8;
+        --text-tertiary: #697583;
+        --route: #465d73;
+        --signal-violet: #7767d8;
+        --verified: #4fa98c;
+        --critical: #d05d67;
+        --bg: var(--canvas);
+        --line: var(--border);
+        --muted: var(--text-secondary);
+        --err: var(--critical);
+      }
       html, body { height: 100%; margin: 0; }
       body { display: flex; flex-direction: column; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; }
-      #bar { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+      #bar { padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
       #msg { margin: 0; color: var(--muted); }
       #msg.err { color: var(--err); }
       #app { flex: 1; width: 100%; border: 0; min-height: 360px; background: var(--bg); }
+      :focus-visible { outline: 2px solid var(--signal-violet); outline-offset: 2px; }
     </style>
   </head>
   <body>

@@ -56,7 +56,7 @@ function updateMeter() {
   const { bits, level } = passStrength();
   const m = $('pass-meter');
   m.style.width = `${Math.min(100, (bits / 80) * 100)}%`;
-  m.style.background = level === 'ok' ? '#e0a100' : level === 'strong' ? 'var(--accent)' : 'var(--err)';
+  m.style.background = level === 'ok' ? 'var(--signal-violet)' : level === 'strong' ? 'var(--verified)' : 'var(--critical)';
   $('pass-note').textContent =
     level === 'none'
       ? ''
