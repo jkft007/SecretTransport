@@ -34,14 +34,15 @@ function setStatus(el: HTMLElement, msg: string, error = false) {
 }
 
 // ---- tabs -------------------------------------------------------------------
-function showTab(which: 'hide' | 'reveal' | 'keys') {
-  for (const t of ['hide', 'reveal', 'keys'] as const) {
+function showTab(which: 'hide' | 'reveal' | 'view' | 'keys') {
+  for (const t of ['hide', 'reveal', 'view', 'keys'] as const) {
     $(`tab-${t}`).setAttribute('aria-selected', String(t === which));
     $(`panel-${t}`).hidden = t !== which;
   }
 }
 $('tab-hide').onclick = () => showTab('hide');
 $('tab-reveal').onclick = () => showTab('reveal');
+$('tab-view').onclick = () => showTab('view');
 $('tab-keys').onclick = () => showTab('keys');
 
 // ---- passphrase helpers -----------------------------------------------------
@@ -606,6 +607,10 @@ interface Loaded {
 let images: Loaded[] = [];
 let nextId = 1;
 let handle: RevealHandle | null = null;
+// What the Revealed tab can play again: the picture, the text and the mode of the secret on show (kept in memory only, and dropped
+// when the secret is cleared).
+let lastReveal: { source: HTMLCanvasElement; text: string; mode: 'codeart' | 'stego'; anim?: number } | null = null;
+let playToken = 0;
 let clearTimer: number | undefined;
 // frames the camera has read so far (so it knows when a split set is complete)
 let scannedFrames: Uint8Array[] = [];
@@ -884,6 +889,8 @@ async function vanishAndClear() {
   clearInterval(clearTimer);
   if (reducedMotion()) return clearResult();
   const mine = ++vanishToken;
+  playToken++; // a replay that is still running stops
+  handle?.skip();
   stopSpeaking(); // the time is up: the voice stops too
   setSpeaking(false);
   $('timer').textContent = 'Time is up.';
@@ -901,6 +908,9 @@ async function vanishAndClear() {
 
 function clearResult() {
   vanishToken++; // stops a vanish that is still running
+  playToken++;
+  lastReveal = null;
+  $('view-tools').hidden = true;
   stopSpeaking();
   setSpeaking(false);
   $<HTMLCanvasElement>('stage').dataset.wally = ''; // and the doodle left behind by the last one
@@ -921,6 +931,23 @@ function clearResult() {
 }
 $('btn-clear').onclick = clearResult;
 $('btn-skip').onclick = () => handle?.skip();
+// Play the secret on show again, with any animation: the text is hidden while it plays and comes back at the end.
+$('btn-replay').onclick = async () => {
+  const lr = lastReveal;
+  if (!lr) return;
+  handle?.skip();
+  const token = ++playToken;
+  const anim = await import('./reveal-anim').catch(() => null);
+  if (!anim || token !== playToken) return;
+  const pick = $<HTMLSelectElement>('anim-style').value;
+  const style = STYLES.find((s) => s === pick) ?? idToStyle(lr.anim); // Auto: the sender's choice, else random
+  $('result').hidden = true;
+  $('btn-skip').hidden = false;
+  $('stage-wrap').hidden = false;
+  handle = anim.playReveal({ canvas: $<HTMLCanvasElement>('stage'), source: lr.source, text: lr.text, mode: lr.mode, reduceMotion: reducedMotion(), style });
+  await handle.done;
+  if (token === playToken) $('result').hidden = false;
+};
 $('btn-copy-plain').onclick = async () => {
   await navigator.clipboard.writeText($<HTMLTextAreaElement>('plain').value);
   setStatus($('reveal-status'), 'Text copied.');
@@ -1060,6 +1087,10 @@ $('btn-reveal').onclick = async () => {
     $('stage-wrap').hidden = false;
     $<HTMLTextAreaElement>('plain').value = '';
     const source = rgbaToCanvas(images[images.length - 1].rgba);
+    lastReveal = { source, text, mode, anim: payload.anim };
+    $('view-tools').hidden = false;
+    showTab('view'); // the reveal plays in its own tab
+    const token = ++playToken;
     // A manual choice wins; on Auto use the sender's stored choice, else playReveal picks at random.
     const pick = $<HTMLSelectElement>('anim-style').value;
     const style = STYLES.find((s) => s === pick) ?? idToStyle(payload.anim);
@@ -1070,6 +1101,7 @@ $('btn-reveal').onclick = async () => {
       handle = anim.playReveal({ canvas: $<HTMLCanvasElement>('stage'), source, text, mode, reduceMotion: reducedMotion(), style });
       await handle.done;
     }
+    if (token !== playToken) return; // cleared (or played again) meanwhile
     showResult(payload);
     $('result').hidden = false;
     if (payload.kind === 'text' && $<HTMLInputElement>('chk-autospeak').checked && localVoices().length) speakSecret();

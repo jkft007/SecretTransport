@@ -21,6 +21,7 @@
       <div class="tabs" role="tablist">
         <button id="tab-hide" role="tab" aria-selected="true" aria-controls="panel-hide">Hide a secret</button>
         <button id="tab-reveal" role="tab" aria-selected="false" aria-controls="panel-reveal">Reveal a secret</button>
+        <button id="tab-view" role="tab" aria-selected="false" aria-controls="panel-view">Revealed</button>
         <button id="tab-keys" role="tab" aria-selected="false" aria-controls="panel-keys">My keys</button>
       </div>
 
@@ -226,6 +227,14 @@
             <option value="300">Self-destruct after 5 min</option>
           </select>
           <span id="read-lock-note" class="hint" hidden>Locked by sender</span>
+        </div>
+        <div id="reveal-status" class="status" role="status"></div>
+      </section>
+
+      <section id="panel-view" class="card" role="tabpanel" hidden>
+        <p id="view-empty" class="hint">Nothing revealed yet. Open an image on the <b>Reveal a secret</b> tab and press Reveal: it plays here, and you can then pick any animation and play it again.</p>
+        <div id="view-tools" class="row" hidden>
+          <button id="btn-replay" class="primary" type="button">▶ Reveal again</button>
           <select id="anim-style" aria-label="Reveal animation">
             <option value="auto" selected>Animation: Auto (sender's choice, else random)</option>
             <option value="matrix">Matrix rain</option>
@@ -314,7 +323,6 @@
             <option value="builder">Builder and his truck build the message</option>
           </select>
         </div>
-        <div id="reveal-status" class="status" role="status"></div>
 
         <div id="stage-wrap" hidden>
           <canvas id="stage"></canvas>
