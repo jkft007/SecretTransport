@@ -148,7 +148,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt', 'shaken', 'footsmash']; // the styles that destroy the scanned image
   const FX_DUR = 2200; // how long the destruction takes
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', 'builder', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', 'builder', 'lockedchest', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -210,6 +210,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'volcano' ? Math.max(T_RESOLVE, 1800) + 900 + 300
     : style === 'emoji' ? Math.max(T_RESOLVE, 1800) + 600
     : style === 'builder' ? Math.min(4200, Math.max(1600, wordCount * 330)) + 440 + 700
+    : style === 'lockedchest' ? 900 + 600 + 1500 + 700
     : IMG_FX.includes(style) ? FX_DUR + 300
     : style === 'sharks' ? Math.max(T_RESOLVE, 1600) + 1400 + 300
     : style === 'broomball' ? Math.max(T_RESOLVE, 1500) + 700 + 400 + 200
@@ -261,6 +262,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'broomball' ? T_RES - 700 - 400 - 200
     : style === 'zombies' ? T_RES - 800 - 600 - 150
     : style === 'builder' ? T_RES - 440 - 700
+    : style === 'lockedchest' ? T_RES - 700
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -7230,6 +7232,307 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Locked chest: in a dark crypt a chest with a rusty padlock shakes, the padlock rusts through and drops, the lid creaks open and a
+  // skeleton hand rises out of it holding a sheet of old paper, which unrolls with the message inked on it.
+  const LC_SHAKE = 700; // the padlock gives way
+  const LC_LID0 = 900; // the lid starts to open
+  const LC_LIDT = 600;
+  const LC_RISE0 = LC_LID0 + LC_LIDT; // the hand starts to rise
+  const LC_RISE = 1500;
+  const lcS = Math.max(0.7, Math.min(1.2, H / 300)); // the size of everything
+  const lcFloor = H - 12;
+  const lcBW = Math.min(W * 0.55, 190 * lcS); // chest width
+  const lcBH = 74 * lcS; // chest body height
+  const lcLH = 38 * lcS; // lid height
+  const lcMouth = lcFloor - lcBH; // the top of the chest body
+  const lcCX = W / 2;
+  const lcBone = '#ece3cb';
+  const lcBoneEdge = '#8f8466';
+  const lcJ = Array.from({ length: 50 }, (_, i) => {
+    const v = Math.sin(i * 12.9898 + 4.1) * 43758.5453;
+    return v - Math.floor(v);
+  });
+  // the page: as big as the message, never tiny
+  const lcPg = (() => {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const c of visible) {
+      x0 = Math.min(x0, c.x);
+      x1 = Math.max(x1, c.x + cw);
+      y0 = Math.min(y0, c.y - fs);
+      y1 = Math.max(y1, c.y + 6);
+    }
+    if (!visible.length) { x0 = x1 = W / 2; y0 = y1 = H / 2; }
+    x0 -= 24; x1 += 24; y0 -= 20; y1 += 18;
+    const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+    const w = Math.max(x1 - x0, 210), h = Math.max(y1 - y0, 100);
+    return { x0: mx - w / 2, x1: mx + w / 2, y0: my - h / 2, y1: my + h / 2, w, h, cx: mx };
+  })();
+  const lcFlakes = Array.from({ length: 18 }, () => ({ t0: rnd() * 650, x: (rnd() - 0.5) * 22, vx: (rnd() - 0.5) * 0.03, vy: rnd() * 0.03, s: 1 + rnd() * 2.2, c: rnd() < 0.5 ? '#b5601f' : '#6a3512' }));
+  const lcBoneSeg = (x1: number, y1: number, x2: number, y2: number, w: number) => {
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = lcBoneEdge;
+    ctx.lineWidth = w + 1.6;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.strokeStyle = lcBone;
+    ctx.lineWidth = w;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.fillStyle = lcBone;
+    circ(x2, y2, w * 0.72);
+  };
+  const lcPadlock = (x: number, y: number, rot: number, open: number, sc: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.scale(sc, sc);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#5b4636'; // the shackle, rusty steel
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-6.5, -4);
+    ctx.lineTo(-6.5, -9 - open * 4);
+    ctx.arc(0, -9 - open * 4, 6.5, Math.PI, 0);
+    ctx.lineTo(6.5, -9 + open * 5);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(190,100,40,.75)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(0, -9 - open * 4, 6.5, Math.PI * 1.1, Math.PI * 1.7); ctx.stroke();
+    const body = ctx.createLinearGradient(-12, -5, 12, 14);
+    body.addColorStop(0, '#9a5524');
+    body.addColorStop(0.55, '#6b3513');
+    body.addColorStop(1, '#442109');
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.roundRect(-12, -5, 24, 19, 3); ctx.fill();
+    ctx.strokeStyle = '#2a1405'; ctx.lineWidth = 1; ctx.stroke();
+    for (let i = 0; i < 9; i++) { // rust blooms and pits
+      const a = lcJ[i * 3], b = lcJ[i * 3 + 1], d = lcJ[i * 3 + 2];
+      ctx.fillStyle = i % 3 ? `rgba(196,106,40,${0.35 + d * 0.3})` : 'rgba(30,14,4,.7)';
+      ctx.beginPath(); ctx.ellipse(-10 + a * 20, -3 + b * 15, 1.2 + d * 3, 0.9 + d * 2, a * 3, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#140a03'; // the keyhole
+    circ(0, 3, 2.3);
+    ctx.fillRect(-1, 3, 2, 6);
+    ctx.restore();
+  };
+  const lcPagePath = (x0: number, y0: number, x1: number, y1: number) => { // a torn, uneven edge
+    const nx = 14, ny = 10;
+    let j = 0;
+    const J = () => (lcJ[j++ % lcJ.length] - 0.5) * 5;
+    ctx.beginPath();
+    ctx.moveTo(x0 + J(), y0 + J());
+    for (let i = 1; i <= nx; i++) ctx.lineTo(x0 + ((x1 - x0) * i) / nx, y0 + J());
+    for (let i = 1; i <= ny; i++) ctx.lineTo(x1 + J(), y0 + ((y1 - y0) * i) / ny);
+    for (let i = 1; i <= nx; i++) ctx.lineTo(x1 - ((x1 - x0) * i) / nx, y1 + J());
+    for (let i = 1; i <= ny; i++) ctx.lineTo(x0 + J(), y1 - ((y1 - y0) * i) / ny);
+    ctx.closePath();
+  };
+  const drawLockedChest = (r: number) => {
+    const intro = ease(clamp1((r + T_INTRO) / T_INTRO));
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0b090f');
+    bg.addColorStop(1, '#1d1722');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(255,255,255,.04)'; // crypt stones
+    ctx.lineWidth = 1;
+    for (let yy = 22; yy < lcFloor; yy += 34) {
+      ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke();
+      for (let xx = ((yy / 34) % 2) * 45; xx < W; xx += 90) { ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx, yy + 34); ctx.stroke(); }
+    }
+    ctx.fillStyle = '#17131b'; // the floor
+    ctx.fillRect(0, lcFloor, W, H - lcFloor);
+    ctx.globalAlpha = intro;
+
+    const lid = ease(clamp1((r - LC_LID0) / LC_LIDT));
+    const q = ease(clamp1((r - LC_RISE0) / LC_RISE));
+    const u = ease(clamp1((r - LC_RISE0 - 200) / (LC_RISE * 0.85)));
+    const sink = ease(clamp1((r - LC_RISE0 - LC_RISE * 0.4) / (LC_RISE * 0.6))) * (lcBH + lcLH + 70);
+    const oy = (1 - intro) * 24 + sink; // the chest slides in, and later sinks away
+    const mouth = lcMouth + oy;
+    const hinge = mouth - 14 * lcS;
+    const bx0 = lcCX - lcBW / 2;
+
+    // inside: the dark mouth and the glow from within
+    ctx.fillStyle = '#080508';
+    ctx.fillRect(bx0 + 4, hinge, lcBW - 8, mouth - hinge + 2);
+    if (lid > 0) {
+      const g = ctx.createRadialGradient(lcCX, mouth, 4, lcCX, mouth - 40, 130 * lcS);
+      g.addColorStop(0, `rgba(255,190,90,${0.5 * lid})`);
+      g.addColorStop(0.5, `rgba(120,200,120,${0.12 * lid})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+    // the lid, hinged at the back: its outside, then (open) its velvet inside, standing behind
+    const lidB = mouth + (hinge - mouth) * lid;
+    const lidT = mouth - lcLH + (hinge - lcLH * 0.9 - (mouth - lcLH)) * lid;
+    const shrink = lid * lcBW * 0.09;
+    const lg = ctx.createLinearGradient(0, lidT, 0, lidB);
+    if (lid > 0.5) { lg.addColorStop(0, '#5a2026'); lg.addColorStop(1, '#2c0f13'); } else { lg.addColorStop(0, '#7a4d27'); lg.addColorStop(1, '#4d2f16'); }
+    ctx.fillStyle = lg;
+    ctx.beginPath();
+    ctx.moveTo(bx0, lidB);
+    ctx.lineTo(bx0 + shrink, lidT + (lid < 0.5 ? 12 * lcS : 0));
+    if (lid < 0.5) ctx.quadraticCurveTo(lcCX, lidT - 10 * lcS, bx0 + lcBW - shrink, lidT + 12 * lcS);
+    else ctx.lineTo(bx0 + lcBW - shrink, lidT);
+    ctx.lineTo(bx0 + lcBW, lidB);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#2e2e33'; // iron straps (on the outside of the lid)
+    ctx.lineWidth = 5 * lcS;
+    if (lid < 0.5) for (const f of [0.2, 0.8]) {
+      ctx.beginPath(); ctx.moveTo(bx0 + lcBW * f, lidB); ctx.lineTo(bx0 + lcBW * f + (f < 0.5 ? shrink : -shrink) * 0.9, lidT + 10 * lcS); ctx.stroke();
+    }
+
+    // the skeleton hand and the page
+    const s = lcS * 1.45; // the hand is bigger than the chest's own scale so it reads
+    const pb0 = Math.max(lcMouth + 24 * s, lcPg.y1 + 46);
+    const pb = pb0 + (lcPg.y1 - pb0) * q; // the bottom edge of the page, held by the hand
+    const sway = Math.sin(r / 150) * 1.6 * q;
+    const wx = lcPg.cx + sway;
+    const wy = pb + 60 * s;
+    const armEnd = Math.max(wy + 80 * s, H + 14);
+    if (q > 0 || r > LC_RISE0 - 200) {
+      // the forearm (two bones) and the wrist; they stay inside the chest until it sinks away
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, W, lcFloor + oy - 3);
+      ctx.clip();
+      lcBoneSeg(wx - 3 * s, wy, wx - 6 * s, armEnd, 5 * s);
+      lcBoneSeg(wx + 4 * s, wy, wx + 8 * s, armEnd, 5 * s);
+      ctx.fillStyle = lcBone;
+      for (const [ox, oy2] of [[-6, -1], [0, 1], [6, -2], [-2, -6], [4, -7]]) circ(wx + ox * s, wy + oy2 * s, 3.4 * s);
+      // the palm: four long bones to the knuckles
+      for (const kx of [-12, -4, 4, 12]) lcBoneSeg(wx + kx * 0.4 * s, wy - 4 * s, wx + kx * s, wy - 30 * s, 3 * s);
+      ctx.restore();
+      // the page: rolled up at first, unrolling as the hand lifts it
+      const ph = 16 + (lcPg.h - 16) * u;
+      const ws = 0.45 + 0.55 * clamp1(q * 1.6);
+      const px0 = lcPg.cx - (lcPg.w * ws) / 2 + sway * 0.5;
+      const px1 = lcPg.cx + (lcPg.w * ws) / 2 + sway * 0.5;
+      const py1 = pb;
+      const py0 = pb - ph;
+      ctx.save();
+      lcPagePath(px0, py0, px1, py1);
+      const pg = ctx.createLinearGradient(px0, py0, px1, py1);
+      pg.addColorStop(0, '#ecd9a8');
+      pg.addColorStop(0.5, '#dcc088');
+      pg.addColorStop(1, '#c4a465');
+      ctx.fillStyle = pg;
+      ctx.fill();
+      ctx.clip();
+      const vg = ctx.createRadialGradient((px0 + px1) / 2, (py0 + py1) / 2, Math.min(px1 - px0, ph) * 0.2, (px0 + px1) / 2, (py0 + py1) / 2, Math.max(px1 - px0, ph) * 0.62);
+      vg.addColorStop(0, 'rgba(110,70,20,0)');
+      vg.addColorStop(1, 'rgba(90,50,12,.5)');
+      ctx.fillStyle = vg;
+      ctx.fillRect(px0 - 6, py0 - 6, px1 - px0 + 12, ph + 12);
+      for (let i = 0; i < 6; i++) { // stains
+        ctx.fillStyle = `rgba(120,78,28,${0.07 + lcJ[i + 20] * 0.08})`;
+        ctx.beginPath(); ctx.ellipse(px0 + (px1 - px0) * lcJ[i], py0 + ph * lcJ[i + 6], 8 + lcJ[i + 12] * 22, 6 + lcJ[i + 12] * 14, lcJ[i] * 3, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.strokeStyle = 'rgba(110,75,30,.22)'; // creases from being folded
+      ctx.lineWidth = 1;
+      for (const f of [0.33, 0.66]) { ctx.beginPath(); ctx.moveTo(px0 + (px1 - px0) * f, py0); ctx.lineTo(px0 + (px1 - px0) * f + 3, py1); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(px0, py0 + ph * 0.5); ctx.lineTo(px1, py0 + ph * 0.5 + 2); ctx.stroke();
+      // the ink: the text moves with the page and shows as the page opens
+      const dy = pb - lcPg.y1;
+      ctx.font = `${fs}px ${FONT}`;
+      ctx.fillStyle = '#3a2210';
+      for (const c of visible) {
+        const yy = c.y + dy;
+        const a = clamp1((yy - fs - py0 - 4) / 18) * clamp1((u - 0.15) / 0.5);
+        if (a <= 0) continue;
+        ctx.globalAlpha = intro * a;
+        ctx.fillText(c.ch, c.x + sway * 0.5, yy);
+      }
+      ctx.globalAlpha = intro;
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(70,40,15,.55)';
+      ctx.lineWidth = 1.2;
+      lcPagePath(px0, py0, px1, py1);
+      ctx.stroke();
+      if (u < 0.98) { // the roll at the top edge, shrinking as it unrolls
+        const rr = 7 * s * (1 - u);
+        const rg = ctx.createLinearGradient(0, py0 - rr, 0, py0 + rr);
+        rg.addColorStop(0, '#f1e1b6'); rg.addColorStop(0.5, '#c9a96a'); rg.addColorStop(1, '#8c6c38');
+        ctx.fillStyle = rg;
+        ctx.beginPath(); ctx.roundRect(px0 - 2, py0 - rr, px1 - px0 + 4, rr * 2, rr); ctx.fill();
+      }
+      // the fingers curl over the bottom of the page, and the thumb
+      const kn = wy - 30 * s;
+      [-12, -4, 4, 12].forEach((kx, i) => {
+        let ang = kx * 0.014 - kx * 0.004; // fan out a little
+        let x = wx + kx * s;
+        let y = kn;
+        for (const [len, curl] of [[15, 0.2], [11, 0.4], [9, 0.5]] as const) {
+          const nx2 = x + Math.sin(ang) * len * s;
+          const ny2 = y - Math.cos(ang) * len * s;
+          lcBoneSeg(x, y, nx2, ny2, 3.2 * s);
+          x = nx2; y = ny2;
+          ang += (kx > 0 ? -curl : curl) * 0.35;
+        }
+        if (i === 1) { ctx.fillStyle = lcBone; circ(x, y, 0.1); }
+      });
+      let tx = wx - 10 * s, ty = wy - 8 * s, ta = -0.8;
+      for (const [len, curl] of [[14, 0.5], [11, 0.5]] as const) {
+        const nx2 = tx + Math.sin(ta) * len * s;
+        const ny2 = ty - Math.cos(ta) * len * s;
+        lcBoneSeg(tx, ty, nx2, ny2, 3.6 * s);
+        tx = nx2; ty = ny2; ta += curl;
+      }
+    }
+
+    // the front of the chest, with its iron bands and studs
+    const fg = ctx.createLinearGradient(0, mouth, 0, lcFloor + oy);
+    fg.addColorStop(0, '#6b4423'); fg.addColorStop(1, '#3f2812');
+    ctx.fillStyle = fg;
+    ctx.fillRect(bx0, mouth, lcBW, lcBH);
+    ctx.fillStyle = 'rgba(0,0,0,.28)';
+    for (let i = 1; i < 4; i++) ctx.fillRect(bx0, mouth + (lcBH * i) / 4, lcBW, 1.2);
+    ctx.fillStyle = '#2e2e33';
+    ctx.fillRect(bx0 - 2, mouth, lcBW + 4, 5 * lcS);
+    for (const f of [0.2, 0.8]) ctx.fillRect(bx0 + lcBW * f - 3 * lcS, mouth, 6 * lcS, lcBH);
+    ctx.fillStyle = '#7d6a4a';
+    for (const f of [0.2, 0.8]) for (const yy of [0.25, 0.8]) circ(bx0 + lcBW * f, mouth + lcBH * yy, 2 * lcS);
+    ctx.fillStyle = '#4a3a26'; // the hasp the padlock hung on
+    ctx.fillRect(lcCX - 9 * lcS, mouth + 5 * lcS, 18 * lcS, 15 * lcS);
+
+    // the rusty padlock: it shakes, flakes rust, then gives way and falls
+    const hangY = lcMouth + 20 * lcS; // the padlock does not sink with the chest: it lies on the floor
+    if (r < LC_SHAKE) {
+      const sh = clamp1(r / LC_SHAKE);
+      const rot = r > 0 ? Math.sin(r / 34) * 0.14 * (0.3 + sh) : Math.sin(r / 140) * 0.04;
+      const open = ease(clamp1((r - (LC_SHAKE - 160)) / 160));
+      lcPadlock(lcCX + (r > 0 ? Math.sin(r / 23) * 1.4 * sh : 0), hangY, rot, open, 1.15 * lcS);
+    } else {
+      const dt = r - LC_SHAKE;
+      const lockY = lcFloor - 9 * lcS;
+      const g = 0.0016;
+      const drop = lockY - hangY;
+      const tHit = Math.sqrt((2 * drop) / g);
+      const fall = dt < tHit ? 0.5 * g * dt * dt : drop - Math.abs(Math.sin((dt - tHit) / 110)) * 12 * Math.exp(-(dt - tHit) / 240);
+      const rot = dt < tHit ? dt * 0.0045 : tHit * 0.0045 + Math.min(0.5, (dt - tHit) / 400) * 0.6;
+      lcPadlock(lcCX + Math.min(1, dt / tHit) * 34 * lcS, hangY + fall, rot, 1, 1.15 * lcS);
+    }
+    if (r > 0 && r < 1500) { // rust flakes
+      for (const f of lcFlakes) {
+        const a = r - f.t0;
+        if (a < 0 || a > 800) continue;
+        ctx.globalAlpha = intro * (1 - a / 800);
+        ctx.fillStyle = f.c;
+        ctx.fillRect(lcCX + f.x + f.vx * a, hangY + 6 + f.vy * a + 0.0004 * a * a, f.s, f.s);
+      }
+      ctx.globalAlpha = intro;
+    }
+    if (lid > 0 && lid < 1) { // dust as the lid creaks open
+      for (let d = 0; d < 6; d++) {
+        ctx.fillStyle = `rgba(190,170,140,${0.28 * (1 - lid)})`;
+        circ(bx0 + (lcBW * (d + 0.5)) / 6, hinge - lid * 14 - d * 2, 4 + lid * 10);
+      }
+    }
+    ctx.globalAlpha = 1;
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -7285,6 +7588,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     shaken: drawShaken,
     footsmash: drawFoot,
     builder: drawBuilder,
+    lockedchest: drawLockedChest,
   };
 
   const frame = (now: number) => {
