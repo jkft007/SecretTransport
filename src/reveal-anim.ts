@@ -148,7 +148,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt', 'shaken', 'footsmash']; // the styles that destroy the scanned image
   const FX_DUR = 2200; // how long the destruction takes
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', 'builder', 'lockedchest', 'lighthouse', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', 'builder', 'lockedchest', 'lighthouse', 'ghostship', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -212,6 +212,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'builder' ? Math.min(4200, Math.max(1600, wordCount * 330)) + 440 + 700
     : style === 'lockedchest' ? 900 + 600 + 1500 + 700
     : style === 'lighthouse' ? Math.min(4000, Math.max(2400, wordCount * 260)) + 800
+    : style === 'ghostship' ? 3800 + 700
     : IMG_FX.includes(style) ? FX_DUR + 300
     : style === 'sharks' ? Math.max(T_RESOLVE, 1600) + 1400 + 300
     : style === 'broomball' ? Math.max(T_RESOLVE, 1500) + 700 + 400 + 200
@@ -265,6 +266,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'builder' ? T_RES - 440 - 700
     : style === 'lockedchest' ? T_RES - 700
     : style === 'lighthouse' ? T_RES - 800
+    : style === 'ghostship' ? T_RES - 700
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -7721,6 +7723,147 @@ export function playReveal(o: RevealOptions): RevealHandle {
     fadeToFinal(r);
   };
 
+  // Ghost ship: a tattered galleon with glowing portholes and a ghostly crew sails slowly out of thick fog across the stage. Behind it
+  // the fog thins and the words show; ahead of it the fog is still dense.
+  const GS_PASS = 3800;
+  const gsW = H * 0.62; // the length of the ship on screen
+  const gsWater = H * 0.84;
+  const gsDens = (x: number, edge: number) => 0.1 + 0.7 * clamp1((x - edge) / (W * 0.45)); // the fog is thick ahead of the stern, thin behind it
+  const gsSail = (mx: number, y0: number, y1: number, w: number, r: number, seed: number) => {
+    const bulge = 3 + Math.sin(r / 400 + mx) * 1.6;
+    ctx.beginPath();
+    ctx.moveTo(mx - w * 0.8, y0);
+    ctx.lineTo(mx + w * 0.8, y0);
+    ctx.quadraticCurveTo(mx + w + bulge, (y0 + y1) / 2, mx + w, y1);
+    const n = 7;
+    for (let i = 1; i <= n; i++) { // the torn lower edge
+      const tx = mx + w - (2 * w * i) / n;
+      ctx.lineTo(tx, y1 + (i % 2 ? 0 : 3 + lcJ[(i + seed) % lcJ.length] * 6));
+    }
+    ctx.quadraticCurveTo(mx - w - bulge * 0.6, (y0 + y1) / 2, mx - w * 0.8, y0);
+    ctx.closePath();
+    ctx.shadowColor = 'rgba(150,255,220,.5)';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = 'rgba(196,212,206,.5)';
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(120,150,142,.6)';
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(8,14,18,.55)'; // holes
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.ellipse(mx + (lcJ[(seed + i * 5) % lcJ.length] - 0.5) * w, y0 + (y1 - y0) * (0.35 + 0.35 * lcJ[(seed + i * 7 + 3) % lcJ.length]), 1.8 + i, 1.3, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = '#0a0e12'; // the yard
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(mx - w * 0.95, y0); ctx.lineTo(mx + w * 0.95, y0); ctx.stroke();
+  };
+  const drawGhostShip = (r: number) => {
+    const intro = ease(clamp1((r + T_INTRO) / T_INTRO));
+    const p = clamp1(r / GS_PASS);
+    const u = (gsW / 100) * (0.85 + 0.25 * p); // the ship grows a little as it comes on
+    const sx = -gsW * 0.6 + (W + gsW * 1.2) * p;
+    const sy = gsWater + Math.sin(r / 520) * 3;
+    const stern = sx - gsW * 0.5;
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#050a10');
+    sky.addColorStop(1, '#10222c');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    const mg = ctx.createRadialGradient(W * 0.78, H * 0.2, 2, W * 0.78, H * 0.2, 70);
+    mg.addColorStop(0, 'rgba(225,238,235,.9)'); mg.addColorStop(0.25, 'rgba(190,215,215,.28)'); mg.addColorStop(1, 'rgba(190,215,215,0)');
+    ctx.fillStyle = mg;
+    ctx.fillRect(W * 0.78 - 80, H * 0.2 - 80, 160, 160);
+    const wave = (b: number) => {
+      ctx.fillStyle = ['rgba(12,34,44,.96)', 'rgba(8,26,36,.98)', 'rgba(5,17,25,1)'][b];
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 8) ctx.lineTo(x, gsWater + b * H * 0.04 + Math.sin(x / (30 + b * 8) + r / (240 + b * 60)) * (3.2 - b * 0.5));
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+    };
+    wave(0);
+    // the ship, in its own units (100 long): the bow points to the right
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(Math.sin(r / 700) * 0.025);
+    ctx.scale(u, u);
+    const glowW = ctx.createRadialGradient(0, 4, 4, 0, 4, 60);
+    glowW.addColorStop(0, 'rgba(130,255,200,.28)'); glowW.addColorStop(1, 'rgba(130,255,200,0)');
+    ctx.fillStyle = glowW;
+    ctx.fillRect(-70, -40, 140, 70);
+    // masts, rigging and the tattered sails
+    ctx.strokeStyle = '#0b0f13';
+    ctx.lineWidth = 2.2;
+    for (const [mx, top] of [[-32, -78], [0, -112], [32, -92]]) { ctx.beginPath(); ctx.moveTo(mx, -14); ctx.lineTo(mx, top); ctx.stroke(); }
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = 'rgba(10,14,18,.85)';
+    for (const [x1, y1, x2, y2] of [[0, -112, 60, -20], [0, -112, -48, -24], [32, -92, 66, -20], [-32, -78, -48, -24]]) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+    gsSail(0, -100, -72, 24, r, 1); gsSail(0, -70, -40, 32, r, 6);
+    gsSail(32, -84, -60, 19, r, 11); gsSail(32, -58, -34, 24, r, 16);
+    gsSail(-32, -70, -48, 17, r, 21); gsSail(-32, -46, -26, 20, r, 26);
+    const fl = Math.sin(r / 150);
+    ctx.fillStyle = '#08090c'; // the tattered black flag
+    ctx.beginPath();
+    ctx.moveTo(0, -112); ctx.lineTo(12 + fl * 2, -115 + fl); ctx.lineTo(9, -111); ctx.lineTo(17 + fl * 3, -109 + fl); ctx.lineTo(0, -107);
+    ctx.closePath(); ctx.fill();
+    // the hull
+    const hull = ctx.createLinearGradient(0, -24, 0, 10);
+    hull.addColorStop(0, '#222b30'); hull.addColorStop(1, '#090d10');
+    ctx.fillStyle = hull;
+    ctx.beginPath();
+    ctx.moveTo(-48, -26);
+    ctx.lineTo(-52, -15);
+    ctx.quadraticCurveTo(-40, 9, -10, 11);
+    ctx.quadraticCurveTo(32, 11, 52, -6);
+    ctx.lineTo(68, -22);
+    ctx.lineTo(48, -14);
+    ctx.lineTo(-20, -14);
+    ctx.lineTo(-30, -22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(120,150,150,.22)';
+    ctx.lineWidth = 0.5;
+    for (const yy of [-9, -3, 3]) { ctx.beginPath(); ctx.moveTo(-44, yy); ctx.quadraticCurveTo(0, yy + 6, 50, yy - 6); ctx.stroke(); }
+    for (let i = -3; i <= 3; i++) { // glowing portholes
+      ctx.fillStyle = `rgba(150,255,205,${0.5 + 0.4 * Math.sin(r / 190 + i * 1.9)})`;
+      ctx.shadowColor = 'rgba(150,255,205,.9)'; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(i * 12 - 2, -7 + Math.abs(i) * 0.5, 1.7, 0, Math.PI * 2); ctx.fill();
+    }
+    for (let i = 0; i < 3; i++) ctx.fillRect(-47 + i * 5, -23, 3, 3.5); // stern windows
+    ctx.shadowBlur = 0;
+    for (const [gx, gy, gz] of [[-26, -24, 7], [6, -17, 6.5], [38, -17, 6]]) lhGhost(gx, gy - 4, gz, 0.78, r / 210 + gx); // the crew
+    const sw = Math.sin(r / 320) * 2.5; // the crow's nest lantern
+    const lg = ctx.createRadialGradient(sw, -86, 0, sw, -86, 12);
+    lg.addColorStop(0, 'rgba(170,255,210,.9)'); lg.addColorStop(1, 'rgba(170,255,210,0)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(sw - 12, -98, 24, 24);
+    ctx.restore();
+    wave(1);
+    wave(2);
+    // the fog: dense ahead of the ship, thin behind it, with wisps drifting through
+    const fg = ctx.createLinearGradient(0, 0, W, 0);
+    for (let i = 0; i <= 8; i++) fg.addColorStop(i / 8, `rgba(150,172,180,${gsDens((i / 8) * W, stern) * intro})`);
+    ctx.fillStyle = fg;
+    ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 6; i++) {
+      const fx = (((i * W) / 3 + r * 0.03 * (1 + (i % 3) * 0.4)) % (W + 260)) - 130;
+      ctx.fillStyle = `rgba(205,222,226,${0.12 * gsDens(fx, stern) * intro})`;
+      ctx.beginPath(); ctx.ellipse(fx, H * (0.3 + (i % 4) * 0.16), 120, 26 * (H / 300), 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // the words show where the fog has parted
+    ctx.font = `${fs}px ${FONT}`;
+    for (const w of words) {
+      const a = ease(clamp1((stern - w.cx) / (W * 0.12) + 0.2));
+      if (a <= 0) continue;
+      for (const c of w.cells) textLit(c, '#e8fff5', 'rgba(150,255,220,.9)', 8, c.x, c.y + (1 - a) * 5, a);
+    }
+    fadeToFinal(r);
+  };
+
   const special: Partial<Record<RevealStyle, (r: number, t: number) => void>> = {
     minions: drawMinions,
     snowglobe: drawSnowglobe,
@@ -7778,6 +7921,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     builder: drawBuilder,
     lockedchest: drawLockedChest,
     lighthouse: drawLighthouse,
+    ghostship: drawGhostShip,
   };
 
   const frame = (now: number) => {
