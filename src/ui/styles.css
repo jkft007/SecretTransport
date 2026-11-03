@@ -164,7 +164,7 @@ textarea { min-height: 112px; resize: vertical; }
 textarea::placeholder, input::placeholder { color: var(--text-tertiary); opacity: 1; }
 select { color-scheme: dark; }
 input[type='checkbox'], input[type='radio'] { accent-color: var(--signal-violet); }
-#anim-style, #read-clear { width: auto; min-height: 36px; padding: 5px 30px 5px 10px; font-size: 13px; }
+#anim-style, #anim-replay, #read-clear { width: auto; min-height: 36px; padding: 5px 30px 5px 10px; font-size: 13px; }
 
 details.more {
   margin-top: 14px;

@@ -611,6 +611,10 @@ let handle: RevealHandle | null = null;
 // when the secret is cleared).
 let lastReveal: { source: HTMLCanvasElement; text: string; mode: 'codeart' | 'stego'; anim?: number } | null = null;
 let playToken = 0;
+// The Revealed tab has its own copy of the animation menu, kept in step with the one on the Reveal tab.
+for (const o of $<HTMLSelectElement>('anim-style').options) $<HTMLSelectElement>('anim-replay').append(new Option(o.textContent ?? o.value, o.value));
+$('anim-replay').addEventListener('change', () => ($<HTMLSelectElement>('anim-style').value = $<HTMLSelectElement>('anim-replay').value));
+$('anim-style').addEventListener('change', () => ($<HTMLSelectElement>('anim-replay').value = $<HTMLSelectElement>('anim-style').value));
 let clearTimer: number | undefined;
 // frames the camera has read so far (so it knows when a split set is complete)
 let scannedFrames: Uint8Array[] = [];
@@ -939,7 +943,7 @@ $('btn-replay').onclick = async () => {
   const token = ++playToken;
   const anim = await import('./reveal-anim').catch(() => null);
   if (!anim || token !== playToken) return;
-  const pick = $<HTMLSelectElement>('anim-style').value;
+  const pick = $<HTMLSelectElement>('anim-replay').value;
   const style = STYLES.find((s) => s === pick) ?? idToStyle(lr.anim); // Auto: the sender's choice, else random
   $('result').hidden = true;
   $('btn-skip').hidden = false;
@@ -1088,6 +1092,7 @@ $('btn-reveal').onclick = async () => {
     $<HTMLTextAreaElement>('plain').value = '';
     const source = rgbaToCanvas(images[images.length - 1].rgba);
     lastReveal = { source, text, mode, anim: payload.anim };
+    $<HTMLSelectElement>('anim-replay').value = $<HTMLSelectElement>('anim-style').value;
     $('view-tools').hidden = false;
     showTab('view'); // the reveal plays in its own tab
     const token = ++playToken;

@@ -148,7 +148,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
   const IMG_FX: RevealStyle[] = ['dissolve', 'sandfall', 'blackhole', 'hammersmash', 'shatter', 'burnaway', 'shredder', 'melt', 'rainwash', 'acidrain', 'icemelt', 'shaken', 'footsmash']; // the styles that destroy the scanned image
   const FX_DUR = 2200; // how long the destruction takes
   const STEAM = 900; // how long a letter takes to drift up from the chimney to its place
-  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', 'builder', 'lockedchest', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
+  const T_INTRO = style === 'matrix' ? T_SCAN + T_RAIN : ['curtain', 'moon', 'swarm', 'bubbles', 'ufo', 'spotlight', 'jackpot', 'ink', 'safe', 'train', 'oldtype', 'printer', 'ticker', 'radar', 'parade', 'asteroids', 'hearts', 'flowers', 'bomb', 'wizard', 'minions', 'snowglobe', 'rocket', 'lightning', 'helicopters', 'banner', 'balloons', 'quill', 'dominoes', 'treasure', 'paperplanes', 'ghosts', 'seance', 'poltergeist', 'haunted', 'dragon', 'panther', 'roadrunner', 'genie', 'fartgun', 'arrows', 'tiles', 'witches', 'redarrows', 'pirate', 'fogwriter', 'whale', 'submarine', 'bomber', 'kraken', 'thor', 'spiders', 'hatdance', 'lasers', 'earthquake', 'volcano', 'emoji', 'sharks', 'broomball', 'zombies', 'builder', 'lockedchest', 'lighthouse', ...IMG_FX].includes(style) ? 600 : style === 'film' ? 1400 : style === 'can' || style === 'flag' || style === 'plane' ? 800 : 1000;
   const T_RES =
     style === 'iris' ? 1300
     : style === 'fireworks' ? Math.max(T_RESOLVE, 2200)
@@ -211,6 +211,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'emoji' ? Math.max(T_RESOLVE, 1800) + 600
     : style === 'builder' ? Math.min(4200, Math.max(1600, wordCount * 330)) + 440 + 700
     : style === 'lockedchest' ? 900 + 600 + 1500 + 700
+    : style === 'lighthouse' ? Math.min(4000, Math.max(2400, wordCount * 260)) + 800
     : IMG_FX.includes(style) ? FX_DUR + 300
     : style === 'sharks' ? Math.max(T_RESOLVE, 1600) + 1400 + 300
     : style === 'broomball' ? Math.max(T_RESOLVE, 1500) + 700 + 400 + 200
@@ -263,6 +264,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     : style === 'zombies' ? T_RES - 800 - 600 - 150
     : style === 'builder' ? T_RES - 440 - 700
     : style === 'lockedchest' ? T_RES - 700
+    : style === 'lighthouse' ? T_RES - 800
     : T_RES;
   visible.forEach((c, i) => (c.lock = (i / Math.max(1, visible.length)) * T_LOCK * spread + rnd() * T_LOCK * 0.15));
   const ease = (p: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
@@ -7262,7 +7264,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
       y1 = Math.max(y1, c.y + 6);
     }
     if (!visible.length) { x0 = x1 = W / 2; y0 = y1 = H / 2; }
-    x0 -= 24; x1 += 24; y0 -= 20; y1 += 18;
+    x0 -= 24; x1 += 24; y0 -= 28; y1 += 18;
     const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
     const w = Math.max(x1 - x0, 210), h = Math.max(y1 - y0, 100);
     return { x0: mx - w / 2, x1: mx + w / 2, y0: my - h / 2, y1: my + h / 2, w, h, cx: mx };
@@ -7344,8 +7346,8 @@ export function playReveal(o: RevealOptions): RevealHandle {
 
     const lid = ease(clamp1((r - LC_LID0) / LC_LIDT));
     const q = ease(clamp1((r - LC_RISE0) / LC_RISE));
-    const u = ease(clamp1((r - LC_RISE0 - 200) / (LC_RISE * 0.85)));
-    const sink = ease(clamp1((r - LC_RISE0 - LC_RISE * 0.4) / (LC_RISE * 0.6))) * (lcBH + lcLH + 70);
+    const u = ease(clamp1((r - LC_RISE0 - 500) / (LC_RISE * 0.9)));
+    const sink = ease(clamp1((r - LC_RISE0 - 500) / (LC_RISE * 0.8))) * (lcBH + lcLH + 70);
     const oy = (1 - intro) * 24 + sink; // the chest slides in, and later sinks away
     const mouth = lcMouth + oy;
     const hinge = mouth - 14 * lcS;
@@ -7383,34 +7385,42 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.beginPath(); ctx.moveTo(bx0 + lcBW * f, lidB); ctx.lineTo(bx0 + lcBW * f + (f < 0.5 ? shrink : -shrink) * 0.9, lidT + 10 * lcS); ctx.stroke();
     }
 
-    // the skeleton hand and the page
-    const s = lcS * 1.45; // the hand is bigger than the chest's own scale so it reads
-    const pb0 = Math.max(lcMouth + 24 * s, lcPg.y1 + 46);
-    const pb = pb0 + (lcPg.y1 - pb0) * q; // the bottom edge of the page, held by the hand
+    // the skeleton hand comes up out of the chest gripping a rolled scroll, its fingers hooked over the top; it lifts the scroll clear
+    // and the scroll unrolls downward, with the message inked on it
+    const s = lcS * 1.2;
+    const yStart = lcMouth + 30 * s;
+    const yt = yStart + (lcPg.y0 - yStart) * q; // the top edge of the scroll, where the hand grips
     const sway = Math.sin(r / 150) * 1.6 * q;
     const wx = lcPg.cx + sway;
-    const wy = pb + 60 * s;
-    const armEnd = Math.max(wy + 80 * s, H + 14);
-    if (q > 0 || r > LC_RISE0 - 200) {
-      // the forearm (two bones) and the wrist; they stay inside the chest until it sinks away
+    const ph = 16 + (lcPg.h - 16) * u;
+    const ws = 0.5 + 0.5 * u;
+    const px0 = lcPg.cx - (lcPg.w * ws) / 2 + sway * 0.5;
+    const px1 = lcPg.cx + (lcPg.w * ws) / 2 + sway * 0.5;
+    const py0 = yt;
+    const py1 = yt + ph;
+    if (r > LC_RISE0 - 250) {
+      // the forearm (two bones) climbing out of the chest, the wrist and the palm; they stay inside the chest until it sinks away
+      const wyy = yt + 44 * s;
+      const armEnd = Math.max(wyy + 90 * s, H + 14);
+      const kn = yt + 10 * s;
       ctx.save();
       ctx.beginPath();
       ctx.rect(0, 0, W, lcFloor + oy - 3);
       ctx.clip();
-      lcBoneSeg(wx - 3 * s, wy, wx - 6 * s, armEnd, 5 * s);
-      lcBoneSeg(wx + 4 * s, wy, wx + 8 * s, armEnd, 5 * s);
+      lcBoneSeg(wx - 3 * s, wyy, wx - 6 * s, armEnd, 5 * s);
+      lcBoneSeg(wx + 4 * s, wyy, wx + 8 * s, armEnd, 5 * s);
       ctx.fillStyle = lcBone;
-      for (const [ox, oy2] of [[-6, -1], [0, 1], [6, -2], [-2, -6], [4, -7]]) circ(wx + ox * s, wy + oy2 * s, 3.4 * s);
-      // the palm: four long bones to the knuckles
-      for (const kx of [-12, -4, 4, 12]) lcBoneSeg(wx + kx * 0.4 * s, wy - 4 * s, wx + kx * s, wy - 30 * s, 3 * s);
+      for (const [ox, oy2] of [[-6, -1], [0, 1], [6, -2], [-2, -6], [4, -7]]) circ(wx + ox * s, wyy + oy2 * s, 3.4 * s);
+      for (const dyk of [30, 60]) { // the knobbly joints of the two forearm bones
+        circ(wx - 3.6 * s - (dyk / 90) * 2.5 * s, wyy + dyk * s, 3.4 * s);
+        circ(wx + 4.5 * s + (dyk / 90) * 3.5 * s, wyy + dyk * s, 3.4 * s);
+      }
+      for (const kx of [-12, -4, 4, 12]) {
+        lcBoneSeg(wx + kx * 0.4 * s, wyy - 6 * s, wx + kx * s, kn, 3 * s); // a palm bone
+        lcBoneSeg(wx + kx * s, kn, wx + kx * s, yt - 14 * s, 3.2 * s); // the finger behind the scroll
+      }
       ctx.restore();
-      // the page: rolled up at first, unrolling as the hand lifts it
-      const ph = 16 + (lcPg.h - 16) * u;
-      const ws = 0.45 + 0.55 * clamp1(q * 1.6);
-      const px0 = lcPg.cx - (lcPg.w * ws) / 2 + sway * 0.5;
-      const px1 = lcPg.cx + (lcPg.w * ws) / 2 + sway * 0.5;
-      const py1 = pb;
-      const py0 = pb - ph;
+      // the scroll: rolled up at first, hanging open below the hand once it has unrolled
       ctx.save();
       lcPagePath(px0, py0, px1, py1);
       const pg = ctx.createLinearGradient(px0, py0, px1, py1);
@@ -7433,13 +7443,13 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.lineWidth = 1;
       for (const f of [0.33, 0.66]) { ctx.beginPath(); ctx.moveTo(px0 + (px1 - px0) * f, py0); ctx.lineTo(px0 + (px1 - px0) * f + 3, py1); ctx.stroke(); }
       ctx.beginPath(); ctx.moveTo(px0, py0 + ph * 0.5); ctx.lineTo(px1, py0 + ph * 0.5 + 2); ctx.stroke();
-      // the ink: the text moves with the page and shows as the page opens
-      const dy = pb - lcPg.y1;
+      // the ink: the text moves with the scroll and shows as it opens
+      const dy = yt - lcPg.y0;
       ctx.font = `${fs}px ${FONT}`;
       ctx.fillStyle = '#3a2210';
       for (const c of visible) {
         const yy = c.y + dy;
-        const a = clamp1((yy - fs - py0 - 4) / 18) * clamp1((u - 0.15) / 0.5);
+        const a = clamp1((py1 - yy - 4) / 18) * clamp1((u - 0.1) / 0.4);
         if (a <= 0) continue;
         ctx.globalAlpha = intro * a;
         ctx.fillText(c.ch, c.x + sway * 0.5, yy);
@@ -7450,34 +7460,19 @@ export function playReveal(o: RevealOptions): RevealHandle {
       ctx.lineWidth = 1.2;
       lcPagePath(px0, py0, px1, py1);
       ctx.stroke();
-      if (u < 0.98) { // the roll at the top edge, shrinking as it unrolls
-        const rr = 7 * s * (1 - u);
-        const rg = ctx.createLinearGradient(0, py0 - rr, 0, py0 + rr);
-        rg.addColorStop(0, '#f1e1b6'); rg.addColorStop(0.5, '#c9a96a'); rg.addColorStop(1, '#8c6c38');
-        ctx.fillStyle = rg;
-        ctx.beginPath(); ctx.roundRect(px0 - 2, py0 - rr, px1 - px0 + 4, rr * 2, rr); ctx.fill();
-      }
-      // the fingers curl over the bottom of the page, and the thumb
-      const kn = wy - 30 * s;
-      [-12, -4, 4, 12].forEach((kx, i) => {
-        let ang = kx * 0.014 - kx * 0.004; // fan out a little
-        let x = wx + kx * s;
-        let y = kn;
-        for (const [len, curl] of [[15, 0.2], [11, 0.4], [9, 0.5]] as const) {
-          const nx2 = x + Math.sin(ang) * len * s;
-          const ny2 = y - Math.cos(ang) * len * s;
-          lcBoneSeg(x, y, nx2, ny2, 3.2 * s);
-          x = nx2; y = ny2;
-          ang += (kx > 0 ? -curl : curl) * 0.35;
-        }
-        if (i === 1) { ctx.fillStyle = lcBone; circ(x, y, 0.1); }
-      });
-      let tx = wx - 10 * s, ty = wy - 8 * s, ta = -0.8;
-      for (const [len, curl] of [[14, 0.5], [11, 0.5]] as const) {
-        const nx2 = tx + Math.sin(ta) * len * s;
-        const ny2 = ty - Math.cos(ta) * len * s;
-        lcBoneSeg(tx, ty, nx2, ny2, 3.6 * s);
-        tx = nx2; ty = ny2; ta += curl;
+      const rr = 6 * s * (1 - 0.45 * u); // the roll at the top, which stays as a rod
+      const rg = ctx.createLinearGradient(0, py0 - rr, 0, py0 + rr);
+      rg.addColorStop(0, '#f1e1b6'); rg.addColorStop(0.5, '#c9a96a'); rg.addColorStop(1, '#8c6c38');
+      ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.roundRect(px0 - 3, py0 - rr, px1 - px0 + 6, rr * 2, rr); ctx.fill();
+      // the fingertips hooked over the top, in front of the scroll
+      for (const kx of [-12, -4, 4, 12]) {
+        const fx = wx + kx * s;
+        ctx.fillStyle = lcBone;
+        circ(fx, yt - 15 * s, 2.4 * s);
+        lcBoneSeg(fx + 0.5 * s, yt - 14 * s, fx + 3 * s, yt - 3 * s, 3.2 * s); // the finger curls over the top and down the front
+        lcBoneSeg(fx + 3 * s, yt - 3 * s, fx + 2 * s, yt + 8 * s, 3 * s);
+        lcBoneSeg(fx + 2 * s, yt + 8 * s, fx - 0.5 * s, yt + 15 * s, 2.6 * s);
       }
     }
 
@@ -7530,6 +7525,199 @@ export function playReveal(o: RevealOptions): RevealHandle {
       }
     }
     ctx.globalAlpha = 1;
+    fadeToFinal(r);
+  };
+
+  // Haunted lighthouse: on a stormy night a lighthouse on a rock sweeps its beam across the stage, and wherever the beam passes the
+  // words appear in ghostly light. Ghosts drift through the fog and one waves from the gallery; lightning flashes now and then.
+  const LH_SWEEP = Math.min(4000, Math.max(2400, wordCount * 260));
+  const LH_HOLD = 800;
+  const lhS = Math.max(0.7, Math.min(1.2, H / 300));
+  const lhBaseY = H * 0.88;
+  const lhTH = 150 * lhS; // the tower
+  const lhX = Math.max(36 * lhS, W * 0.1);
+  const lhTopY = lhBaseY - lhTH;
+  const lhLY = lhTopY - 10 * lhS; // the lantern
+  const lhWA = words.map((w) => Math.atan2(w.cells[0].y - fs * 0.3 - lhLY, w.cx - lhX)); // the direction of each word from the lantern
+  const lhA0 = (lhWA.length ? Math.min(...lhWA) : -0.1) - 0.3;
+  const lhA1 = (lhWA.length ? Math.max(...lhWA) : 0.1) + 0.25;
+  const lhTheta = (r: number) => {
+    const p = clamp1(r / LH_SWEEP);
+    return lhA0 + (lhA1 - lhA0) * (p * p * (3 - 2 * p));
+  };
+  const lhLit = lhWA.map((a) => { // when the beam first reaches each word
+    for (let rr = 0; rr <= LH_SWEEP; rr += 12) if (lhTheta(rr) >= a - 0.1) return rr;
+    return LH_SWEEP;
+  });
+  const lhBolts = [{ t: 820, x: 0.58 }, { t: 1950, x: 0.82 }, { t: 3050, x: 0.42 }];
+  const lhGhost = (x: number, y: number, sz: number, alpha: number, ph: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = 'rgba(170,255,235,.9)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = 'rgba(226,240,246,.92)';
+    ctx.beginPath();
+    ctx.arc(0, -sz * 0.2, sz * 0.5, Math.PI, 0);
+    for (let i = 0; i <= 4; i++) ctx.lineTo(sz * 0.5 - (i * sz) / 4, sz * 0.5 + (i % 2 ? 0 : sz * 0.2) + Math.sin(ph + i) * sz * 0.05);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.ellipse(-sz * 0.58, sz * 0.12, sz * 0.12, sz * 0.2, 0.5 + Math.sin(ph) * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(sz * 0.58, sz * 0.12, sz * 0.12, sz * 0.2, -0.5 - Math.sin(ph) * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#0c1418';
+    ctx.beginPath(); ctx.ellipse(-sz * 0.19, -sz * 0.25, sz * 0.09, sz * 0.14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(sz * 0.19, -sz * 0.25, sz * 0.09, sz * 0.14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, -sz * 0.0, sz * 0.07, sz * 0.11, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  };
+  const drawLighthouse = (r: number) => {
+    const intro = ease(clamp1((r + T_INTRO) / T_INTRO));
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#070a14');
+    sky.addColorStop(0.7, '#14202c');
+    sky.addColorStop(1, '#1b2e3a');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 6; i++) { // storm clouds
+      const cx = ((i * W) / 4 + r * 0.012 * (1 + (i % 2)) + 600 * 0.012) % (W + 320) - 160;
+      ctx.fillStyle = `rgba(8,11,20,${0.55 + (i % 3) * 0.1})`;
+      ctx.beginPath(); ctx.ellipse(cx, H * (0.08 + (i % 3) * 0.1), 90 * lhS + i * 12, 22 * lhS, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // lightning
+    let flash = 0;
+    for (const b of lhBolts) {
+      const a = r - b.t;
+      if (a < 0 || a > 220) continue;
+      flash = Math.max(flash, (a < 70 ? 0.32 : a < 100 ? 0.05 : 0.22) * (1 - a / 220));
+      if (a < 160) {
+        ctx.strokeStyle = `rgba(235,245,255,${0.9 * (1 - a / 160)})`;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#bcd8ff';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        let bx = W * b.x;
+        ctx.moveTo(bx, 0);
+        for (let y = 0; y < lhBaseY * 0.85; y += 16) {
+          bx += Math.sin(y * 3.7 + b.t) * 9;
+          ctx.lineTo(bx, y + 16);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+    }
+    if (flash > 0) {
+      ctx.fillStyle = `rgba(210,225,255,${flash})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+    for (let i = 0; i < 3; i++) { // fog behind
+      const fx = ((i * W) / 2.4 + Math.sin(r / 1800 + i) * 40) % W;
+      ctx.fillStyle = 'rgba(190,215,225,.07)';
+      ctx.beginPath(); ctx.ellipse(fx, H * (0.62 + i * 0.1), W * 0.38, 26 * lhS, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // the sea
+    for (let b = 0; b < 3; b++) {
+      ctx.fillStyle = ['rgba(14,38,52,.95)', 'rgba(10,28,40,.97)', 'rgba(6,18,28,1)'][b];
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let x = 0; x <= W; x += 8) ctx.lineTo(x, lhBaseY + b * H * 0.035 + Math.sin(x / (34 + b * 9) + r / (260 + b * 70)) * (3.4 - b * 0.6) * lhS);
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // the rock and the tower
+    const s = lhS;
+    ctx.fillStyle = '#0b0f14';
+    ctx.beginPath();
+    ctx.moveTo(lhX - 62 * s, H); ctx.lineTo(lhX - 46 * s, lhBaseY + 4 * s); ctx.lineTo(lhX - 24 * s, lhBaseY - 8 * s);
+    ctx.lineTo(lhX + 20 * s, lhBaseY - 6 * s); ctx.lineTo(lhX + 44 * s, lhBaseY + 6 * s); ctx.lineTo(lhX + 66 * s, H);
+    ctx.closePath(); ctx.fill();
+    const halfAt = (y: number) => 12 * s + (20 * s - 12 * s) * ((y - lhTopY) / lhTH);
+    const bands = 6;
+    for (let i = 0; i < bands; i++) {
+      const y0 = lhTopY + (lhTH * i) / bands, y1 = lhTopY + (lhTH * (i + 1)) / bands;
+      ctx.fillStyle = i % 2 ? '#6e1a1a' : '#b9bcc0';
+      ctx.beginPath();
+      ctx.moveTo(lhX - halfAt(y0), y0); ctx.lineTo(lhX + halfAt(y0), y0); ctx.lineTo(lhX + halfAt(y1), y1); ctx.lineTo(lhX - halfAt(y1), y1);
+      ctx.closePath(); ctx.fill();
+    }
+    const shade = ctx.createLinearGradient(lhX - 20 * s, 0, lhX + 20 * s, 0); // the dark night side
+    shade.addColorStop(0, 'rgba(0,0,0,.05)'); shade.addColorStop(1, 'rgba(0,0,10,.6)');
+    ctx.fillStyle = shade;
+    ctx.beginPath();
+    ctx.moveTo(lhX - halfAt(lhTopY), lhTopY); ctx.lineTo(lhX + halfAt(lhTopY), lhTopY); ctx.lineTo(lhX + halfAt(lhBaseY), lhBaseY); ctx.lineTo(lhX - halfAt(lhBaseY), lhBaseY);
+    ctx.closePath(); ctx.fill();
+    const wob = Math.random() < 0.08 ? 0.15 : 1; // eerie flicker
+    for (const wy of [0.3, 0.62]) { // windows with a sick green light
+      ctx.fillStyle = `rgba(130,255,190,${(0.35 + 0.3 * Math.sin(r / 230 + wy * 9)) * wob})`;
+      ctx.fillRect(lhX - 2.5 * s, lhTopY + lhTH * wy, 5 * s, 8 * s);
+    }
+    ctx.fillStyle = '#05070a'; // the door
+    ctx.fillRect(lhX - 4 * s, lhBaseY - 13 * s, 8 * s, 13 * s);
+    ctx.fillStyle = '#1b1f26'; // the gallery and its rail
+    ctx.fillRect(lhX - 19 * s, lhTopY - 3 * s, 38 * s, 4 * s);
+    ctx.strokeStyle = '#1b1f26'; ctx.lineWidth = 1;
+    for (let i = -4; i <= 4; i++) { ctx.beginPath(); ctx.moveTo(lhX + i * 4.4 * s, lhTopY - 3 * s); ctx.lineTo(lhX + i * 4.4 * s, lhTopY - 9 * s); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(lhX - 19 * s, lhTopY - 9 * s); ctx.lineTo(lhX + 19 * s, lhTopY - 9 * s); ctx.stroke();
+    // the lantern room: it flickers
+    const lamp = Math.max(0.55, 0.85 + 0.15 * Math.sin(r / 41) - (Math.random() < 0.06 ? 0.4 : 0));
+    const lg = ctx.createRadialGradient(lhX, lhLY, 2, lhX, lhLY, 46 * s);
+    lg.addColorStop(0, `rgba(255,246,190,${0.85 * lamp * intro})`); lg.addColorStop(1, 'rgba(255,230,150,0)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(lhX - 50 * s, lhLY - 50 * s, 100 * s, 100 * s);
+    ctx.fillStyle = `rgba(255,244,200,${0.95 * lamp})`;
+    ctx.fillRect(lhX - 8 * s, lhLY - 9 * s, 16 * s, 18 * s);
+    ctx.fillStyle = '#1b1f26';
+    ctx.fillRect(lhX - 1 * s, lhLY - 9 * s, 2 * s, 18 * s);
+    ctx.fillStyle = '#6e1a1a';
+    ctx.beginPath(); ctx.moveTo(lhX - 11 * s, lhLY - 9 * s); ctx.quadraticCurveTo(lhX, lhLY - 26 * s, lhX + 11 * s, lhLY - 9 * s); ctx.closePath(); ctx.fill();
+    // the beam
+    const th = lhTheta(r);
+    const beamA = intro * (1 - clamp1((r - LH_SWEEP - 100) / 500)) * lamp;
+    if (beamA > 0.01) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const L = W * 1.5, hw = 0.1;
+      const bg = ctx.createRadialGradient(lhX, lhLY, 4, lhX, lhLY, L);
+      bg.addColorStop(0, `rgba(255,248,205,${0.7 * beamA})`); bg.addColorStop(0.5, `rgba(255,248,205,${0.2 * beamA})`); bg.addColorStop(1, 'rgba(255,248,205,0)');
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.moveTo(lhX, lhLY);
+      ctx.lineTo(lhX + L * Math.cos(th - hw), lhLY + L * Math.sin(th - hw));
+      ctx.lineTo(lhX + L * Math.cos(th + hw), lhLY + L * Math.sin(th + hw));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    // ghosts: one waves from the gallery, others drift through the fog
+    lhGhost(lhX + 27 * s, lhTopY - 8 * s + Math.sin(r / 260) * 2, 15 * s, 0.85 * intro, r / 170);
+    const fade = 1 - clamp1((r - LH_SWEEP) / 900) * 0.7;
+    for (let i = 0; i < 3; i++) {
+      const gx = (((r + T_INTRO) * 0.05 * (0.8 + i * 0.3) + i * W * 0.37) % (W + 140)) - 70;
+      const gy = H * (0.3 + i * 0.17) + Math.sin(r / 420 + i * 2) * 10;
+      lhGhost(gx, gy, (22 + i * 5) * s, 0.26 * fade * intro, r / 200 + i);
+    }
+    for (let i = 0; i < 3; i++) { // fog in front
+      const fx = ((i * W) / 2.1 + 90 + Math.sin(r / 1500 + i * 2) * 50) % W;
+      ctx.fillStyle = 'rgba(200,222,232,.07)';
+      ctx.beginPath(); ctx.ellipse(fx, H * (0.72 + i * 0.08), W * 0.34, 22 * lhS, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    if (intro < 1) {
+      ctx.fillStyle = `rgba(0,0,0,${1 - intro})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+    // the words, in ghostly light wherever the beam has been
+    ctx.font = `${fs}px ${FONT}`;
+    const amp = 1.7 * (1 - clamp1(r / (LH_SWEEP + 300)));
+    for (let i = 0; i < words.length; i++) {
+      const age = r - lhLit[i];
+      if (age < 0) continue;
+      const a0 = ease(clamp1(age / 350));
+      const inBeam = r < LH_SWEEP + 200 ? clamp1(1 - Math.abs(th - lhWA[i]) / 0.14) : 0;
+      const dx = Math.sin(r / 170 + i * 1.7) * amp;
+      const dy = Math.cos(r / 210 + i) * amp * 0.6;
+      for (const c of words[i].cells) textLit(c, inBeam > 0.3 ? '#fffbe4' : '#cffff0', 'rgba(140,255,215,.95)', 6 + 10 * inBeam, c.x + dx, c.y + dy, a0 * (0.72 + 0.28 * inBeam));
+    }
     fadeToFinal(r);
   };
 
@@ -7589,6 +7777,7 @@ export function playReveal(o: RevealOptions): RevealHandle {
     footsmash: drawFoot,
     builder: drawBuilder,
     lockedchest: drawLockedChest,
+    lighthouse: drawLighthouse,
   };
 
   const frame = (now: number) => {
